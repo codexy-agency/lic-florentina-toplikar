@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+@theme inline {
+  /* Editorial Luxury palette — warm, calm, professional */
+  --color-cream: #FBF8F2;
+  --color-cream-deep: #F3ECE0;
+  --color-espresso: #2B2722;
+  --color-espresso-soft: #5A5248;
+  --color-sage: #7C8A6F;
+  --color-sage-deep: #5F6E54;
+  --color-clay: #C8A98C;
+  --color-line: rgba(43, 39, 34, 0.08);
+
+  --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
+
+  --ease-fluid: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+.font-serif {
+  font-family: var(--font-serif), Georgia, serif;
+}
+
+/* Film-grain overlay for physical paper feel */
+.grain::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+::selection {
+  background: var(--color-sage);
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
