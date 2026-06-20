@@ -15,45 +15,45 @@ const jakarta = Plus_Jakarta_Sans({
   display: "swap",
 });
 
-const SITE_URL = "https://florentinatoplikar.com";
+const SITE_URL = "https://paulinapilotti.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Lic. Florentina Toplikar | Psicóloga Clínica en Paraná y Online",
-    template: "%s | Lic. Florentina Toplikar",
+    default: "Lic. Paulina Pilotti | Psicóloga Clínica en Viedma y Online",
+    template: "%s | Lic. Paulina Pilotti",
   },
   description:
-    "Psicóloga clínica especializada en Terapia Cognitivo Conductual (TCC) y ACT. Atención presencial en Paraná y online a todo el mundo para adolescentes, jóvenes y adultos. Agendá tu primera consulta por WhatsApp.",
+    "Psicóloga clínica especializada en Terapia Cognitivo Conductual (TCC) y ACT. Atención presencial en Viedma y online a todo el mundo para adolescentes, jóvenes y adultos. Agendá tu primera consulta por WhatsApp.",
   keywords: [
-    "psicóloga Paraná",
+    "psicóloga Viedma",
     "psicóloga online",
     "terapia cognitivo conductual",
     "terapia ACT",
     "psicóloga clínica",
-    "Florentina Toplikar",
+    "Paulina Pilotti",
     "terapia adolescentes",
     "terapia ansiedad",
-    "salud mental Paraná",
-    "psicólogo Entre Ríos",
+    "salud mental Viedma",
+    "psicóloga Río Negro",
   ],
-  authors: [{ name: "Lic. Florentina Toplikar" }],
-  creator: "Lic. Florentina Toplikar",
+  authors: [{ name: "Lic. Paulina Pilotti" }],
+  creator: "Lic. Paulina Pilotti",
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     locale: "es_AR",
     url: SITE_URL,
-    siteName: "Lic. Florentina Toplikar — Psicóloga Clínica",
-    title: "Lic. Florentina Toplikar | Psicóloga Clínica en Paraná y Online",
+    siteName: "Lic. Paulina Pilotti — Psicóloga Clínica",
+    title: "Lic. Paulina Pilotti | Psicóloga Clínica en Viedma y Online",
     description:
-      "Terapia Cognitivo Conductual y ACT. Atención presencial en Paraná y online a todo el mundo. Un espacio para cuidar tu salud mental.",
+      "Terapia Cognitivo Conductual y ACT. Atención presencial en Viedma y online a todo el mundo. Un espacio para cuidar tu salud mental.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Lic. Florentina Toplikar | Psicóloga Clínica",
+    title: "Lic. Paulina Pilotti | Psicóloga Clínica",
     description:
-      "Terapia Cognitivo Conductual y ACT. Presencial en Paraná y online a todo el mundo.",
+      "Terapia Cognitivo Conductual y ACT. Presencial en Viedma y online a todo el mundo.",
   },
   robots: {
     index: true,
@@ -66,17 +66,14 @@ export const metadata: Metadata = {
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "Psychologist",
-  name: "Lic. Florentina Toplikar",
+  name: "Lic. Paulina Pilotti",
   description:
-    "Psicóloga clínica especializada en Terapia Cognitivo Conductual (TCC) y ACT. Atención presencial en Paraná y online.",
+    "Psicóloga clínica especializada en Terapia Cognitivo Conductual (TCC) y ACT. Atención presencial en Viedma y online.",
   url: SITE_URL,
-  image: `${SITE_URL}/og.jpg`,
-  telephone: "+5400000000000",
   priceRange: "$$",
-  medicalSpecialty: "Psychiatric",
   knowsLanguage: "es",
   areaServed: [
-    { "@type": "City", name: "Paraná, Entre Ríos, Argentina" },
+    { "@type": "City", name: "Viedma, Río Negro, Argentina" },
     { "@type": "Place", name: "Atención online a todo el mundo" },
   ],
   availableService: [
@@ -85,11 +82,11 @@ const jsonLd = {
   ],
   address: {
     "@type": "PostalAddress",
-    addressLocality: "Paraná",
-    addressRegion: "Entre Ríos",
+    addressLocality: "Viedma",
+    addressRegion: "Río Negro",
     addressCountry: "AR",
   },
-  sameAs: ["https://www.instagram.com/psic.florentinatoplikar/"],
+  sameAs: ["https://www.instagram.com/"],
 };
 
 export default function RootLayout({

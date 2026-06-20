@@ -1,0 +1,32 @@
+{
+  "solicitudes": [],
+  "pacientes": [],
+  "services": [
+    { "id": "svc-consulta", "nombre": "Primera consulta", "durationMin": 50, "priceARS": 18000, "descripcion": "Nos conocemos y definimos objetivos.", "activo": true },
+    { "id": "svc-individual", "nombre": "Sesión individual", "durationMin": 50, "priceARS": 15000, "descripcion": "Encuentro terapéutico individual.", "activo": true },
+    { "id": "svc-pareja", "nombre": "Terapia de pareja", "durationMin": 60, "priceARS": 22000, "descripcion": "Sesión para ambos integrantes.", "activo": true },
+    { "id": "svc-padres", "nombre": "Orientación a padres", "durationMin": 45, "priceARS": 16000, "descripcion": "Acompañamiento en la crianza.", "activo": true }
+  ],
+  "staff": [
+    { "id": "staff-pauli", "nombre": "Paulina Pilotti", "titulo": "Psicóloga clínica · MP 7321", "bio": "Terapia Cognitivo Conductual y ACT.", "serviceIds": ["svc-consulta", "svc-individual", "svc-pareja", "svc-padres"], "color": "#9C5475", "activo": true },
+    { "id": "staff-martina", "nombre": "Lic. Martina Ríos", "titulo": "Psicóloga · MP 8420", "bio": "Adolescentes y orientación a familias.", "serviceIds": ["svc-individual", "svc-padres"], "color": "#7c8a6f", "activo": true }
+  ],
+  "scheduling": {
+    "config": {
+      "slotDurationMin": 50,
+      "bufferAfterMin": 10,
+      "minNoticeHours": 24,
+      "bookingWindowDays": 30
+    },
+    "rules": [
+      { "id": "r-lun-1", "weekday": 1, "startTime": "09:00", "endTime": "13:00", "modalidad": "online" },
+      { "id": "r-lun-2", "weekday": 1, "startTime": "15:00", "endTime": "19:00", "modalidad": "presencial" },
+      { "id": "r-mar-1", "weekday": 2, "startTime": "09:00", "endTime": "13:00", "modalidad": "online" },
+      { "id": "r-mie-1", "weekday": 3, "startTime": "10:00", "endTime": "14:00", "modalidad": "online" },
+      { "id": "r-mie-2", "weekday": 3, "startTime": "16:00", "endTime": "19:00", "modalidad": "presencial" },
+      { "id": "r-jue-1", "weekday": 4, "startTime": "09:00", "endTime": "13:00", "modalidad": "online" },
+      { "id": "r-vie-1", "weekday": 5, "startTime": "09:00", "endTime": "12:00", "modalidad": "online" }
+    ],
+    "exceptions": []
+  }
+}

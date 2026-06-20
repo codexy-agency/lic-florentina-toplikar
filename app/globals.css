@@ -1,20 +1,26 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* Editorial Luxury palette — warm, calm, professional */
-  --color-cream: #FBF8F2;
-  --color-cream-deep: #F3ECE0;
-  --color-espresso: #2B2722;
-  --color-espresso-soft: #5A5248;
-  --color-sage: #7C8A6F;
-  --color-sage-deep: #5F6E54;
-  --color-clay: #C8A98C;
-  --color-line: rgba(43, 39, 34, 0.08);
+  /* Paleta pastel delicada — rosa empolvado malva + lavanda, calma terapéutica.
+     Los nombres se conservan por compatibilidad; los valores son la nueva identidad. */
+  --color-cream: #FBF7F7;       /* fondo base */
+  --color-cream-deep: #F4EBEC;  /* fondo de tarjetas / secciones */
+  --color-espresso: #3A3137;    /* texto principal (ciruela profundo, 11.8:1) */
+  --color-espresso-soft: #6B5E66; /* texto secundario */
+  --color-sage: #D9A7B8;        /* acento primario — rosa empolvado */
+  --color-sage-deep: #9C5475;   /* acento saturado para texto/detalle (AA) */
+  --color-clay: #C9B6D6;        /* acento secundario — lavanda */
+  --color-line: rgba(58, 49, 55, 0.1);
 
   --font-sans: var(--font-sans);
   --font-serif: var(--font-serif);
 
   --ease-fluid: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* Sistema de sombras — coloreadas hacia el primary para coherencia pastel */
+  --shadow-card: 0 24px 60px -36px rgba(58, 49, 55, 0.22);
+  --shadow-card-hover: 0 36px 80px -40px rgba(156, 84, 117, 0.28);
+  --shadow-float: 0 14px 44px -22px rgba(58, 49, 55, 0.3);
 }
 
 * {
@@ -22,8 +28,10 @@
   text-rendering: optimizeLegibility;
 }
 
-html {
-  scroll-behavior: smooth;
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 body {
@@ -34,6 +42,11 @@ body {
   font-family: var(--font-serif), Georgia, serif;
 }
 
+/* Sombra para texto sobre imágenes (hero) — lo despega del fondo */
+.text-veil {
+  text-shadow: 0 2px 24px rgba(43, 39, 34, 0.55), 0 1px 4px rgba(43, 39, 34, 0.45);
+}
+
 /* Film-grain overlay for physical paper feel */
 .grain::before {
   content: "";
@@ -41,13 +54,251 @@ body {
   inset: 0;
   z-index: 50;
   pointer-events: none;
-  opacity: 0.035;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+  will-change: auto;
 }
 
 ::selection {
   background: var(--color-sage);
   color: #fff;
+}
+
+/* Scroll-driven parallax for images (compositor-only, degrades gracefully) */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .parallax-img {
+      animation: parallax-rise linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 100%;
+      will-change: transform;
+    }
+    @keyframes parallax-rise {
+      from {
+        transform: translateY(-6%) scale(1.12);
+      }
+      to {
+        transform: translateY(6%) scale(1.12);
+      }
+    }
+  }
+}
+
+/* ---- Hero: entrada cinematográfica (CSS puro — visible sin JS, respeta reduced-motion) ---- */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-rise {
+    opacity: 0;
+    animation: hero-rise 0.9s var(--ease-fluid) both;
+    animation-delay: var(--d, 0s);
+  }
+  @keyframes hero-rise {
+    from {
+      opacity: 0;
+      transform: translateY(26px);
+      filter: blur(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+      filter: none;
+    }
+  }
+
+  /* Titular palabra por palabra con máscara */
+  .hero-mask {
+    display: inline-block;
+    overflow: hidden;
+    vertical-align: bottom;
+    padding-bottom: 0.12em;
+    margin-bottom: -0.12em;
+  }
+  .hero-word {
+    display: inline-block;
+    transform: translateY(115%);
+    animation: hero-word 0.85s var(--ease-fluid) both;
+    animation-delay: var(--d, 0s);
+  }
+  @keyframes hero-word {
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  /* Ken Burns sutil para el video del hero */
+  .kenburns {
+    animation: kenburns 16s ease-in-out infinite alternate;
+  }
+  @keyframes kenburns {
+    from {
+      transform: scale(1);
+    }
+    to {
+      transform: scale(1.07);
+    }
+  }
+
+  /* Cinta tipográfica de marca */
+  @keyframes marquee {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  /* Indicador de scroll — barra que desciende y se desvanece */
+  .scroll-wheel {
+    animation: scroll-wheel 2s var(--ease-fluid) infinite;
+  }
+  @keyframes scroll-wheel {
+    0% {
+      opacity: 0;
+      transform: translateY(-110%);
+    }
+    25% {
+      opacity: 1;
+    }
+    65% {
+      opacity: 1;
+      transform: translateY(220%);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(260%);
+    }
+  }
+}
+
+/* ---- Fondo vivo ----
+   Desktop: Vanta FOG (WebGL) lo reemplaza en runtime.
+   Mobile / fallback: gradiente animado ultra liviano (GPU, solo background-position). */
+.living-gradient {
+  background:
+    radial-gradient(60% 80% at 18% 28%, rgba(217, 167, 184, 0.2), transparent 62%),
+    radial-gradient(55% 75% at 82% 72%, rgba(201, 182, 214, 0.18), transparent 60%),
+    radial-gradient(40% 55% at 60% 10%, rgba(217, 167, 184, 0.1), transparent 55%),
+    var(--color-cream);
+  background-size: 180% 180%, 180% 180%, 160% 160%, auto;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .living-gradient {
+    animation: living 18s ease-in-out infinite alternate;
+  }
+  @keyframes living {
+    from {
+      background-position: 0% 0%, 100% 100%, 50% 0%, 0 0;
+    }
+    to {
+      background-position: 100% 60%, 0% 40%, 30% 100%, 0 0;
+    }
+  }
+}
+
+/* ---- Parallax multicapa (scroll-driven, corre en el compositor) ---- */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .parallax-back,
+    .parallax-mid {
+      animation: linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 100%;
+    }
+    .parallax-back {
+      animation-name: par-back;
+    }
+    .parallax-mid {
+      animation-name: par-mid;
+    }
+    @keyframes par-back {
+      from {
+        transform: translateY(9%);
+      }
+      to {
+        transform: translateY(-9%);
+      }
+    }
+    @keyframes par-mid {
+      from {
+        transform: translateY(4%);
+      }
+      to {
+        transform: translateY(-4%);
+      }
+    }
+  }
+}
+
+/* ---- Botanical tint system: tiñe las acuarelas al rosa empolvado de la marca ---- */
+.botanic {
+  filter: grayscale(0.5) sepia(0.45) saturate(1.4) hue-rotate(298deg)
+    brightness(1.05) drop-shadow(0 1px 1px rgba(156, 84, 117, 0.06));
+  mix-blend-mode: multiply;
+}
+.botanic-on-dark {
+  filter: brightness(0) saturate(100%) invert(85%) sepia(12%) saturate(420%)
+    hue-rotate(45deg) brightness(0.95);
+  mix-blend-mode: screen;
+}
+
+/* ---- Botanical motion ---- */
+@media (prefers-reduced-motion: no-preference) {
+  /* gentle perpetual sway for branches */
+  .sway {
+    transform-origin: var(--sway-origin, 0% 50%);
+    animation: sway 7s ease-in-out infinite;
+  }
+  .sway-slow {
+    transform-origin: var(--sway-origin, 100% 50%);
+    animation: sway 9s ease-in-out infinite;
+  }
+  @keyframes sway {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(2.5deg); }
+  }
+
+  /* plants grow/slide in from the sides as the section scrolls into view */
+  @supports (animation-timeline: view()) {
+    .grow-left,
+    .grow-right {
+      animation: linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+    .grow-left { animation-name: grow-left; transform-origin: left center; }
+    .grow-right { animation-name: grow-right; transform-origin: right center; }
+    @keyframes grow-left {
+      from { opacity: 0; transform: translateX(-40px) rotate(-6deg) scale(0.9); }
+      to   { opacity: 1; transform: translateX(0) rotate(0) scale(1); }
+    }
+    @keyframes grow-right {
+      from { opacity: 0; transform: translateX(40px) rotate(6deg) scale(0.9); }
+      to   { opacity: 1; transform: translateX(0) rotate(0) scale(1); }
+    }
+
+    /* vine draws itself as you scroll the section */
+    .vine-path {
+      stroke-dasharray: 1400;
+      stroke-dashoffset: 1400;
+      animation: vine-draw linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 60%;
+    }
+    @keyframes vine-draw {
+      to { stroke-dashoffset: 0; }
+    }
+  }
+}
+
+/* Smooth FAQ disclosure */
+details.faq > .faq-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+}
+details.faq[open] > .faq-body {
+  grid-template-rows: 1fr;
+}
+details.faq > .faq-body > div {
+  overflow: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {
