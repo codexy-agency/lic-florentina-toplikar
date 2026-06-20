@@ -8,7 +8,11 @@ const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-export const supabaseConfigurado = Boolean(URL && SERVICE);
+/** Id del profesional (single-tenant). La app guarda/lee los datos de ESTE id. */
+export const PROFESSIONAL_ID = process.env.PROFESSIONAL_ID;
+
+/** Supabase se usa solo si están la URL, la service_role Y el professional_id. */
+export const supabaseConfigurado = Boolean(URL && SERVICE && PROFESSIONAL_ID);
 
 let _service: SupabaseClient | null = null;
 export function getServiceClient(): SupabaseClient {

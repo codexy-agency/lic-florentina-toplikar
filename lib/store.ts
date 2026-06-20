@@ -13,6 +13,7 @@ import {
   type Staff,
   DEFAULT_CONFIG,
 } from "./scheduling/types";
+import { getServiceClient, supabaseConfigurado, PROFESSIONAL_ID } from "./supabase";
 
 export type { Service, Staff } from "./scheduling/types";
 
@@ -97,42 +98,100 @@ function mergeConfig(stored: Partial<SchedulingConfig>): SchedulingConfig {
   return config;
 }
 
-async function read(): Promise<DB> {
+/** Aplica defaults/migraciones a un objeto crudo (de archivo o de Supabase). */
+function normalize(raw: Partial<DB> & { scheduling?: Partial<Scheduling> }): DB {
+  return {
+    solicitudes: raw.solicitudes ?? [],
+    pacientes: raw.pacientes ?? [],
+    notasClinicas: raw.notasClinicas ?? [],
+    services: raw.services ?? [],
+    staff: raw.staff ?? [],
+    scheduling: {
+      config: mergeConfig(raw.scheduling?.config ?? {}),
+      rules: raw.scheduling?.rules ?? [],
+      exceptions: raw.scheduling?.exceptions ?? [],
+    },
+  };
+}
+
+// ── Persistencia en ARCHIVO (local / fallback) ──
+async function fileRead(): Promise<DB> {
   let raw: string;
   try {
     raw = await fs.readFile(DB_PATH, "utf-8");
   } catch {
     return emptyDB(); // archivo no existe → base vacía
   }
-  const db = JSON.parse(raw); // si está corrupto, que lance (no perder datos en silencio)
-  return {
-    solicitudes: db.solicitudes ?? [],
-    pacientes: db.pacientes ?? [],
-    notasClinicas: db.notasClinicas ?? [],
-    services: db.services ?? [],
-    staff: db.staff ?? [],
-    scheduling: {
-      config: mergeConfig(db.scheduling?.config ?? {}),
-      rules: db.scheduling?.rules ?? [],
-      exceptions: db.scheduling?.exceptions ?? [],
-    },
-  };
+  return normalize(JSON.parse(raw)); // si está corrupto, que lance
 }
 
-async function writeAtomic(db: DB): Promise<void> {
+async function fileWrite(db: DB): Promise<void> {
   await fs.mkdir(path.dirname(DB_PATH), { recursive: true });
   const tmp = `${DB_PATH}.${randomUUID()}.tmp`;
   await fs.writeFile(tmp, JSON.stringify(db, null, 2), "utf-8");
   await fs.rename(tmp, DB_PATH); // rename es atómico en el mismo FS
 }
 
-// Cola: serializa las mutaciones (read-modify-write) para que no se pisen.
+// ── Persistencia en SUPABASE (JSONB versionado, escritura atómica) ──
+async function sbRead(): Promise<{ db: DB; rev: number }> {
+  const sb = getServiceClient();
+  const { data, error } = await sb
+    .from("app_state")
+    .select("data, rev")
+    .eq("professional_id", PROFESSIONAL_ID)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return { db: emptyDB(), rev: 0 };
+  return { db: normalize((data.data ?? {}) as Partial<DB>), rev: Number(data.rev) || 0 };
+}
+
+/** Escribe SOLO si rev no cambió (optimistic lock). false = conflicto → reintentar. */
+async function sbWrite(db: DB, rev: number): Promise<boolean> {
+  const sb = getServiceClient();
+  if (rev === 0) {
+    const { error } = await sb
+      .from("app_state")
+      .insert({ professional_id: PROFESSIONAL_ID, data: db, rev: 1 });
+    if (error) {
+      if ((error as { code?: string }).code === "23505") return false; // ya existía
+      throw error;
+    }
+    return true;
+  }
+  const { data, error } = await sb
+    .from("app_state")
+    .update({ data: db, rev: rev + 1, updated_at: new Date().toISOString() })
+    .eq("professional_id", PROFESSIONAL_ID)
+    .eq("rev", rev)
+    .select("rev");
+  if (error) throw error;
+  return Array.isArray(data) && data.length > 0; // 0 filas = rev cambió = conflicto
+}
+
+// Lectura (no mutante): despacha a Supabase o archivo.
+async function read(): Promise<DB> {
+  if (supabaseConfigurado) return (await sbRead()).db;
+  return fileRead();
+}
+
+// Cola: serializa las mutaciones (read-modify-write) para que no se pisen DENTRO
+// de una instancia. Entre instancias serverless, el rev (optimistic lock) evita
+// que dos escrituras concurrentes se pisen (reintenta el ciclo completo).
 let queue: Promise<unknown> = Promise.resolve();
 function mutate<T>(fn: (db: DB) => T | Promise<T>): Promise<T> {
   const next = queue.then(async () => {
-    const db = await read();
+    if (supabaseConfigurado) {
+      for (let intento = 0; intento < 6; intento++) {
+        const { db, rev } = await sbRead();
+        const result = await fn(db);
+        if (await sbWrite(db, rev)) return result;
+        // conflicto de rev → re-leer y re-aplicar contra el estado más fresco
+      }
+      throw new Error("No se pudo guardar: conflicto de concurrencia (6 intentos).");
+    }
+    const db = await fileRead();
     const result = await fn(db);
-    await writeAtomic(db);
+    await fileWrite(db);
     return result;
   });
   queue = next.catch(() => {});

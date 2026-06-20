@@ -1,7 +1,6 @@
 -- ============================================================
--- APLICAR TODO EL ESQUEMA — pegar en Supabase SQL Editor (Run).
--- Proyecto: nojgdkesngpbaidqperp. Concatena 0001 + 0002 + 0003.
--- IDEMPOTENTE: re-ejecutable sin romper.
+-- ESQUEMA COMPLETO — Supabase SQL Editor (Run). Idempotente.
+-- 0001 init + 0002 rls + 0003 services/staff + 0004 user nullable + 0005 app_state
 -- ============================================================
 
 -- ─────────── 0001_init.sql ───────────
@@ -455,3 +454,31 @@ create policy staff_services_all_own on public.staff_services
 drop policy if exists services_public_read on public.services;
 drop policy if exists staff_public_read on public.staff;
 drop policy if exists staff_services_public_read on public.staff_services;
+
+-- ─────────── 0004_professional_user_nullable.sql ───────────
+-- =====================================================================
+-- 0004 — MVP single-tenant: professionals.user_id puede quedar NULL.
+-- La app gestiona los datos del profesional server-side con service_role,
+-- sin Supabase Auth todavía. Cuando sumemos multi-tenant con login real,
+-- cada profesional se vincula a su auth.users vía user_id (volver a NOT NULL).
+-- =====================================================================
+alter table public.professionals alter column user_id drop not null;
+
+-- ─────────── 0005_app_state.sql ───────────
+-- =====================================================================
+-- 0005 — Estado de la app (single-tenant MVP) como JSONB versionado.
+-- La app (lib/store.ts) lee/escribe TODO su estado en esta fila, con
+-- escritura atómica y optimistic-lock (columna rev). Reutiliza la lógica
+-- ya probada del store; persistencia segura en serverless (Vercel).
+-- Las tablas relacionales (services/staff/appointments/...) quedan como
+-- destino para la fase multi-profesional.
+-- =====================================================================
+create table if not exists public.app_state (
+  professional_id uuid primary key references public.professionals(id) on delete cascade,
+  data            jsonb not null default '{}'::jsonb,
+  rev             bigint not null default 0,
+  updated_at      timestamptz not null default now()
+);
+-- RLS ON sin políticas: SOLO service_role (servidor) puede tocarla.
+-- anon/authenticated quedan denegados por deny-by-default.
+alter table public.app_state enable row level security;
