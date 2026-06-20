@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { listSolicitudes, listPacientes, stats } from "@/lib/store";
 import { fechaHoraAR, isoToArLocal } from "@/lib/scheduling/slots";
 import { AdminHeader } from "@/components/AdminHeader";
@@ -50,8 +51,15 @@ export default async function AdminPage() {
     <AdminShell>
       <AdminHeader />
 
+      <div className="mt-8">
+        <h2 className="font-serif text-2xl tracking-tight text-espresso">Agenda</h2>
+        <p className="mt-1 text-[14px] text-espresso-soft">
+          Tu día a día: solicitudes, próximos turnos y pacientes.
+        </p>
+      </div>
+
       {/* Stats */}
-      <div className="mt-8 grid grid-cols-3 gap-3 md:gap-4">
+      <div className="mt-6 grid grid-cols-3 gap-3 md:gap-4">
         {[
           { n: s.pendientes, l: "Solicitudes pendientes" },
           { n: s.confirmados, l: "Turnos confirmados" },
@@ -145,13 +153,13 @@ export default async function AdminPage() {
                       defaultValue={x.startsAt ? isoToArLocal(x.startsAt) : ""}
                       className="rounded-full border border-[rgba(58,49,55,0.16)] bg-[#FBF7F8] px-3 py-2 text-[13px] text-espresso focus:border-sage/60 focus:outline-none"
                     />
-                    <button className="rounded-full bg-espresso px-4 py-2 text-[13px] font-medium text-cream transition-colors hover:bg-espresso/90">
+                    <button className="rounded-full bg-espresso px-4 py-2.5 text-[13px] font-medium text-cream transition-colors hover:bg-espresso/90">
                       {x.startsAt ? "Confirmar" : "Confirmar con fecha"}
                     </button>
                   </form>
                   <form action={rechazarSolicitud}>
                     <input type="hidden" name="id" value={x.id} />
-                    <button className="rounded-full border border-[var(--color-line)] px-4 py-2 text-[13px] text-espresso-soft transition-colors hover:text-[#9C5475]">
+                    <button className="rounded-full border border-[var(--color-line)] px-4 py-2.5 text-[13px] text-espresso-soft transition-colors hover:text-[#9C5475]">
                       Rechazar
                     </button>
                   </form>
@@ -208,13 +216,13 @@ export default async function AdminPage() {
                       defaultValue={x.startsAt ? isoToArLocal(x.startsAt) : ""}
                       className="rounded-full border border-[rgba(58,49,55,0.16)] bg-[#FBF7F8] px-3 py-2 text-[13px] text-espresso focus:border-sage/60 focus:outline-none"
                     />
-                    <button className="rounded-full border border-[var(--color-line)] px-4 py-2 text-[13px] text-espresso-soft transition-colors hover:text-espresso">
+                    <button className="rounded-full border border-[var(--color-line)] px-4 py-2.5 text-[13px] text-espresso-soft transition-colors hover:text-espresso">
                       Reprogramar
                     </button>
                   </form>
                   <form action={marcarRealizado} className="ml-auto">
                     <input type="hidden" name="id" value={x.id} />
-                    <button className="rounded-full border border-[var(--color-line)] px-4 py-2 text-[13px] text-espresso-soft transition-colors hover:text-espresso">
+                    <button className="rounded-full border border-[var(--color-line)] px-4 py-2.5 text-[13px] text-espresso-soft transition-colors hover:text-espresso">
                       Marcar realizado
                     </button>
                   </form>
@@ -237,17 +245,17 @@ export default async function AdminPage() {
         ) : (
           <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {pacientes.map((p) => (
-              <li
-                key={p.id}
-                className="rounded-2xl admin-card p-5"
-              >
-                <p className="font-medium text-espresso">{p.nombre}</p>
-                <p className="mt-0.5 text-[14px] text-espresso-soft">
-                  {p.contacto}
-                </p>
-                <p className="mt-2 text-[12px] uppercase tracking-[0.1em] text-sage-deep">
-                  {MOD_LABEL[p.modalidad] || p.modalidad}
-                </p>
+              <li key={p.id}>
+                <Link
+                  href={`/admin/pacientes/${p.id}`}
+                  className="admin-card block rounded-2xl p-5 transition-transform duration-200 hover:-translate-y-0.5"
+                >
+                  <p className="font-medium text-espresso">{p.nombre}</p>
+                  <p className="mt-0.5 text-[14px] text-espresso-soft">{p.contacto}</p>
+                  <p className="mt-2 text-[12px] uppercase tracking-[0.1em] text-sage-deep">
+                    {MOD_LABEL[p.modalidad] || p.modalidad}
+                  </p>
+                </Link>
               </li>
             ))}
           </ul>

@@ -235,7 +235,7 @@ export function DisponibilidadEditor({
       </section>
 
       {/* Guardar */}
-      <div className="sticky bottom-4 flex items-center gap-4">
+      <div className="sticky bottom-0 z-10 -mx-1 flex items-center gap-4 rounded-2xl border-t border-[var(--color-line)] bg-[#ECE3E4]/85 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-[#ECE3E4]/70">
         <button
           onClick={guardar}
           disabled={estado === "guardando"}

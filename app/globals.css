@@ -330,8 +330,8 @@ details.faq > .faq-body > div {
 
 /* Caja de estado vacío — punteada pero visible */
 .admin-empty {
-  background: rgba(255, 255, 255, 0.45);
-  border: 1.5px dashed rgba(58, 49, 55, 0.16);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1.5px dashed rgba(58, 49, 55, 0.22);
 }
 
 /* Input del panel: bien delimitado del fondo blanco de la tarjeta */

@@ -44,7 +44,16 @@ export interface Paciente {
   nombre: string;
   contacto: string;
   modalidad: string;
-  notas: string;
+  notas: string; // ficha / resumen fijo
+  creadoEn: string;
+}
+
+/** Nota de la historia clínica (evolución). Modela la tabla clinical_notes. */
+export interface NotaClinica {
+  id: string;
+  patientId: string;
+  fecha: string; // fecha de la sesión/nota (ISO, editable)
+  contenido: string;
   creadoEn: string;
 }
 
@@ -57,6 +66,7 @@ interface Scheduling {
 interface DB {
   solicitudes: Solicitud[];
   pacientes: Paciente[];
+  notasClinicas: NotaClinica[];
   services: Service[];
   staff: Staff[];
   scheduling: Scheduling;
@@ -68,6 +78,7 @@ function emptyDB(): DB {
   return {
     solicitudes: [],
     pacientes: [],
+    notasClinicas: [],
     services: [],
     staff: [],
     scheduling: { config: DEFAULT_CONFIG, rules: [], exceptions: [] },
@@ -85,6 +96,7 @@ async function read(): Promise<DB> {
   return {
     solicitudes: db.solicitudes ?? [],
     pacientes: db.pacientes ?? [],
+    notasClinicas: db.notasClinicas ?? [],
     services: db.services ?? [],
     staff: db.staff ?? [],
     scheduling: {
@@ -131,6 +143,62 @@ export async function listPacientes(): Promise<Paciente[]> {
   );
 }
 
+export async function getPaciente(id: string): Promise<Paciente | null> {
+  const db = await read();
+  return db.pacientes.find((p) => p.id === id) ?? null;
+}
+
+/** Turnos del paciente (match por contacto normalizado). */
+export async function getPacienteTurnos(contacto: string): Promise<Solicitud[]> {
+  const key = contacto.trim().toLowerCase();
+  const db = await read();
+  return db.solicitudes
+    .filter((s) => s.contacto.trim().toLowerCase() === key)
+    .sort((a, b) =>
+      (a.startsAt || a.creadoEn) < (b.startsAt || b.creadoEn) ? 1 : -1
+    );
+}
+
+export async function updatePacienteFicha(id: string, notas: string): Promise<void> {
+  await mutate((db) => {
+    const p = db.pacientes.find((x) => x.id === id);
+    if (p) p.notas = notas;
+  });
+}
+
+// ── Historia clínica (notas por paciente) ──
+
+export async function listNotas(patientId: string): Promise<NotaClinica[]> {
+  const db = await read();
+  return db.notasClinicas
+    .filter((n) => n.patientId === patientId)
+    .sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
+}
+
+export async function addNota(
+  patientId: string,
+  contenido: string,
+  fecha?: string
+): Promise<NotaClinica> {
+  return mutate((db) => {
+    const n: NotaClinica = {
+      id: randomUUID(),
+      patientId,
+      fecha: fecha || new Date().toISOString(),
+      contenido,
+      creadoEn: new Date().toISOString(),
+    };
+    db.notasClinicas.unshift(n);
+    return n;
+  });
+}
+
+export async function removeNota(id: string): Promise<void> {
+  await mutate((db) => {
+    db.notasClinicas = db.notasClinicas.filter((n) => n.id !== id);
+  });
+}
+
 export async function addSolicitud(
   input: Omit<Solicitud, "id" | "estado" | "creadoEn">
 ): Promise<Solicitud> {
@@ -158,6 +226,13 @@ export async function setEstado(
     s.estado = estado;
     if (startsAt) s.startsAt = startsAt;
     if (endsAt) s.endsAt = endsAt;
+    // Si se rechaza un turno que estaba cobrado, se anula el pago (no queda
+    // plata "cobrada" sobre un turno que no va a suceder).
+    if (estado === "rechazado" && s.pagado) {
+      s.pagado = false;
+      s.metodoPago = undefined;
+      s.fechaPago = undefined;
+    }
     if (estado === "confirmado") {
       const key = s.contacto.trim().toLowerCase();
       const existe = db.pacientes.find((p) => p.contacto.trim().toLowerCase() === key);

@@ -81,12 +81,14 @@ export function ProfesionalesEditor({
               value={m.nombre}
               onChange={(e) => patch(i, { nombre: e.target.value })}
               placeholder="Nombre y apellido"
+              aria-label="Nombre y apellido"
               className={`${inp} min-w-[180px] flex-1 font-medium`}
             />
             <input
               value={m.titulo ?? ""}
               onChange={(e) => patch(i, { titulo: e.target.value })}
               placeholder="Título · matrícula"
+              aria-label="Título o matrícula"
               className={`${inp} min-w-[180px] flex-1`}
             />
             <label className="flex items-center gap-2 text-[13px] text-espresso-soft">
@@ -94,7 +96,7 @@ export function ProfesionalesEditor({
                 type="checkbox"
                 checked={m.activo}
                 onChange={(e) => patch(i, { activo: e.target.checked })}
-                className="h-4 w-4 accent-[#5f6b51]"
+                className="h-4 w-4 accent-[#9C5475]"
               />
               Activo
             </label>
@@ -110,6 +112,7 @@ export function ProfesionalesEditor({
             value={m.bio ?? ""}
             onChange={(e) => patch(i, { bio: e.target.value })}
             placeholder="Bio / especialidad (opcional)"
+            aria-label="Bio o especialidad"
             className={`${inp} mt-3 w-full`}
           />
 
@@ -119,9 +122,11 @@ export function ProfesionalesEditor({
             {COLORES.map((c) => (
               <button
                 key={c}
+                type="button"
                 onClick={() => patch(i, { color: c })}
-                aria-label={`Color ${c}`}
-                className={`h-6 w-6 rounded-full border-2 transition-transform ${
+                aria-label={`Color del avatar`}
+                aria-pressed={m.color === c}
+                className={`h-7 w-7 rounded-full border-2 transition-transform ${
                   m.color === c ? "scale-110 border-espresso" : "border-transparent"
                 }`}
                 style={{ backgroundColor: c }}

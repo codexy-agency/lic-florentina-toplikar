@@ -33,12 +33,13 @@ export async function POST(req: Request) {
     let staffName: string | undefined;
     let precio: number | undefined;
     if (serviceId) {
-      const svc = (await listServices(true)).find((s) => s.id === serviceId);
+      // catálogo completo: capturar nombre+precio aunque el servicio se haya desactivado
+      const svc = (await listServices()).find((s) => s.id === serviceId);
       serviceName = svc?.nombre;
       precio = svc?.priceARS;
     }
     if (staffId) {
-      const st = (await listStaff(true)).find((s) => s.id === staffId);
+      const st = (await listStaff()).find((s) => s.id === staffId);
       staffName = st?.nombre;
     }
 

@@ -57,6 +57,7 @@ export function ServiciosEditor({ initial }: { initial: Service[] }) {
               value={s.nombre}
               onChange={(e) => patch(i, { nombre: e.target.value })}
               placeholder="Nombre del servicio"
+              aria-label="Nombre del servicio"
               className={`${inp} min-w-[200px] flex-1 font-medium`}
             />
             <label className="flex items-center gap-2 text-[13px] text-espresso-soft">
@@ -85,7 +86,7 @@ export function ServiciosEditor({ initial }: { initial: Service[] }) {
                 type="checkbox"
                 checked={s.activo}
                 onChange={(e) => patch(i, { activo: e.target.checked })}
-                className="h-4 w-4 accent-[var(--color-sage-deep,#5f6b51)]"
+                className="h-4 w-4 accent-[#9C5475]"
               />
               Activo
             </label>
@@ -100,6 +101,7 @@ export function ServiciosEditor({ initial }: { initial: Service[] }) {
             value={s.descripcion ?? ""}
             onChange={(e) => patch(i, { descripcion: e.target.value })}
             placeholder="Descripción breve (opcional)"
+            aria-label="Descripción del servicio"
             className={`${inp} mt-3 w-full`}
           />
         </div>
