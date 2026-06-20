@@ -27,7 +27,12 @@ export async function guardarServicios(list: Entrada[]) {
       activo: s.activo !== false,
     }));
 
-  await saveServices(services);
+  try {
+    await saveServices(services);
+  } catch (e) {
+    console.error("[servicios] guardar:", e);
+    throw new Error("No se pudieron guardar los servicios. Reintentá.");
+  }
   revalidatePath("/admin/servicios");
   revalidatePath("/admin/profesionales");
   revalidatePath("/reservar");

@@ -7,6 +7,14 @@ updated: 2026-06-20
 
 Bitácora de cambios grandes (lo más nuevo arriba). El detalle de cada área está en su nota.
 
+## 2026-06-20 — Conexión a Supabase (single-tenant, JSONB)
+
+Proyecto correcto del cliente: **`nojgdkesngpbaidqperp`** (cuenta licpaulinapilotti@gmail.com), accesible por MCP. Migraciones 0003/0004/0005 aplicadas + Paulina creada (`professional_id 3ba6c144-…`) + estado inicial sembrado.
+
+**Decisión de arquitectura:** persistencia **single-tenant** como **JSONB versionado** en `public.app_state` (no las tablas relacionales, que quedan como destino multi-tenant). El store (`lib/store.ts`) solo cambió `read/writeAtomic/mutate` para despachar a Supabase (optimistic-lock con `rev`) o al archivo según `supabaseConfigurado` (URL+SERVICE_ROLE+PROFESSIONAL_ID). Las 25 funciones quedaron iguales.
+
+> ⚠️ **NO se usa la anon key** (lo que digan notas viejas queda superado): en single-tenant TODO va server-side con `service_role`. `getPublicClient()` se eliminó. `app_state` tiene RLS solo-service_role + cifrado en reposo de Supabase. Probado/testeado: app↔Supabase solo se prueba en **Vercel** (esta PC no llega por red); las queries/optimistic-lock se verificaron por MCP. Revisado por workflow de agentes (0 críticos; fixes de atomicidad de disponibilidad, logging, dead-code anon, env-vars admin aplicados). Ver [[supabase-acceso-red]].
+
 ## 2026-06-20 — Multi-servicio + multi-profesional (esquema "Lumière")
 
 Se replicó el esquema de un video de referencia (TikTok @crisoftdev, "Lumière Estética"): pasar de "1 profesional + modalidad" a **N servicios × N profesionales**, con reserva por pasos y panel ampliado. Construido sobre el store local (testeado con build + capturas; Supabase se conecta después — ver [[07 - Supabase]] y [[supabase-acceso-red]] en memoria).

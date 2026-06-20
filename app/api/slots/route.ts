@@ -34,7 +34,8 @@ export async function GET(req: Request) {
       busy,
     });
     return NextResponse.json({ ok: true, dias });
-  } catch {
+  } catch (e) {
+    console.error("[api/slots]", e);
     return NextResponse.json({ ok: false, dias: [] }, { status: 500 });
   }
 }

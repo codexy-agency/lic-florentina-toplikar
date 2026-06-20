@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { saveConfig, saveRules, setExceptions } from "@/lib/store";
+import { saveDisponibilidad } from "@/lib/store";
 import { verifyToken, SESSION_COOKIE } from "@/lib/auth";
 import { randomUUID } from "crypto";
 import type {
@@ -47,7 +47,12 @@ export async function guardarDisponibilidad(payload: Payload) {
     .filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d))
     .map((d) => ({ id: randomUUID(), date: d, type: "block_day" as const }));
 
-  await Promise.all([saveConfig(config), saveRules(rules), setExceptions(exceptions)]);
+  try {
+    await saveDisponibilidad({ config, rules, exceptions });
+  } catch (e) {
+    console.error("[disponibilidad] guardar:", e);
+    throw new Error("No se pudo guardar la disponibilidad. Reintentá.");
+  }
   revalidatePath("/admin/disponibilidad");
   revalidatePath("/admin");
 }

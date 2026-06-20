@@ -8,7 +8,15 @@ export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
     const token = req.cookies.get(SESSION_COOKIE)?.value;
-    if (!(await verifyToken(token))) {
+    let ok = false;
+    try {
+      ok = await verifyToken(token);
+    } catch {
+      // Falta ADMIN_SECRET u otro error: tratamos como NO autenticado (a login),
+      // en vez de romper toda la zona /admin con un 500.
+      ok = false;
+    }
+    if (!ok) {
       const url = req.nextUrl.clone();
       url.pathname = "/admin/login";
       return NextResponse.redirect(url);

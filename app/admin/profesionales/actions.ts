@@ -28,7 +28,12 @@ export async function guardarProfesionales(list: Entrada[]) {
       activo: s.activo !== false,
     }));
 
-  await saveStaff(staff);
+  try {
+    await saveStaff(staff);
+  } catch (e) {
+    console.error("[profesionales] guardar:", e);
+    throw new Error("No se pudieron guardar los profesionales. Reintentá.");
+  }
   revalidatePath("/admin/profesionales");
   revalidatePath("/reservar");
 }

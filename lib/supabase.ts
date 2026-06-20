@@ -1,11 +1,9 @@
-// Clientes de Supabase. Se activan al completar las variables en .env.local.
-//  - getServiceClient(): SOLO servidor (Route Handlers / Server Actions).
-//    Usa la service_role key (bypassa RLS) — NUNCA importar desde el cliente.
-//  - getPublicClient(): anon key, sujeto a RLS. Para lecturas públicas/seguras.
+// Cliente de Supabase — SOLO servidor (Route Handlers / Server Actions).
+// getServiceClient() usa la service_role key (bypassa RLS) — NUNCA importar
+// desde el cliente. En single-tenant todo va server-side: no se usa anon key.
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 /** Id del profesional (single-tenant). La app guarda/lee los datos de ESTE id. */
@@ -27,11 +25,4 @@ export function getServiceClient(): SupabaseClient {
     });
   }
   return _service;
-}
-
-export function getPublicClient(): SupabaseClient {
-  if (!URL || !ANON) {
-    throw new Error("Supabase no configurado (URL / ANON key).");
-  }
-  return createClient(URL, ANON);
 }

@@ -101,7 +101,8 @@ export async function POST(req: Request) {
 
     notificarTurno(solicitud).catch(() => {});
     return NextResponse.json({ ok: true, id: solicitud.id });
-  } catch {
+  } catch (e) {
+    console.error("[api/turnos]", e);
     return NextResponse.json(
       { ok: false, error: "Error al registrar la solicitud." },
       { status: 500 }

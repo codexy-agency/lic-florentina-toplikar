@@ -140,7 +140,10 @@ async function sbRead(): Promise<{ db: DB; rev: number }> {
     .select("data, rev")
     .eq("professional_id", PROFESSIONAL_ID)
     .maybeSingle();
-  if (error) throw error;
+  if (error) {
+    console.error("[supabase] sbRead error:", error.message);
+    throw error;
+  }
   if (!data) return { db: emptyDB(), rev: 0 };
   return { db: normalize((data.data ?? {}) as Partial<DB>), rev: Number(data.rev) || 0 };
 }
@@ -153,7 +156,16 @@ async function sbWrite(db: DB, rev: number): Promise<boolean> {
       .from("app_state")
       .insert({ professional_id: PROFESSIONAL_ID, data: db, rev: 1 });
     if (error) {
-      if ((error as { code?: string }).code === "23505") return false; // ya existía
+      const code = (error as { code?: string }).code;
+      if (code === "23505") return false; // ya existía → conflicto recuperable
+      if (code === "23503") {
+        // FK: el PROFESSIONAL_ID no existe en professionals (env mal configurada)
+        console.error(
+          `[supabase] sbWrite: PROFESSIONAL_ID '${PROFESSIONAL_ID}' no existe en professionals. Revisá la env var.`
+        );
+      } else {
+        console.error("[supabase] sbWrite insert error:", error.message);
+      }
       throw error;
     }
     return true;
@@ -164,7 +176,10 @@ async function sbWrite(db: DB, rev: number): Promise<boolean> {
     .eq("professional_id", PROFESSIONAL_ID)
     .eq("rev", rev)
     .select("rev");
-  if (error) throw error;
+  if (error) {
+    console.error("[supabase] sbWrite update error:", error.message);
+    throw error;
+  }
   return Array.isArray(data) && data.length > 0; // 0 filas = rev cambió = conflicto
 }
 
@@ -565,6 +580,20 @@ export async function getScheduling(): Promise<Scheduling> {
 export async function saveConfig(config: SchedulingConfig): Promise<void> {
   await mutate((db) => {
     db.scheduling.config = config;
+  });
+}
+
+/** Guarda config + rules + exceptions en UN SOLO write atómico (no 3 sueltos).
+ *  Evita estados inconsistentes si una de las 3 escrituras falla. */
+export async function saveDisponibilidad(input: {
+  config: SchedulingConfig;
+  rules: AvailabilityRule[];
+  exceptions: DateException[];
+}): Promise<void> {
+  await mutate((db) => {
+    db.scheduling.config = input.config;
+    db.scheduling.rules = input.rules;
+    db.scheduling.exceptions = input.exceptions;
   });
 }
 

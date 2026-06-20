@@ -8,7 +8,8 @@ export async function GET() {
   try {
     const { services, staff } = await getBookingConfig();
     return NextResponse.json({ ok: true, services, staff });
-  } catch {
+  } catch (e) {
+    console.error("[api/reservar-config]", e);
     return NextResponse.json({ ok: false, services: [], staff: [] }, { status: 500 });
   }
 }
