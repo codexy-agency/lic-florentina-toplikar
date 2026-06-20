@@ -83,9 +83,9 @@ export function DisponibilidadEditor({
   }
 
   const num =
-    "w-20 rounded-xl border border-[var(--color-line)] bg-cream px-3 py-2 text-[14px] text-espresso focus:border-sage/60 focus:outline-none";
+    "w-20 admin-input px-3 py-2 text-[14px] text-espresso";
   const time =
-    "rounded-xl border border-[var(--color-line)] bg-cream px-3 py-2 text-[14px] text-espresso focus:border-sage/60 focus:outline-none";
+    "admin-input px-3 py-2 text-[14px] text-espresso";
 
   return (
     <div className="space-y-10">
@@ -133,7 +133,7 @@ export function DisponibilidadEditor({
           {DIAS.map((d) => (
             <div
               key={d.i}
-              className="rounded-2xl border border-[var(--color-line)] bg-white/50 p-4"
+              className="rounded-2xl admin-card p-4"
             >
               <div className="flex flex-wrap items-center gap-3">
                 <span className="w-24 font-medium text-espresso">{d.n}</span>

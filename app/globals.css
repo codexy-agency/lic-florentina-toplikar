@@ -301,6 +301,56 @@ details.faq > .faq-body > div {
   overflow: hidden;
 }
 
+/* =====================================================================
+   PANEL INTERNO (admin) — sistema de superficies con contraste real.
+   Fondo greige más profundo que las tarjetas, para que el blanco "flote".
+   ===================================================================== */
+.admin-shell {
+  background:
+    radial-gradient(85% 60% at 100% -8%, rgba(217, 167, 184, 0.16), transparent 55%),
+    radial-gradient(75% 55% at -8% 108%, rgba(201, 182, 214, 0.16), transparent 55%),
+    #ECE3E4;
+  min-height: 100dvh;
+}
+
+/* Tarjeta blanca elevada — el patrón base del panel */
+.admin-card {
+  background: #ffffff;
+  border: 1px solid rgba(58, 49, 55, 0.07);
+  box-shadow:
+    0 1px 2px rgba(58, 49, 55, 0.04),
+    0 22px 48px -36px rgba(58, 49, 55, 0.30);
+}
+
+/* Superficie interna suave (inputs agrupados, sub-bloques) */
+.admin-soft {
+  background: #F7F1F2;
+  border: 1px solid rgba(58, 49, 55, 0.06);
+}
+
+/* Caja de estado vacío — punteada pero visible */
+.admin-empty {
+  background: rgba(255, 255, 255, 0.45);
+  border: 1.5px dashed rgba(58, 49, 55, 0.16);
+}
+
+/* Input del panel: bien delimitado del fondo blanco de la tarjeta */
+.admin-input {
+  background: #FBF7F8;
+  border: 1px solid rgba(58, 49, 55, 0.14);
+  color: var(--color-espresso);
+  border-radius: 0.75rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.admin-input:focus {
+  outline: none;
+  border-color: var(--color-sage-deep);
+  box-shadow: 0 0 0 3px rgba(156, 84, 117, 0.14);
+}
+.admin-input::placeholder {
+  color: rgba(107, 94, 102, 0.55);
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation: none !important;

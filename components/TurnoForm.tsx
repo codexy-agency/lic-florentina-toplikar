@@ -261,7 +261,7 @@ export function TurnoForm() {
                   <button
                     key={s.id}
                     onClick={() => pickService(s)}
-                    className="group flex w-full items-center justify-between gap-4 rounded-2xl border border-[var(--color-line)] bg-cream px-5 py-4 text-left transition-all duration-300 hover:border-sage/50 hover:bg-sage/[0.06]"
+                    className="group flex w-full items-center justify-between gap-4 rounded-2xl border border-[var(--color-line)] bg-white px-5 py-4 text-left shadow-[0_1px_2px_rgba(58,49,55,0.05)] transition-all duration-300 hover:border-sage/50 hover:bg-sage/[0.05]"
                   >
                     <span>
                       <span className="block font-medium text-espresso">{s.nombre}</span>
@@ -290,7 +290,7 @@ export function TurnoForm() {
                   <button
                     key={m.id}
                     onClick={() => pickMember(m)}
-                    className="group flex w-full items-center gap-4 rounded-2xl border border-[var(--color-line)] bg-cream px-5 py-4 text-left transition-all duration-300 hover:border-sage/50 hover:bg-sage/[0.06]"
+                    className="group flex w-full items-center gap-4 rounded-2xl border border-[var(--color-line)] bg-white px-5 py-4 text-left shadow-[0_1px_2px_rgba(58,49,55,0.05)] transition-all duration-300 hover:border-sage/50 hover:bg-sage/[0.05]"
                   >
                     <Avatar staff={m} />
                     <span className="flex-1">

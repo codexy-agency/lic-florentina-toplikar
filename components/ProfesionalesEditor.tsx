@@ -58,18 +58,18 @@ export function ProfesionalesEditor({
   }
 
   const inp =
-    "rounded-xl border border-[var(--color-line)] bg-cream px-3 py-2 text-[14px] text-espresso focus:border-sage/60 focus:outline-none";
+    "admin-input px-3 py-2 text-[14px] text-espresso";
 
   return (
     <div className="space-y-4">
       {services.length === 0 && (
-        <p className="rounded-2xl border border-dashed border-[var(--color-line)] p-5 text-center text-[14px] text-espresso-soft">
+        <p className="rounded-2xl admin-empty p-5 text-center text-[14px] text-espresso-soft">
           Primero cargá algún servicio para poder asignárselo a cada profesional.
         </p>
       )}
 
       {rows.map((m, i) => (
-        <div key={m.id} className="rounded-2xl border border-[var(--color-line)] bg-white/50 p-4">
+        <div key={m.id} className="rounded-2xl admin-card p-4">
           <div className="flex flex-wrap items-center gap-3">
             <span
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[14px] font-medium"
@@ -145,7 +145,7 @@ export function ProfesionalesEditor({
                       className={`rounded-full border px-3 py-1.5 text-[13px] transition-colors ${
                         on
                           ? "border-sage bg-sage/15 text-espresso"
-                          : "border-[var(--color-line)] bg-cream text-espresso-soft hover:border-sage/40"
+                          : "border-[rgba(58,49,55,0.14)] bg-[#FBF7F8] text-espresso-soft hover:border-sage/40"
                       }`}
                     >
                       {on ? "✓ " : ""}

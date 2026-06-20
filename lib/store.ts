@@ -27,6 +27,10 @@ export interface Solicitud {
   serviceName?: string; // snapshot del nombre (no depende de que el servicio siga existiendo)
   staffId?: string; // profesional elegida
   staffName?: string; // snapshot
+  precio?: number; // snapshot del precio del servicio al reservar (ARS)
+  pagado?: boolean;
+  metodoPago?: string; // efectivo | transferencia | mercadopago | tarjeta
+  fechaPago?: string; // ISO
   startsAt?: string; // slot elegido (ISO -03:00)
   endsAt?: string;
   preferencia: string; // fallback si no hay slots
@@ -232,6 +236,146 @@ export async function getBookingConfig(): Promise<{
   return {
     services: db.services.filter((s) => s.activo),
     staff: db.staff.filter((s) => s.activo),
+  };
+}
+
+// ───────────────────────── Finanzas / Pagos ─────────────────────────
+
+const MESES_CORTO = [
+  "ene", "feb", "mar", "abr", "may", "jun",
+  "jul", "ago", "sep", "oct", "nov", "dic",
+];
+
+export interface Movimiento {
+  id: string;
+  nombre: string;
+  serviceName?: string;
+  staffName?: string;
+  fecha?: string; // startsAt
+  monto: number;
+  pagado: boolean;
+  metodoPago?: string;
+  estado: Estado;
+}
+
+export interface FinanzasResumen {
+  facturado: number; // total esperado (turnos confirmados/realizados)
+  cobrado: number; // total ya pagado
+  porCobrar: number;
+  cantTurnos: number;
+  cantCobrados: number;
+  ticketProm: number;
+  porServicio: { nombre: string; cantidad: number; monto: number; cobrado: number }[];
+  porProfesional: { nombre: string; cantidad: number; monto: number; cobrado: number }[];
+  porMes: { key: string; label: string; facturado: number; cobrado: number }[];
+  movimientos: Movimiento[];
+}
+
+/** Marca/desmarca un turno como pagado. */
+export async function setPago(
+  id: string,
+  pagado: boolean,
+  metodo?: string
+): Promise<Solicitud | null> {
+  return mutate((db) => {
+    const s = db.solicitudes.find((x) => x.id === id);
+    if (!s) return null;
+    s.pagado = pagado;
+    if (pagado) {
+      s.metodoPago = metodo || s.metodoPago || "efectivo";
+      s.fechaPago = new Date().toISOString();
+    } else {
+      s.fechaPago = undefined;
+    }
+    return s;
+  });
+}
+
+export async function getFinanzas(): Promise<FinanzasResumen> {
+  const db = await read();
+  const turnos = db.solicitudes.filter(
+    (s) => s.estado === "confirmado" || s.estado === "realizado"
+  );
+
+  let facturado = 0;
+  let cobrado = 0;
+  let cantCobrados = 0;
+  const svc = new Map<string, { cantidad: number; monto: number; cobrado: number }>();
+  const prof = new Map<string, { cantidad: number; monto: number; cobrado: number }>();
+  const mes = new Map<string, { facturado: number; cobrado: number }>();
+
+  for (const t of turnos) {
+    const monto = t.precio ?? 0;
+    facturado += monto;
+    if (t.pagado) {
+      cobrado += monto;
+      cantCobrados++;
+    }
+    const sName = t.serviceName || "Sin servicio";
+    const a = svc.get(sName) || { cantidad: 0, monto: 0, cobrado: 0 };
+    a.cantidad++;
+    a.monto += monto;
+    if (t.pagado) a.cobrado += monto;
+    svc.set(sName, a);
+
+    const pName = t.staffName || "—";
+    const b = prof.get(pName) || { cantidad: 0, monto: 0, cobrado: 0 };
+    b.cantidad++;
+    b.monto += monto;
+    if (t.pagado) b.cobrado += monto;
+    prof.set(pName, b);
+
+    if (t.startsAt) {
+      const key = t.startsAt.slice(0, 7); // "2026-06"
+      const m = mes.get(key) || { facturado: 0, cobrado: 0 };
+      m.facturado += monto;
+      if (t.pagado) m.cobrado += monto;
+      mes.set(key, m);
+    }
+  }
+
+  const movimientos: Movimiento[] = turnos
+    .map((t) => ({
+      id: t.id,
+      nombre: t.nombre,
+      serviceName: t.serviceName,
+      staffName: t.staffName,
+      fecha: t.startsAt,
+      monto: t.precio ?? 0,
+      pagado: !!t.pagado,
+      metodoPago: t.metodoPago,
+      estado: t.estado,
+    }))
+    .sort((a, b) => ((a.fecha || "") < (b.fecha || "") ? 1 : -1));
+
+  const porMes = [...mes.entries()]
+    .sort((a, b) => (a[0] < b[0] ? -1 : 1))
+    .slice(-6)
+    .map(([key, v]) => {
+      const [y, mm] = key.split("-");
+      return {
+        key,
+        label: `${MESES_CORTO[Number(mm) - 1]} ${y}`,
+        facturado: v.facturado,
+        cobrado: v.cobrado,
+      };
+    });
+
+  return {
+    facturado,
+    cobrado,
+    porCobrar: facturado - cobrado,
+    cantTurnos: turnos.length,
+    cantCobrados,
+    ticketProm: turnos.length ? Math.round(facturado / turnos.length) : 0,
+    porServicio: [...svc.entries()]
+      .map(([nombre, v]) => ({ nombre, ...v }))
+      .sort((a, b) => b.monto - a.monto),
+    porProfesional: [...prof.entries()]
+      .map(([nombre, v]) => ({ nombre, ...v }))
+      .sort((a, b) => b.monto - a.monto),
+    porMes,
+    movimientos,
   };
 }
 

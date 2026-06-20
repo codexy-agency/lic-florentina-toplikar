@@ -37,12 +37,12 @@ export function ServiciosEditor({ initial }: { initial: Service[] }) {
   }
 
   const inp =
-    "rounded-xl border border-[var(--color-line)] bg-cream px-3 py-2 text-[14px] text-espresso focus:border-sage/60 focus:outline-none";
+    "admin-input px-3 py-2 text-[14px] text-espresso";
 
   return (
     <div className="space-y-4">
       {rows.length === 0 && (
-        <p className="rounded-2xl border border-dashed border-[var(--color-line)] p-8 text-center text-espresso-soft">
+        <p className="rounded-2xl admin-empty p-8 text-center text-espresso-soft">
           Todavía no hay servicios. Agregá el primero.
         </p>
       )}
@@ -50,7 +50,7 @@ export function ServiciosEditor({ initial }: { initial: Service[] }) {
       {rows.map((s, i) => (
         <div
           key={s.id}
-          className="rounded-2xl border border-[var(--color-line)] bg-white/50 p-4"
+          className="rounded-2xl admin-card p-4"
         >
           <div className="flex flex-wrap items-center gap-3">
             <input

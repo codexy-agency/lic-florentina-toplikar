@@ -1,6 +1,7 @@
 import { listSolicitudes, listPacientes, stats } from "@/lib/store";
 import { fechaHoraAR, isoToArLocal } from "@/lib/scheduling/slots";
 import { AdminHeader } from "@/components/AdminHeader";
+import { AdminShell } from "@/components/AdminShell";
 import {
   aceptarSolicitud,
   reprogramarTurno,
@@ -46,11 +47,11 @@ export default async function AdminPage() {
     .sort((a, b) => (a.startsAt || "") < (b.startsAt || "") ? -1 : 1);
 
   return (
-    <main className="mx-auto max-w-6xl px-5 py-10 md:px-8 md:py-14">
+    <AdminShell>
       <AdminHeader />
 
       {/* Stats */}
-      <div className="mt-10 grid grid-cols-3 gap-4">
+      <div className="mt-8 grid grid-cols-3 gap-3 md:gap-4">
         {[
           { n: s.pendientes, l: "Solicitudes pendientes" },
           { n: s.confirmados, l: "Turnos confirmados" },
@@ -58,7 +59,7 @@ export default async function AdminPage() {
         ].map((x) => (
           <div
             key={x.l}
-            className="rounded-2xl border border-[var(--color-line)] bg-white/50 p-5"
+            className="rounded-2xl admin-card p-5"
           >
             <p className="font-serif text-3xl font-light text-espresso md:text-4xl">
               {x.n}
@@ -76,7 +77,7 @@ export default async function AdminPage() {
           Bandeja de solicitudes
         </h2>
         {pendientes.length === 0 ? (
-          <p className="mt-4 rounded-2xl border border-dashed border-[var(--color-line)] p-8 text-center text-espresso-soft">
+          <p className="mt-4 rounded-2xl admin-empty p-8 text-center text-espresso-soft">
             No hay solicitudes pendientes. Las nuevas aparecen acá apenas alguien
             reserva un horario desde el sitio.
           </p>
@@ -85,7 +86,7 @@ export default async function AdminPage() {
             {pendientes.map((x) => (
               <li
                 key={x.id}
-                className="rounded-2xl border border-[var(--color-line)] bg-white/50 p-5"
+                className="rounded-2xl admin-card p-5"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -142,7 +143,7 @@ export default async function AdminPage() {
                       type="datetime-local"
                       name="fecha"
                       defaultValue={x.startsAt ? isoToArLocal(x.startsAt) : ""}
-                      className="rounded-full border border-[var(--color-line)] bg-cream px-3 py-2 text-[13px] text-espresso focus:border-sage/60 focus:outline-none"
+                      className="rounded-full border border-[rgba(58,49,55,0.16)] bg-[#FBF7F8] px-3 py-2 text-[13px] text-espresso focus:border-sage/60 focus:outline-none"
                     />
                     <button className="rounded-full bg-espresso px-4 py-2 text-[13px] font-medium text-cream transition-colors hover:bg-espresso/90">
                       {x.startsAt ? "Confirmar" : "Confirmar con fecha"}
@@ -175,7 +176,7 @@ export default async function AdminPage() {
           Próximos turnos
         </h2>
         {agenda.length === 0 ? (
-          <p className="mt-4 rounded-2xl border border-dashed border-[var(--color-line)] p-8 text-center text-espresso-soft">
+          <p className="mt-4 rounded-2xl admin-empty p-8 text-center text-espresso-soft">
             Todavía no hay turnos confirmados.
           </p>
         ) : (
@@ -183,7 +184,7 @@ export default async function AdminPage() {
             {agenda.map((x) => (
               <li
                 key={x.id}
-                className="rounded-2xl border border-[var(--color-line)] bg-white/50 p-5"
+                className="rounded-2xl admin-card p-5"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
@@ -205,7 +206,7 @@ export default async function AdminPage() {
                       type="datetime-local"
                       name="fecha"
                       defaultValue={x.startsAt ? isoToArLocal(x.startsAt) : ""}
-                      className="rounded-full border border-[var(--color-line)] bg-cream px-3 py-2 text-[13px] text-espresso focus:border-sage/60 focus:outline-none"
+                      className="rounded-full border border-[rgba(58,49,55,0.16)] bg-[#FBF7F8] px-3 py-2 text-[13px] text-espresso focus:border-sage/60 focus:outline-none"
                     />
                     <button className="rounded-full border border-[var(--color-line)] px-4 py-2 text-[13px] text-espresso-soft transition-colors hover:text-espresso">
                       Reprogramar
@@ -230,7 +231,7 @@ export default async function AdminPage() {
           Pacientes
         </h2>
         {pacientes.length === 0 ? (
-          <p className="mt-4 rounded-2xl border border-dashed border-[var(--color-line)] p-8 text-center text-espresso-soft">
+          <p className="mt-4 rounded-2xl admin-empty p-8 text-center text-espresso-soft">
             Los pacientes se crean automáticamente al confirmar un turno.
           </p>
         ) : (
@@ -238,7 +239,7 @@ export default async function AdminPage() {
             {pacientes.map((p) => (
               <li
                 key={p.id}
-                className="rounded-2xl border border-[var(--color-line)] bg-white/50 p-5"
+                className="rounded-2xl admin-card p-5"
               >
                 <p className="font-medium text-espresso">{p.nombre}</p>
                 <p className="mt-0.5 text-[14px] text-espresso-soft">
@@ -257,6 +258,6 @@ export default async function AdminPage() {
         MVP · datos en archivo local. En producción: Supabase + facturación AFIP
         + recordatorios automáticos.
       </p>
-    </main>
+    </AdminShell>
   );
 }
