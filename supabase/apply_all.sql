@@ -440,13 +440,18 @@ create policy staff_services_all_own on public.staff_services
                  where s.id = staff_id
                    and s.professional_id = (select public.current_professional_id())));
 
--- Lectura pública (anon) de servicios/profesionales ACTIVOS para el wizard del sitio.
+-- IMPORTANTE: NO se da SELECT a anon sobre services/staff/staff_services.
+-- Una policy anon `using(activo)` filtraría por activo pero NO por tenant, así que
+-- cualquiera podría leer el catálogo y precios de TODOS los profesionales (fuga
+-- cross-tenant). El catálogo público del sitio se sirve SERVER-SIDE, filtrado por
+-- professional_id, vía Route Handler con service_role o una RPC dedicada como:
+--
+--   create function public.catalogo_publico(p_professional_id uuid) returns ...
+--     language sql security definer set search_path = public as $$
+--       select ... from public.services where professional_id = p_professional_id and activo; $$;
+--   grant execute on function public.catalogo_publico(uuid) to anon;
+--
+-- Así anon solo ve el catálogo del profesional cuyo sitio está visitando.
 drop policy if exists services_public_read on public.services;
-create policy services_public_read on public.services
-  for select to anon using (activo);
 drop policy if exists staff_public_read on public.staff;
-create policy staff_public_read on public.staff
-  for select to anon using (activo);
 drop policy if exists staff_services_public_read on public.staff_services;
-create policy staff_services_public_read on public.staff_services
-  for select to anon using (true);

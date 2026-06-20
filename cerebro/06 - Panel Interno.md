@@ -34,8 +34,8 @@ En clave SaaS (ver [[09 - SaaS Multi-tenant]]), este panel es el que cada profes
 La librería usa **Web Crypto** (`crypto.subtle`) en vez de `node:crypto`, precisamente para que la misma función pueda correr en el **Edge Runtime** del proxy. Por eso `makeToken` y `verifyToken` son **async** (las operaciones de Web Crypto devuelven promesas).
 
 - `SESSION_COOKIE` = `"pp_admin"` — nombre exportado de la cookie, único punto de verdad para que API, proxy y server actions coincidan.
-- `PASSWORD` viene de `process.env.ADMIN_PASSWORD` (fallback de demo `"paulina2026"`).
-- `SECRET` viene de `process.env.ADMIN_SECRET` (fallback `"cambia-este-secreto-en-produccion"`).
+- `PASSWORD` viene de `process.env.ADMIN_PASSWORD` (sin fallback — fail-closed si no está definido).
+- `SECRET` viene de `process.env.ADMIN_SECRET` (sin fallback; mínimo 16 chars o lanza error).
 - `checkPassword(input)` compara la contraseña con `safeEqual`, una comparación **de tiempo constante** (XOR acumulativo) para no filtrar info por timing.
 - `sign(value)` importa el `SECRET` como clave HMAC-SHA256 y devuelve la firma en hex.
 - `makeToken()` arma un payload `ok.<timestamp>` y lo concatena con su firma: `ok.<ts>.<sig>`.

@@ -1,11 +1,23 @@
 // Auth mínima para el panel: cookie de sesión firmada con HMAC (Web Crypto,
-// compatible con Edge Runtime del middleware). Configurá ADMIN_PASSWORD y
-// ADMIN_SECRET en .env.local.
+// compatible con Edge Runtime del proxy). REQUIERE ADMIN_PASSWORD y ADMIN_SECRET
+// definidos (en .env.local local, en Variables de Entorno en Vercel).
+// Fail-closed: sin secreto configurado, NO se firma ni se valida nada
+// (antes había un fallback conocido que permitía forjar la sesión).
 const COOKIE = "pp_admin";
-const PASSWORD = process.env.ADMIN_PASSWORD || "paulina2026";
-const SECRET = process.env.ADMIN_SECRET || "cambia-este-secreto-en-produccion";
+const PASSWORD = process.env.ADMIN_PASSWORD;
+const SECRET = process.env.ADMIN_SECRET;
 
 export const SESSION_COOKIE = COOKIE;
+
+function requireSecret(): string {
+  if (!SECRET || SECRET.length < 16) {
+    throw new Error(
+      "ADMIN_SECRET sin configurar o demasiado corto (mínimo 16 caracteres). " +
+        "Definilo en .env.local y en las Variables de Entorno de Vercel."
+    );
+  }
+  return SECRET;
+}
 
 function safeEqual(a: string, b: string) {
   if (a.length !== b.length) return false;
@@ -18,7 +30,7 @@ async function sign(value: string): Promise<string> {
   const enc = new TextEncoder();
   const key = await crypto.subtle.importKey(
     "raw",
-    enc.encode(SECRET),
+    enc.encode(requireSecret()),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"]
@@ -30,8 +42,14 @@ async function sign(value: string): Promise<string> {
 }
 
 export function checkPassword(input: string) {
+  if (!PASSWORD || PASSWORD.length < 6) {
+    throw new Error("ADMIN_PASSWORD sin configurar (mínimo 6 caracteres).");
+  }
   return safeEqual(input, PASSWORD);
 }
+
+// Token de sesión con vencimiento (TTL). payload = "ok.<emitido>".
+const TTL_MS = 1000 * 60 * 60 * 12; // 12 horas
 
 export async function makeToken(): Promise<string> {
   const payload = `ok.${Date.now()}`;
@@ -44,5 +62,9 @@ export async function verifyToken(token: string | undefined): Promise<boolean> {
   if (i < 0) return false;
   const payload = token.slice(0, i);
   const sig = token.slice(i + 1);
-  return safeEqual(sig, await sign(payload));
+  if (!safeEqual(sig, await sign(payload))) return false;
+  // Chequeo de vencimiento
+  const ts = Number(payload.split(".")[1]);
+  if (!Number.isFinite(ts) || Date.now() - ts > TTL_MS) return false;
+  return true;
 }

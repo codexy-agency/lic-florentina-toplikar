@@ -26,8 +26,9 @@ export async function notificarTurno(s: Solicitud): Promise<void> {
     (s.staffName ? `*Profesional:* ${esc(s.staffName)}\n` : "") +
     `*Modalidad:* ${esc(s.modalidad)}\n` +
     `*Horario:* ${esc(horario)}\n` +
-    (s.motivo ? `*Motivo:* ${esc(s.motivo)}\n` : "") +
-    `\nEntrá al panel para confirmar\\.`;
+    // El motivo de consulta es dato de salud: NO se envía a un tercero (Telegram).
+    // Queda solo en el panel.
+    `\nEntrá al panel para ver el detalle y confirmar\\.`;
   try {
     await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: "POST",

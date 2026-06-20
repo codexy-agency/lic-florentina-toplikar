@@ -463,7 +463,7 @@ export function TurnoForm() {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-[calc(2rem-0.5rem)] bg-cream-deep/40 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
+    <div className="rounded-[2rem] border border-[var(--color-line)] bg-white shadow-card">
       {children}
     </div>
   );
@@ -483,11 +483,21 @@ function P({ children }: { children: React.ReactNode }) {
   );
 }
 function Avatar({ staff, small = false }: { staff: Staff; small?: boolean }) {
-  const size = small ? "h-9 w-9 text-[13px]" : "h-12 w-12 text-[15px]";
+  const size = small ? "h-9 w-9" : "h-12 w-12";
   const c = staff.color || "#7c8a6f";
+  if (staff.imageUrl) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return (
+      <img
+        src={staff.imageUrl}
+        alt={staff.nombre}
+        className={`${size} shrink-0 rounded-full object-cover ring-1 ring-[var(--color-line)]`}
+      />
+    );
+  }
   return (
     <span
-      className={`flex ${size} shrink-0 items-center justify-center rounded-full font-medium`}
+      className={`flex ${size} shrink-0 items-center justify-center rounded-full font-medium ${small ? "text-[13px]" : "text-[15px]"}`}
       style={{ backgroundColor: `${c}22`, color: c }}
     >
       {iniciales(staff.nombre)}

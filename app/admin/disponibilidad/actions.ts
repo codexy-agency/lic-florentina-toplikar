@@ -23,9 +23,12 @@ export async function guardarDisponibilidad(payload: Payload) {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!(await verifyToken(token))) throw new Error("No autorizado");
 
+  const slotDurationMin = clampInt(payload.config.slotDurationMin, 10, 240, 50);
   const config: SchedulingConfig = {
-    slotDurationMin: clampInt(payload.config.slotDurationMin, 10, 240, 50),
-    bufferAfterMin: clampInt(payload.config.bufferAfterMin, 0, 120, 10),
+    slotDurationMin,
+    // el intervalo no puede ser menor que la duración (si no, se solapan raro)
+    slotIntervalMin: clampInt(payload.config.slotIntervalMin, slotDurationMin, 480, 60),
+    bufferAfterMin: clampInt(payload.config.bufferAfterMin, 0, 120, 0),
     minNoticeHours: clampInt(payload.config.minNoticeHours, 0, 168, 24),
     bookingWindowDays: clampInt(payload.config.bookingWindowDays, 1, 120, 30),
   };

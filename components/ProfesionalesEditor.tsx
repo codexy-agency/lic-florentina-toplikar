@@ -71,12 +71,21 @@ export function ProfesionalesEditor({
       {rows.map((m, i) => (
         <div key={m.id} className="rounded-2xl admin-card p-4">
           <div className="flex flex-wrap items-center gap-3">
-            <span
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[14px] font-medium"
-              style={{ backgroundColor: `${m.color || "#7c8a6f"}22`, color: m.color || "#7c8a6f" }}
-            >
-              {(m.nombre.trim()[0] || "?").toUpperCase()}
-            </span>
+            {m.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={m.imageUrl}
+                alt={m.nombre}
+                className="h-11 w-11 shrink-0 rounded-full object-cover ring-1 ring-[var(--color-line)]"
+              />
+            ) : (
+              <span
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[14px] font-medium"
+                style={{ backgroundColor: `${m.color || "#7c8a6f"}22`, color: m.color || "#7c8a6f" }}
+              >
+                {(m.nombre.trim()[0] || "?").toUpperCase()}
+              </span>
+            )}
             <input
               value={m.nombre}
               onChange={(e) => patch(i, { nombre: e.target.value })}
@@ -115,6 +124,34 @@ export function ProfesionalesEditor({
             aria-label="Bio o especialidad"
             className={`${inp} mt-3 w-full`}
           />
+
+          {/* Foto de perfil */}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="text-[12px] uppercase tracking-[0.1em] text-sage-deep">Foto</span>
+            <input
+              value={m.imageUrl ?? ""}
+              onChange={(e) => patch(i, { imageUrl: e.target.value })}
+              placeholder="URL de la foto (https://…)"
+              aria-label="URL de la foto de perfil"
+              className={`${inp} min-w-[200px] flex-1`}
+            />
+            <button
+              type="button"
+              onClick={() => patch(i, { imageUrl: "/avatar-provisional.svg" })}
+              className="rounded-full border border-[rgba(58,49,55,0.14)] px-3 py-1.5 text-[13px] text-espresso-soft transition-colors hover:text-espresso"
+            >
+              Usar provisoria
+            </button>
+            {m.imageUrl && (
+              <button
+                type="button"
+                onClick={() => patch(i, { imageUrl: "" })}
+                className="px-2 py-1.5 text-[13px] text-espresso-soft transition-colors hover:text-[#9C5475]"
+              >
+                Quitar
+              </button>
+            )}
+          </div>
 
           {/* Color */}
           <div className="mt-3 flex items-center gap-2">

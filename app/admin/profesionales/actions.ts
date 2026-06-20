@@ -24,10 +24,20 @@ export async function guardarProfesionales(list: Entrada[]) {
         ? s.serviceIds.filter((x) => typeof x === "string").slice(0, 50)
         : [],
       color: typeof s.color === "string" && /^#[0-9a-fA-F]{6}$/.test(s.color) ? s.color : undefined,
+      imageUrl: safeImageUrl(s.imageUrl),
       activo: s.activo !== false,
     }));
 
   await saveStaff(staff);
   revalidatePath("/admin/profesionales");
   revalidatePath("/reservar");
+}
+
+/** Solo URLs http(s) o rutas locales (/...). Evita javascript:, data:, etc. */
+function safeImageUrl(v: unknown): string | undefined {
+  if (typeof v !== "string") return undefined;
+  const s = v.trim().slice(0, 500);
+  if (!s) return undefined;
+  if (s.startsWith("/") || /^https?:\/\//i.test(s)) return s;
+  return undefined;
 }

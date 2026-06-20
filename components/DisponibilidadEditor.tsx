@@ -94,8 +94,8 @@ export function DisponibilidadEditor({
         <h2 className="font-serif text-xl tracking-tight text-espresso">Ajustes</h2>
         <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { k: "slotDurationMin", l: "Duración (min)" },
-            { k: "bufferAfterMin", l: "Descanso entre turnos (min)" },
+            { k: "slotDurationMin", l: "Duración de la sesión (min)" },
+            { k: "slotIntervalMin", l: "Cada cuánto un turno (min)" },
             { k: "minNoticeHours", l: "Anticipación mínima (hs)" },
             { k: "bookingWindowDays", l: "Reservar hasta (días)" },
           ].map((x) => (
@@ -114,6 +114,13 @@ export function DisponibilidadEditor({
             </label>
           ))}
         </div>
+        <p className="mt-3 text-[13px] leading-relaxed text-espresso-soft">
+          Los turnos arrancan <strong>cada {config.slotIntervalMin} min</strong> (en
+          horarios redondos) y cada uno dura {config.slotDurationMin} min.
+          {config.slotIntervalMin > config.slotDurationMin
+            ? ` Quedan ${config.slotIntervalMin - config.slotDurationMin} min de aire entre turnos.`
+            : " Sin descanso entre turnos (uno pegado al otro)."}
+        </p>
       </section>
 
       {/* Horario semanal */}
@@ -235,7 +242,7 @@ export function DisponibilidadEditor({
       </section>
 
       {/* Guardar */}
-      <div className="sticky bottom-0 z-10 -mx-1 flex items-center gap-4 rounded-2xl border-t border-[var(--color-line)] bg-[#ECE3E4]/85 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-[#ECE3E4]/70">
+      <div className="sticky bottom-0 z-10 -mx-1 flex items-center gap-4 rounded-2xl border-t border-[var(--color-line)] bg-[#ECEAE9]/85 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-[#ECEAE9]/70">
         <button
           onClick={guardar}
           disabled={estado === "guardando"}

@@ -85,6 +85,18 @@ function emptyDB(): DB {
   };
 }
 
+function mergeConfig(stored: Partial<SchedulingConfig>): SchedulingConfig {
+  const config = { ...DEFAULT_CONFIG, ...stored };
+  // Migración: configs viejas sin "slotIntervalMin" preservan su espaciado
+  // anterior (duración + descanso) para no cambiar los horarios de golpe.
+  if (stored.slotIntervalMin == null) {
+    config.slotIntervalMin =
+      (stored.slotDurationMin ?? DEFAULT_CONFIG.slotDurationMin) +
+      (stored.bufferAfterMin ?? 0);
+  }
+  return config;
+}
+
 async function read(): Promise<DB> {
   let raw: string;
   try {
@@ -100,7 +112,7 @@ async function read(): Promise<DB> {
     services: db.services ?? [],
     staff: db.staff ?? [],
     scheduling: {
-      config: { ...DEFAULT_CONFIG, ...(db.scheduling?.config ?? {}) },
+      config: mergeConfig(db.scheduling?.config ?? {}),
       rules: db.scheduling?.rules ?? [],
       exceptions: db.scheduling?.exceptions ?? [],
     },
@@ -211,6 +223,37 @@ export async function addSolicitud(
     };
     db.solicitudes.unshift(s);
     return s;
+  });
+}
+
+/** Inserta la solicitud SOLO si el slot sigue libre para esa profesional.
+ *  El chequeo de solape y el insert ocurren en la MISMA sección crítica (cola
+ *  mutate), eliminando el TOCTOU del check-then-insert. Devuelve null si choca. */
+export async function addSolicitudSiLibre(
+  input: Omit<Solicitud, "id" | "estado" | "creadoEn">
+): Promise<Solicitud | null> {
+  return mutate((db) => {
+    if (input.startsAt && input.endsAt) {
+      const s = new Date(input.startsAt).getTime();
+      const e = new Date(input.endsAt).getTime();
+      const choca = db.solicitudes.some((x) => {
+        if (x.estado !== "pendiente" && x.estado !== "confirmado") return false;
+        if (input.staffId && x.staffId && x.staffId !== input.staffId) return false;
+        if (!x.startsAt || !x.endsAt) return false;
+        const bs = new Date(x.startsAt).getTime();
+        const be = new Date(x.endsAt).getTime();
+        return s < be && bs < e;
+      });
+      if (choca) return null;
+    }
+    const sol: Solicitud = {
+      ...input,
+      id: randomUUID(),
+      estado: "pendiente",
+      creadoEn: new Date().toISOString(),
+    };
+    db.solicitudes.unshift(sol);
+    return sol;
   });
 }
 

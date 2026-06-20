@@ -14,8 +14,9 @@ export interface AvailabilityRule {
 
 /** Ajustes globales del profesional. */
 export interface SchedulingConfig {
-  slotDurationMin: number; // duración de sesión, ej 50
-  bufferAfterMin: number; // descanso entre sesiones, ej 10
+  slotDurationMin: number; // duración de la sesión, ej 50
+  slotIntervalMin: number; // cada cuánto ARRANCA un turno (grilla), ej 60 → en hora redonda
+  bufferAfterMin: number; // legacy: descanso. Ya no define la grilla (ver slotIntervalMin)
   minNoticeHours: number; // anticipación mínima reservable, ej 24
   bookingWindowDays: number; // ventana a futuro, ej 30
 }
@@ -70,12 +71,14 @@ export interface Staff {
   bio?: string;
   serviceIds: string[]; // qué servicios ofrece
   color?: string; // acento del avatar, ej "#C9A227"
+  imageUrl?: string; // foto de perfil (URL); si falta, se usa el avatar con inicial
   activo: boolean;
 }
 
 export const DEFAULT_CONFIG: SchedulingConfig = {
   slotDurationMin: 50,
-  bufferAfterMin: 10,
+  slotIntervalMin: 60,
+  bufferAfterMin: 0,
   minNoticeHours: 24,
   bookingWindowDays: 30,
 };

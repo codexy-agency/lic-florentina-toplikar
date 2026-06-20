@@ -524,9 +524,7 @@ export default function Home() {
           </div>
           <div className="md:col-span-6 md:col-start-7">
             <Reveal delay={0.1}>
-              <div className="rounded-[2rem] border border-[var(--color-line)] bg-white/40 p-2 shadow-card">
-                <TurnoForm />
-              </div>
+              <TurnoForm />
             </Reveal>
           </div>
         </div>

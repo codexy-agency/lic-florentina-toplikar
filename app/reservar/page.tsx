@@ -6,46 +6,54 @@ import { WHATSAPP_URL } from "@/components/Reveal";
 export const metadata: Metadata = {
   title: "Reservá tu turno",
   description:
-    "Elegí día y horario y reservá tu turno con la Lic. Paulina Pilotti. Atención online a todo el país y presencial en Viedma. Sesiones de 50 minutos.",
+    "Elegí servicio, profesional, día y horario y reservá tu turno con la Lic. Paulina Pilotti. Online a todo el país y presencial en Viedma.",
   alternates: { canonical: "/reservar" },
   openGraph: {
     type: "website",
     locale: "es_AR",
     url: "/reservar",
     title: "Reservá tu turno | Lic. Paulina Pilotti",
-    description:
-      "Elegí día y horario disponible y reservá tu turno online o presencial en un minuto.",
+    description: "Elegí servicio, profesional y horario disponible. Reservá en un minuto.",
   },
 };
 
 const ESPERAR = [
   {
-    t: "Online o presencial",
-    d: "Sesiones por videollamada a todo el país o presenciales en el consultorio de Viedma.",
+    t: "Elegís cómo y con quién",
+    d: "Servicio, profesional y modalidad (online o presencial en Viedma).",
+    icon: (
+      <path d="M20 6 9 17l-5-5" />
+    ),
   },
   {
-    t: "50 minutos",
-    d: "Cada encuentro dura aproximadamente 50 minutos. La frecuencia la definimos juntos.",
+    t: "Horario al instante",
+    d: "Ves los horarios libres reales y reservás el que mejor te quede.",
+    icon: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 2" />
+      </>
+    ),
   },
   {
     t: "Confirmación personal",
-    d: "Reservás el horario y te confirmo personalmente al contacto que dejes, dentro de las 24 hs.",
+    d: "Te confirmamos al contacto que dejes, normalmente dentro de las 24 hs.",
+    icon: (
+      <>
+        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+      </>
+    ),
   },
 ];
 
 export default function ReservarPage() {
   return (
     <div className="grain min-h-[100dvh] bg-[#FBF8F2]">
-      {/* Header minimal y rápido */}
+      {/* Header minimal */}
       <header className="border-b border-[var(--color-line)] bg-cream-deep/30">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4 md:px-8">
-          <Link
-            href="/"
-            className="group inline-flex items-center gap-2 font-serif text-[17px] tracking-tight text-espresso"
-          >
-            <span className="transition-transform duration-300 group-hover:-translate-x-0.5">
-              ←
-            </span>
+          <Link href="/" className="group inline-flex items-center gap-2 font-serif text-[17px] tracking-tight text-espresso">
+            <span className="transition-transform duration-300 group-hover:-translate-x-0.5">←</span>
             Paulina<span className="italic text-sage-deep"> Pilotti</span>
           </Link>
           <a
@@ -59,56 +67,57 @@ export default function ReservarPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-5 py-12 md:px-8 md:py-16">
-        {/* Encabezado */}
-        <div className="max-w-2xl">
-          <span className="text-[11px] font-medium uppercase tracking-[0.22em] text-sage-deep">
-            Turnos
-          </span>
-          <h1 className="mt-4 text-balance font-serif text-4xl font-light leading-[1.05] tracking-tight text-espresso md:text-5xl">
-            Reservá tu turno
-            <span className="italic text-sage-deep"> en un minuto</span>
-          </h1>
-          <p className="mt-5 max-w-lg text-[16px] leading-relaxed text-espresso-soft md:text-[17px]">
-            Elegí la modalidad y un horario disponible. Te confirmo personalmente
-            al contacto que dejes — sin idas y vueltas.
-          </p>
-        </div>
+      <main className="mx-auto grid max-w-6xl gap-6 px-5 py-8 md:px-8 md:py-12 lg:grid-cols-12 lg:gap-10">
+        {/* Panel de marca (izquierda) */}
+        <aside className="lg:col-span-5">
+          <div className="lg:sticky lg:top-8">
+            <div className="relative overflow-hidden rounded-[2rem] p-7 text-cream shadow-card md:p-9">
+              {/* Fondo con gradiente cálido de marca */}
+              <div className="absolute inset-0 bg-gradient-to-br from-[#9C5475] via-[#7E5A75] to-[#4A4A5A]" />
+              <div aria-hidden className="absolute -right-10 -top-10 h-48 w-48 rounded-full bg-[#E7B9CA]/25 blur-2xl" />
+              <div aria-hidden className="absolute -bottom-12 -left-8 h-48 w-48 rounded-full bg-[#C9B6D6]/25 blur-2xl" />
 
-        {/* Grid: info + formulario */}
-        <div className="mt-10 grid gap-8 lg:grid-cols-12 lg:gap-12">
-          {/* Qué esperar */}
-          <aside className="lg:col-span-5">
-            <div className="lg:sticky lg:top-10">
-              <ul className="space-y-4">
-                {ESPERAR.map((x, i) => (
-                  <li
-                    key={x.t}
-                    className="flex gap-4 rounded-2xl border border-[var(--color-line)] bg-white/50 p-5"
-                  >
-                    <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-sage/15 font-serif text-[15px] italic text-sage-deep">
-                      {i + 1}
-                    </span>
-                    <div>
-                      <p className="font-medium text-espresso">{x.t}</p>
-                      <p className="mt-1 text-[14px] leading-relaxed text-espresso-soft">
-                        {x.d}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-5 px-1 text-[13px] leading-relaxed text-espresso-soft/70">
-                Lic. Paulina Pilotti · MP 7321. Tus datos se usan únicamente para
-                coordinar y confirmar el turno.
-              </p>
+              <div className="relative">
+                <span className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.2em] text-cream/85">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#E7B9CA]" />
+                  Turnos online
+                </span>
+                <h1 className="mt-4 text-balance font-serif text-[clamp(2rem,5vw,3rem)] font-light leading-[1.05] tracking-tight">
+                  Reservá tu turno
+                  <span className="italic text-[#EBC4D2]"> en un minuto</span>
+                </h1>
+                <p className="mt-4 max-w-sm leading-relaxed text-cream/85">
+                  Sin llamados ni idas y vueltas. Elegí y listo.
+                </p>
+
+                <ul className="mt-8 space-y-4">
+                  {ESPERAR.map((x) => (
+                    <li key={x.t} className="flex gap-3.5">
+                      <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-cream/15 text-cream ring-1 ring-cream/20">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                          {x.icon}
+                        </svg>
+                      </span>
+                      <div>
+                        <p className="font-medium">{x.t}</p>
+                        <p className="mt-0.5 text-[14px] leading-relaxed text-cream/80">{x.d}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+
+                <p className="mt-8 border-t border-cream/15 pt-5 text-[13px] leading-relaxed text-cream/70">
+                  Lic. Paulina Pilotti · MP 7321. Tus datos se usan únicamente para
+                  coordinar y confirmar el turno.
+                </p>
+              </div>
             </div>
-          </aside>
-
-          {/* Formulario de reserva (slots reales) */}
-          <div className="lg:col-span-7">
-            <TurnoForm />
           </div>
+        </aside>
+
+        {/* Wizard (derecha) */}
+        <div className="lg:col-span-7">
+          <TurnoForm />
         </div>
       </main>
     </div>

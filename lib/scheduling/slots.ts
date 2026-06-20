@@ -104,7 +104,13 @@ export function getAvailableSlots({
     if (modalidad) franjas = franjas.filter((f) => f.mod === modalidad);
     if (!franjas.length) continue;
 
-    const step = (slotMin + config.bufferAfterMin) * 60_000;
+    // La grilla la define el INTERVALO (cada cuánto arranca un turno), no la
+    // duración: así los turnos quedan en horarios redondos sin desfasaje.
+    const interval =
+      config.slotIntervalMin && config.slotIntervalMin > 0
+        ? config.slotIntervalMin
+        : slotMin;
+    const step = interval * 60_000;
     const dur = slotMin * 60_000;
     const slots: Slot[] = [];
 
