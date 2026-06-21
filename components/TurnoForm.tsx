@@ -7,11 +7,10 @@ import type { DaySlots, Slot, Modalidad, Service, Staff } from "@/lib/scheduling
 /**
  * Reserva NATIVA por pasos (estilo Calendly/Lumière):
  *   Servicio → Profesional → Fecha y hora → Tus datos.
- * Si un servicio lo ofrece una sola profesional, se saltea el paso 2.
- * Todo se configura desde el panel interno (/admin/servicios y /profesionales).
+ * Si NINGÚN servicio necesita elegir profesional (consultorio de una sola
+ * profesional), el indicador muestra 3 pasos reales (Servicio · Horario · Datos)
+ * en vez de "saltar" del 1 al 3. Todo se configura desde el panel interno.
  */
-const PASOS = ["Servicio", "Profesional", "Horario", "Datos"];
-
 function precio(n?: number) {
   return n ? "$" + n.toLocaleString("es-AR") : null;
 }
@@ -164,6 +163,25 @@ export function TurnoForm() {
     "w-full rounded-2xl border border-[var(--color-line)] bg-cream px-4 py-3 text-[15px] text-espresso placeholder:text-espresso-soft/60 transition-colors duration-300 focus:border-sage/60 focus:outline-none focus:ring-2 focus:ring-sage/30";
   const dia = dias.find((d) => d.date === diaSel) ?? null;
 
+  // Indicador de pasos adaptativo: si ningún servicio requiere elegir profesional
+  // (un solo profesional eligible en todos), mostramos 3 pasos reales. Los `n`
+  // son los pasos internos (3 = horario, 4 = datos) aunque el número visible sea
+  // correlativo (1·2·3), para que nunca se vea "saltar" un número.
+  const staffNeeded =
+    staff.length > 1 && services.some((s) => eligibles(s.id).length > 1);
+  const pasos = staffNeeded
+    ? [
+        { label: "Servicio", n: 1 },
+        { label: "Profesional", n: 2 },
+        { label: "Horario", n: 3 },
+        { label: "Datos", n: 4 },
+      ]
+    : [
+        { label: "Servicio", n: 1 },
+        { label: "Horario", n: 3 },
+        { label: "Datos", n: 4 },
+      ];
+
   // ───────────────────────── Éxito ─────────────────────────
   if (enviado) {
     return (
@@ -201,14 +219,24 @@ export function TurnoForm() {
   return (
     <Shell>
       <div className="p-6 md:p-8">
+        {/* Encabezado "en vivo": deja claro que es un reservador funcional. */}
+        <div className="mb-5 flex items-center gap-2.5">
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sage/50" />
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-sage-deep" />
+          </span>
+          <span className="text-[12px] font-medium uppercase tracking-[0.16em] text-sage-deep">
+            Reservá en línea ahora
+          </span>
+        </div>
+
         {/* Progreso */}
         <ol className="mb-6 flex items-center gap-2">
-          {PASOS.map((p, i) => {
-            const n = i + 1;
-            const done = n < step;
-            const active = n === step;
+          {pasos.map((p, i) => {
+            const done = step > p.n;
+            const active = step === p.n;
             return (
-              <li key={p} className="flex flex-1 items-center gap-2">
+              <li key={p.label} className="flex flex-1 items-center gap-2">
                 <span
                   className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-medium transition-colors ${
                     active
@@ -218,16 +246,16 @@ export function TurnoForm() {
                         : "bg-cream-deep/60 text-espresso-soft/60"
                   }`}
                 >
-                  {done ? "✓" : n}
+                  {done ? "✓" : i + 1}
                 </span>
                 <span
                   className={`hidden text-[12px] font-medium uppercase tracking-[0.08em] sm:block ${
                     active ? "text-espresso" : "text-espresso-soft/60"
                   }`}
                 >
-                  {p}
+                  {p.label}
                 </span>
-                {i < PASOS.length - 1 && (
+                {i < pasos.length - 1 && (
                   <span className="ml-1 hidden h-px flex-1 bg-[var(--color-line)] sm:block" />
                 )}
               </li>
@@ -463,7 +491,12 @@ export function TurnoForm() {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-[2rem] border border-[var(--color-line)] bg-white shadow-card">
+    <div className="relative overflow-hidden rounded-[2rem] border border-sage/25 bg-white shadow-[0_30px_70px_-30px_rgba(58,49,55,0.38)] ring-1 ring-black/[0.03]">
+      {/* Acento superior: señal de que es una herramienta viva, no una imagen. */}
+      <div
+        aria-hidden
+        className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-sage/60 via-sage-deep/50 to-clay/50"
+      />
       {children}
     </div>
   );

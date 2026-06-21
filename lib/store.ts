@@ -225,6 +225,32 @@ function mutate<T>(fn: (db: DB) => T | Promise<T>): Promise<T> {
   return next;
 }
 
+// Una reserva sin confirmar deja de "ocupar" su horario tras 48h: así no queda
+// un slot squatteado para siempre por alguien que reservó y nunca se confirmó
+// (la profesional confirma/rechaza dentro de ese plazo en la práctica).
+const PENDING_HOLD_MS = 48 * 60 * 60 * 1000;
+
+/** ¿Esta solicitud sigue reservando su horario? Confirmados, siempre; pendientes,
+ *  solo dentro de PENDING_HOLD_MS desde que se crearon. Centraliza el criterio
+ *  para que el cálculo de slots y los anti-solape coincidan (si no, un slot
+ *  podría verse libre pero rechazar la reserva, o al revés). */
+function holdActivo(s: Solicitud, now = Date.now()): boolean {
+  if (s.estado === "confirmado") return true;
+  if (s.estado !== "pendiente") return false;
+  const t = new Date(s.creadoEn).getTime();
+  // creadoEn corrupto (NaN): mantenemos el hold (fail-safe hacia NO overbookear).
+  // Sólo ocurre con datos corruptos externos; el flujo normal siempre setea ISO.
+  return Number.isFinite(t) ? now - t < PENDING_HOLD_MS : true;
+}
+
+/** ¿Un turno con staffId `a` ocupa la agenda de la profesional `b`? Criterio
+ *  ÚNICO usado por getBusy y por los anti-solape (si difieren, un slot puede
+ *  verse libre pero la reserva ser rechazada). Un turno sin profesional asignada
+ *  ocupa a todas; consultar sin profesional mira la agenda completa. */
+function mismoStaff(a?: string, b?: string): boolean {
+  return !a || !b || a === b;
+}
+
 // ───────────────────────── Solicitudes / Pacientes ─────────────────────────
 
 export async function listSolicitudes(): Promise<Solicitud[]> {
@@ -347,8 +373,8 @@ export async function addSolicitudSiLibre(
       const s = new Date(input.startsAt).getTime();
       const e = new Date(input.endsAt).getTime();
       const choca = db.solicitudes.some((x) => {
-        if (x.estado !== "pendiente" && x.estado !== "confirmado") return false;
-        if (input.staffId && x.staffId && x.staffId !== input.staffId) return false;
+        if (!holdActivo(x)) return false;
+        if (!mismoStaff(x.staffId, input.staffId)) return false;
         if (!x.startsAt || !x.endsAt) return false;
         const bs = new Date(x.startsAt).getTime();
         const be = new Date(x.endsAt).getTime();
@@ -385,8 +411,8 @@ export async function crearTurnoManual(input: {
     const s = new Date(input.startsAt).getTime();
     const e = new Date(input.endsAt).getTime();
     const choca = db.solicitudes.some((x) => {
-      if (x.estado !== "pendiente" && x.estado !== "confirmado") return false;
-      if (input.staffId && x.staffId && x.staffId !== input.staffId) return false;
+      if (!holdActivo(x)) return false;
+      if (!mismoStaff(x.staffId, input.staffId)) return false;
       if (!x.startsAt || !x.endsAt) return false;
       const bs = new Date(x.startsAt).getTime();
       const be = new Date(x.endsAt).getTime();
@@ -468,13 +494,14 @@ export async function stats() {
  *  pueden tener el mismo horario sin pisarse). */
 export async function getBusy(staffId?: string): Promise<BusyRange[]> {
   const db = await read();
+  const now = Date.now();
   return db.solicitudes
     .filter(
       (s) =>
-        (s.estado === "pendiente" || s.estado === "confirmado") &&
+        holdActivo(s, now) &&
         s.startsAt &&
         s.endsAt &&
-        (!staffId || s.staffId === staffId)
+        mismoStaff(s.staffId, staffId)
     )
     .map((s) => ({ startsAt: s.startsAt!, endsAt: s.endsAt!, staffId: s.staffId }));
 }

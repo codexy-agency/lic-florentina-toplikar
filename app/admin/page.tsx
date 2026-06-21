@@ -6,7 +6,7 @@ import {
   listStaff,
   stats,
 } from "@/lib/store";
-import { fechaHoraAR, isoToArLocal } from "@/lib/scheduling/slots";
+import { fechaHoraAR, horaAR, isoToArLocal } from "@/lib/scheduling/slots";
 import { AdminHeader } from "@/components/AdminHeader";
 import { AdminShell } from "@/components/AdminShell";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -45,6 +45,46 @@ const MOD_BADGE: Record<string, string> = {
   presencial: "bg-clay/25 text-[#7a5a86]",
 };
 
+// Clave de día (YYYY-MM-DD) en horario de Argentina, para agrupar la agenda.
+function arDayKey(iso?: string): string {
+  if (!iso) return "zzz-sin-fecha";
+  try {
+    return new Date(iso).toLocaleDateString("en-CA", {
+      timeZone: "America/Argentina/Buenos_Aires",
+    });
+  } catch {
+    return "zzz-sin-fecha";
+  }
+}
+
+function dayLabel(key: string, todayKey: string, tomorrowKey: string): string {
+  if (key === "zzz-sin-fecha") return "Sin fecha asignada";
+  if (key === todayKey) return "Hoy";
+  if (key === tomorrowKey) return "Mañana";
+  const d = new Date(key + "T12:00:00-03:00");
+  const txt = d.toLocaleDateString("es-AR", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+  return txt.charAt(0).toUpperCase() + txt.slice(1);
+}
+
+// Link de WhatsApp con un recordatorio ya redactado para mandarle al paciente.
+function waRecordatorio(x: {
+  nombre: string;
+  contacto: string;
+  startsAt?: string;
+  modalidad: string;
+}): string {
+  const tel = x.contacto.replace(/[^0-9]/g, "");
+  const cuando = x.startsAt ? `${fechaHoraAR(x.startsAt)} hs` : "tu turno";
+  const modo = x.modalidad === "presencial" ? "presencial" : "online";
+  const msg = `¡Hola ${x.nombre}! Te recuerdo tu turno del ${cuando} (${modo}). Si necesitás reprogramar, avisame. ¡Saludos!`;
+  return `https://wa.me/${tel}?text=${encodeURIComponent(msg)}`;
+}
+
 import { requireAdmin } from "@/lib/session";
 
 export default async function AdminPage() {
@@ -60,6 +100,27 @@ export default async function AdminPage() {
   const agenda = solicitudes
     .filter((x) => x.estado === "confirmado")
     .sort((a, b) => (a.startsAt || "") < (b.startsAt || "") ? -1 : 1);
+
+  // Agrupar los próximos turnos por día (Hoy / Mañana / fecha), respetando el
+  // orden ya ordenado por horario.
+  const todayKey = new Date().toLocaleDateString("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+  });
+  const tomorrowKey = new Date(Date.now() + 86_400_000).toLocaleDateString("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+  });
+  const grupos: { key: string; items: typeof agenda }[] = [];
+  for (const t of agenda) {
+    const k = arDayKey(t.startsAt);
+    let g = grupos.find((x) => x.key === k);
+    if (!g) {
+      g = { key: k, items: [] };
+      grupos.push(g);
+    }
+    g.items.push(t);
+  }
+  // Orden cronológico por día; "zzz-sin-fecha" queda último por su prefijo.
+  grupos.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
 
   return (
     <AdminShell>
@@ -212,63 +273,87 @@ export default async function AdminPage() {
             Todavía no hay turnos confirmados.
           </p>
         ) : (
-          <ul className="mt-5 space-y-3">
-            {agenda.map((x) => (
-              <li
-                key={x.id}
-                className="rounded-2xl admin-card p-5"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-espresso">{x.nombre}</p>
-                    <p className="text-[14px] text-espresso-soft">
-                      {x.serviceName ? `${x.serviceName} · ` : ""}
-                      {x.staffName ? `${x.staffName} · ` : ""}
-                      {MOD_LABEL[x.modalidad] || x.modalidad} · {x.contacto}
-                    </p>
-                  </div>
-                  <p className="font-serif text-lg italic text-sage-deep">
-                    {x.startsAt ? `${fechaHoraAR(x.startsAt)} hs` : "Sin fecha"}
-                  </p>
+          <div className="mt-6 space-y-9">
+            {grupos.map((g) => (
+              <div key={g.key}>
+                <div className="flex items-baseline gap-3">
+                  <h3 className="font-serif text-[17px] tracking-tight text-espresso">
+                    {dayLabel(g.key, todayKey, tomorrowKey)}
+                  </h3>
+                  <span className="text-[12px] uppercase tracking-[0.1em] text-espresso-soft">
+                    {g.items.length} {g.items.length === 1 ? "turno" : "turnos"}
+                  </span>
+                  <span className="h-px flex-1 bg-[var(--color-line)]" />
                 </div>
-                <div className="mt-4 flex flex-wrap items-center gap-3">
-                  <form action={reprogramarTurno} className="flex flex-wrap items-center gap-2">
-                    <input type="hidden" name="id" value={x.id} />
-                    <input
-                      type="datetime-local"
-                      name="fecha"
-                      defaultValue={x.startsAt ? isoToArLocal(x.startsAt) : ""}
-                      className="admin-input rounded-full px-3 py-2 text-[13px]"
-                    />
-                    <SubmitButton
-                      pendingText="Reprogramando…"
-                      className="rounded-full border border-[var(--color-line)] px-4 py-2.5 text-[13px] text-espresso-soft transition-colors hover:text-espresso"
-                    >
-                      Reprogramar
-                    </SubmitButton>
-                  </form>
-                  <form action={marcarNoAsistio} className="ml-auto">
-                    <input type="hidden" name="id" value={x.id} />
-                    <SubmitButton
-                      pendingText="Guardando…"
-                      className="rounded-full border border-[var(--color-line)] px-4 py-2.5 text-[13px] text-espresso-soft transition-colors hover:text-[#9C5475]"
-                    >
-                      No asistió
-                    </SubmitButton>
-                  </form>
-                  <form action={marcarRealizado}>
-                    <input type="hidden" name="id" value={x.id} />
-                    <SubmitButton
-                      pendingText="Guardando…"
-                      className="rounded-full bg-sage/15 px-4 py-2.5 text-[13px] font-medium text-sage-deep transition-colors hover:bg-sage/25"
-                    >
-                      Marcar realizado
-                    </SubmitButton>
-                  </form>
-                </div>
-              </li>
+                <ul className="mt-3 space-y-3">
+                  {g.items.map((x) => (
+                    <li key={x.id} className="rounded-2xl admin-card p-5">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="font-medium text-espresso">{x.nombre}</p>
+                          <p className="text-[14px] text-espresso-soft">
+                            {x.serviceName ? `${x.serviceName} · ` : ""}
+                            {x.staffName ? `${x.staffName} · ` : ""}
+                            {MOD_LABEL[x.modalidad] || x.modalidad} · {x.contacto}
+                          </p>
+                          <a
+                            href={waRecordatorio(x)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-2 inline-flex items-center gap-1.5 text-[13px] font-medium text-sage-deep underline-offset-4 hover:underline"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-2.8.7.8-2.7-.2-.3A8 8 0 1 1 12 20Zm4.6-5.9c-.3-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.3-.6.8-.8 1-.1.1-.3.2-.5 0a6.5 6.5 0 0 1-3.2-2.8c-.2-.4.2-.4.6-1.2.1-.1 0-.3 0-.4l-.8-1.9c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.4.1-.7.3a3 3 0 0 0-.9 2.2c0 1.3 1 2.6 1.1 2.8.1.2 1.9 2.9 4.6 4 .6.3 1.1.4 1.5.5.6.2 1.2.2 1.6.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2 0-.1-.2-.2-.5-.3Z" />
+                            </svg>
+                            Enviar recordatorio
+                          </a>
+                        </div>
+                        <p className="whitespace-nowrap font-serif text-2xl italic text-sage-deep">
+                          {x.startsAt ? `${horaAR(x.startsAt)}` : "Sin hora"}
+                          <span className="ml-1 text-[13px] not-italic text-espresso-soft">hs</span>
+                        </p>
+                      </div>
+                      <div className="mt-4 flex flex-wrap items-center gap-3">
+                        <form action={reprogramarTurno} className="flex flex-wrap items-center gap-2">
+                          <input type="hidden" name="id" value={x.id} />
+                          <input
+                            type="datetime-local"
+                            name="fecha"
+                            defaultValue={x.startsAt ? isoToArLocal(x.startsAt) : ""}
+                            className="admin-input rounded-full px-3 py-2 text-[13px]"
+                          />
+                          <SubmitButton
+                            pendingText="Reprogramando…"
+                            className="rounded-full border border-[var(--color-line)] px-4 py-2.5 text-[13px] text-espresso-soft transition-colors hover:text-espresso"
+                          >
+                            Reprogramar
+                          </SubmitButton>
+                        </form>
+                        <form action={marcarNoAsistio} className="ml-auto">
+                          <input type="hidden" name="id" value={x.id} />
+                          <SubmitButton
+                            pendingText="Guardando…"
+                            className="rounded-full border border-[var(--color-line)] px-4 py-2.5 text-[13px] text-espresso-soft transition-colors hover:text-[#9C5475]"
+                          >
+                            No asistió
+                          </SubmitButton>
+                        </form>
+                        <form action={marcarRealizado}>
+                          <input type="hidden" name="id" value={x.id} />
+                          <SubmitButton
+                            pendingText="Guardando…"
+                            className="rounded-full bg-sage/15 px-4 py-2.5 text-[13px] font-medium text-sage-deep transition-colors hover:bg-sage/25"
+                          >
+                            Marcar realizado
+                          </SubmitButton>
+                        </form>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </section>
 

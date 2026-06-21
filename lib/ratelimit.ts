@@ -20,10 +20,17 @@ export function rateLimit(key: string, limit: number, windowMs: number): RateRes
   const now = Date.now();
 
   if (buckets.size > MAX_KEYS) {
+    // 1) Soltar los expirados.
     for (const [k, b] of buckets) if (now > b.reset) buckets.delete(k);
-    // si sigue gigante (ataque distribuido), reseteamos todo: preferimos perder
-    // precisión antes que consumir memoria sin tope.
-    if (buckets.size > MAX_KEYS) buckets.clear();
+    // 2) Si sigue lleno (ataque distribuido con muchas claves vivas), descartar
+    //    las MÁS VIEJAS por vencimiento — NUNCA clear() global, porque eso
+    //    resetería el contador de los abusadores activos (agujero de evasión).
+    if (buckets.size > MAX_KEYS) {
+      const masViejas = [...buckets.entries()]
+        .sort((a, b) => a[1].reset - b[1].reset)
+        .slice(0, Math.ceil(buckets.size * 0.2));
+      for (const [k] of masViejas) buckets.delete(k);
+    }
   }
 
   const b = buckets.get(key);

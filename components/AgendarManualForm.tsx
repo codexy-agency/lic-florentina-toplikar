@@ -15,6 +15,10 @@ export function AgendarManualForm({
   staff: Staff[];
 }) {
   const [open, setOpen] = useState(false);
+  // El estado de useActionState persiste mientras el componente esté montado, así
+  // que usamos un flag local para el "✓" y lo limpiamos al reabrir (si no, el
+  // cartel de éxito reaparecería para un turno que no se está creando).
+  const [justSubmitted, setJustSubmitted] = useState(false);
   const [state, formAction] = useActionState<ManualState | null, FormData>(
     agendarTurnoManual,
     null
@@ -24,10 +28,16 @@ export function AgendarManualForm({
   useEffect(() => {
     if (state?.ok) {
       formRef.current?.reset();
+      setJustSubmitted(true);
       const t = setTimeout(() => setOpen(false), 2000);
       return () => clearTimeout(t);
     }
   }, [state]);
+
+  function abrir() {
+    setJustSubmitted(false);
+    setOpen(true);
+  }
 
   const field =
     "admin-input w-full rounded-xl px-3.5 py-2.5 text-[14px] text-espresso";
@@ -38,7 +48,7 @@ export function AgendarManualForm({
     return (
       <div className="mt-5">
         <button
-          onClick={() => setOpen(true)}
+          onClick={abrir}
           className="inline-flex items-center gap-2 rounded-full bg-espresso px-5 py-2.5 text-[14px] font-medium text-cream shadow-float transition-all duration-300 hover:-translate-y-px"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
@@ -46,7 +56,7 @@ export function AgendarManualForm({
           </svg>
           Agendar turno a mano
         </button>
-        {state?.ok && (
+        {justSubmitted && state?.ok && (
           <span className="ml-3 text-[14px] font-medium text-sage-deep">
             ✓ Turno agendado{state.nombre ? ` para ${state.nombre}` : ""}.
           </span>
@@ -130,7 +140,7 @@ export function AgendarManualForm({
           {state && !state.ok && state.error && (
             <span className="text-[13px] font-medium text-[#9C5475]">{state.error}</span>
           )}
-          {state?.ok && (
+          {justSubmitted && state?.ok && (
             <span className="text-[13px] font-medium text-sage-deep">✓ Agendado.</span>
           )}
         </div>

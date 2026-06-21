@@ -1,4 +1,6 @@
 import Image from "next/image";
+import Link from "next/link";
+import { listServices } from "@/lib/store";
 import { Nav } from "@/components/Nav";
 import { Reveal, WHATSAPP_URL } from "@/components/Reveal";
 import { WhatsAppCTA } from "@/components/WhatsAppCTA";
@@ -59,7 +61,21 @@ const FAQ = [
   },
 ];
 
-export default function Home() {
+// ISR: la landing se regenera cada 10 min para reflejar precios del catálogo
+// (los turnos vienen del mismo origen que el reservador → nunca se desfasan).
+export const revalidate = 600;
+
+const money = (n?: number) => (n ? "$" + n.toLocaleString("es-AR") : null);
+
+export default async function Home() {
+  // Precios reales del catálogo (mismos que usa el reservador). Si el store no
+  // está disponible, la landing NO se rompe: cae a un fallback estático.
+  let serviciosLanding: { id: string; nombre: string; priceARS?: number }[] = [];
+  try {
+    serviciosLanding = (await listServices(true)).filter((s) => s.priceARS);
+  } catch {
+    serviciosLanding = [];
+  }
   return (
     <div className="grain relative overflow-x-hidden">
       <Nav />
@@ -493,43 +509,67 @@ export default function Home() {
       <Divider />
 
       {/* TURNOS — sistema propio, centraliza la solicitud */}
-      <section id="turnos" className="mx-auto max-w-7xl px-5 py-20 md:px-10 md:py-36">
-        <div className="grid gap-12 md:grid-cols-12 md:gap-14">
-          <div className="md:col-span-5">
-            <Reveal>
-              <span className="text-[10px] font-medium uppercase tracking-[0.22em] text-sage-deep">
-                Turnos
-              </span>
-              <h2 className="mt-5 text-balance font-serif text-4xl font-light leading-tight tracking-tight md:text-5xl">
-                Pedí tu turno en un minuto
-              </h2>
-              <p className="mt-6 max-w-md leading-relaxed text-espresso-soft md:text-lg">
-                Elegí la modalidad y reservá directamente uno de los horarios
-                libres. Te confirmo personalmente al contacto que dejes.
-              </p>
-              <ul className="mt-8 space-y-4">
-                {[
-                  "Elegís online o presencial en Viedma",
-                  "Reservás un horario disponible al instante",
-                  "Te confirmo el turno por WhatsApp o mail",
-                ].map((t, i) => (
-                  <li key={t} className="flex items-start gap-3.5 text-espresso-soft">
-                    <span className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-sage/15 font-serif text-[13px] italic text-sage-deep">
-                      {i + 1}
-                    </span>
-                    {t}
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-8">
-                <BookingCTA label="Reservar turno" variant="sage" />
-              </div>
-            </Reveal>
-          </div>
-          <div className="md:col-span-6 md:col-start-7">
-            <Reveal delay={0.1}>
-              <TurnoForm />
-            </Reveal>
+      <section id="turnos" className="relative overflow-hidden py-20 md:py-36">
+        {/* Fondo lavanda suave full-bleed: diferencia y jerarquiza la franja */}
+        <div
+          aria-hidden
+          className="absolute inset-0 -z-10 bg-gradient-to-b from-[#ECE6F1]/80 via-[#F4EFF5]/55 to-transparent"
+        />
+        <div className="mx-auto max-w-7xl px-5 md:px-10">
+          <div className="grid gap-12 md:grid-cols-12 md:gap-14">
+            <div className="md:col-span-5">
+              <Reveal>
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.22em] text-sage-deep ring-1 ring-sage/20">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sage/50" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-sage-deep" />
+                  </span>
+                  Agenda abierta
+                </span>
+                <h2 className="mt-5 text-balance font-serif text-4xl font-light leading-tight tracking-tight md:text-5xl">
+                  Pedí tu turno en un minuto
+                </h2>
+                <p className="mt-6 max-w-md leading-relaxed text-espresso-soft md:text-lg">
+                  Elegí la modalidad y reservá <strong className="font-medium text-espresso">en el momento</strong> uno
+                  de los horarios libres. Sin esperas: el calendario de al lado
+                  está activo.
+                </p>
+                <ul className="mt-8 space-y-4">
+                  {[
+                    "Elegís online o presencial en Viedma",
+                    "Reservás un horario disponible al instante",
+                    "Te confirmo el turno por WhatsApp o mail",
+                  ].map((t, i) => (
+                    <li key={t} className="flex items-start gap-3.5 text-espresso-soft">
+                      <span className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-sage/15 font-serif text-[13px] italic text-sage-deep">
+                        {i + 1}
+                      </span>
+                      {t}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-8 flex items-start gap-2.5 text-[14px] font-medium text-espresso">
+                  <svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-sage-deep" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 21s-7-4.35-7-10a7 7 0 0 1 14 0c0 5.65-7 10-7 10Z" /><circle cx="12" cy="11" r="2.5" />
+                  </svg>
+                  Respondo personalmente cada consulta en menos de 24 horas.
+                </p>
+                <div className="mt-6">
+                  <Link
+                    href="/reservar"
+                    className="group inline-flex items-center gap-1.5 text-[14px] font-medium text-sage-deep underline-offset-4 transition-colors hover:text-espresso hover:underline"
+                  >
+                    ¿Preferís verlo en pantalla completa?
+                    <span className="transition-transform duration-300 group-hover:translate-x-0.5">→</span>
+                  </Link>
+                </div>
+              </Reveal>
+            </div>
+            <div className="md:col-span-6 md:col-start-7">
+              <Reveal delay={0.1}>
+                <TurnoForm />
+              </Reveal>
+            </div>
           </div>
         </div>
       </section>
@@ -607,19 +647,32 @@ export default function Home() {
             <div className="flex h-full flex-col rounded-[2rem] border border-[var(--color-line)] bg-white/40 p-2 shadow-card transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:border-sage/40 hover:shadow-card-hover">
               <div className="flex h-full flex-col rounded-[calc(2rem-0.5rem)] bg-cream-deep/40 p-7 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
                 <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-sage-deep">
-                  Sesión individual
+                  Aranceles
                 </span>
                 <h3 className="mt-3 font-serif text-2xl tracking-tight text-espresso">
-                  Valor de referencia
+                  Valores de referencia
                 </h3>
-                <p className="mt-4 font-serif text-4xl font-light text-espresso">
-                  $18.000
-                  <span className="ml-2 align-middle text-[13px] uppercase tracking-[0.14em] text-espresso-soft">
-                    / sesión
-                  </span>
-                </p>
-                <p className="mt-4 flex-1 leading-relaxed text-espresso-soft">
-                  Sesión de 50 minutos. Consultá por planes de continuidad y
+                {serviciosLanding.length > 0 ? (
+                  <ul className="mt-5 space-y-0.5">
+                    {serviciosLanding.map((s) => (
+                      <li
+                        key={s.id}
+                        className="flex items-baseline justify-between gap-4 border-b border-[var(--color-line)]/60 py-2.5 last:border-0"
+                      >
+                        <span className="text-[15px] text-espresso">{s.nombre}</span>
+                        <span className="whitespace-nowrap font-serif text-xl font-light text-espresso">
+                          {money(s.priceARS)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-4 font-serif text-3xl font-light text-espresso">
+                    Consultá los valores por WhatsApp
+                  </p>
+                )}
+                <p className="mt-5 flex-1 leading-relaxed text-espresso-soft">
+                  Sesiones de 50 minutos. Consultá por planes de continuidad y
                   obras sociales por WhatsApp.
                 </p>
               </div>
@@ -758,9 +811,9 @@ export default function Home() {
                       href="https://www.instagram.com/psicoterapia.pauli/"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="group inline-flex items-center gap-1.5 text-espresso transition-colors duration-300 hover:text-sage-deep focus-visible:outline-none"
+                      className="group inline-flex items-center gap-1.5 whitespace-nowrap text-espresso transition-colors duration-300 hover:text-sage-deep focus-visible:outline-none"
                     >
-                      @psicoterapia.pauli
+                      <span>@psicoterapia.pauli</span>
                       <span className="transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
                         ↗
                       </span>
