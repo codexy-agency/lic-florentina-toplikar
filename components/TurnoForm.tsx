@@ -306,8 +306,10 @@ export function TurnoForm() {
                         {s.durationMin} min{precio(s.priceARS) ? ` · ${precio(s.priceARS)}` : ""}
                       </span>
                     </span>
-                    <span className="text-espresso-soft transition-transform duration-300 group-hover:translate-x-0.5">
-                      →
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--color-line)] text-espresso-soft transition-all duration-300 group-hover:translate-x-0.5 group-hover:border-sage-deep group-hover:bg-sage-deep group-hover:text-cream">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 12h14M13 6l6 6-6 6" />
+                      </svg>
                     </span>
                   </button>
                 ))}
@@ -331,8 +333,10 @@ export function TurnoForm() {
                         <span className="block text-[13px] text-espresso-soft">{m.titulo}</span>
                       )}
                     </span>
-                    <span className="text-espresso-soft transition-transform duration-300 group-hover:translate-x-0.5">
-                      →
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--color-line)] text-espresso-soft transition-all duration-300 group-hover:translate-x-0.5 group-hover:border-sage-deep group-hover:bg-sage-deep group-hover:text-cream">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 12h14M13 6l6 6-6 6" />
+                      </svg>
                     </span>
                   </button>
                 ))}

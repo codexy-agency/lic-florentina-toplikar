@@ -534,26 +534,61 @@ export default async function Home() {
                   de los horarios libres. Sin esperas: el calendario de al lado
                   está activo.
                 </p>
-                <ul className="mt-8 space-y-4">
+                {/* Cómo funciona — pasos conectados, con sentido */}
+                <div className="mt-9">
                   {[
-                    "Elegís online o presencial en Viedma",
-                    "Reservás un horario disponible al instante",
-                    "Te confirmo el turno por WhatsApp o mail",
-                  ].map((t, i) => (
-                    <li key={t} className="flex items-start gap-3.5 text-espresso-soft">
-                      <span className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-sage/15 font-serif text-[13px] italic text-sage-deep">
-                        {i + 1}
-                      </span>
-                      {t}
-                    </li>
+                    {
+                      t: "Elegís servicio y horario",
+                      d: "Online o presencial en Viedma, el día que mejor te quede.",
+                      icon: (
+                        <path d="M3 4h18v18H3zM3 10h18M16 2v4M8 2v4" />
+                      ),
+                    },
+                    {
+                      t: "Queda reservado al instante",
+                      d: "Sin idas y vueltas: el horario se toma en el momento.",
+                      icon: <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />,
+                    },
+                    {
+                      t: "Te confirmo en persona",
+                      d: "Te escribo por WhatsApp o mail en menos de 24 horas.",
+                      icon: (
+                        <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z" />
+                      ),
+                    },
+                  ].map((s, i, arr) => (
+                    <div key={s.t} className="flex gap-4">
+                      <div className="flex flex-col items-center">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-sage-deep shadow-[0_6px_18px_-10px_rgba(156,84,117,0.5)] ring-1 ring-sage/25">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                            {s.icon}
+                          </svg>
+                        </span>
+                        {i < arr.length - 1 && (
+                          <span className="my-1 w-px flex-1 bg-gradient-to-b from-sage/40 to-sage/5" />
+                        )}
+                      </div>
+                      <div className="pb-6">
+                        <p className="font-medium text-espresso">{s.t}</p>
+                        <p className="mt-1 text-[14px] leading-relaxed text-espresso-soft">{s.d}</p>
+                      </div>
+                    </div>
                   ))}
-                </ul>
-                <p className="mt-8 flex items-start gap-2.5 text-[14px] font-medium text-espresso">
-                  <svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-sage-deep" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 21s-7-4.35-7-10a7 7 0 0 1 14 0c0 5.65-7 10-7 10Z" /><circle cx="12" cy="11" r="2.5" />
-                  </svg>
-                  Respondo personalmente cada consulta en menos de 24 horas.
-                </p>
+                </div>
+
+                {/* Nota cálida — la persona detrás */}
+                <div className="flex items-start gap-3 rounded-2xl border border-sage/20 bg-white/55 p-4 backdrop-blur-sm">
+                  <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sage/12 text-sage-deep">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 21s-7-4.35-7-10a7 7 0 0 1 14 0c0 5.65-7 10-7 10Z" /><circle cx="12" cy="11" r="2.5" />
+                    </svg>
+                  </span>
+                  <p className="text-[14px] leading-relaxed text-espresso">
+                    <strong className="font-medium">Del otro lado hay una persona, no un bot.</strong>{" "}
+                    Leo y respondo personalmente cada consulta.
+                  </p>
+                </div>
+
                 <div className="mt-6">
                   <Link
                     href="/reservar"
