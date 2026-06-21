@@ -2,10 +2,12 @@ import { listStaff, listServices } from "@/lib/store";
 import { AdminHeader } from "@/components/AdminHeader";
 import { AdminShell } from "@/components/AdminShell";
 import { ProfesionalesEditor } from "@/components/ProfesionalesEditor";
+import { requireAdmin } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProfesionalesPage() {
+  await requireAdmin();
   const [staff, services] = await Promise.all([listStaff(), listServices()]);
   return (
     <AdminShell>

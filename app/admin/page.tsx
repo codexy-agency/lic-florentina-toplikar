@@ -1,13 +1,22 @@
 import Link from "next/link";
-import { listSolicitudes, listPacientes, stats } from "@/lib/store";
+import {
+  listSolicitudes,
+  listPacientes,
+  listServices,
+  listStaff,
+  stats,
+} from "@/lib/store";
 import { fechaHoraAR, isoToArLocal } from "@/lib/scheduling/slots";
 import { AdminHeader } from "@/components/AdminHeader";
 import { AdminShell } from "@/components/AdminShell";
+import { SubmitButton } from "@/components/SubmitButton";
+import { AgendarManualForm } from "@/components/AgendarManualForm";
 import {
   aceptarSolicitud,
   reprogramarTurno,
   rechazarSolicitud,
   marcarRealizado,
+  marcarNoAsistio,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -36,10 +45,15 @@ const MOD_BADGE: Record<string, string> = {
   presencial: "bg-clay/25 text-[#7a5a86]",
 };
 
+import { requireAdmin } from "@/lib/session";
+
 export default async function AdminPage() {
-  const [solicitudes, pacientes, s] = await Promise.all([
+  await requireAdmin();
+  const [solicitudes, pacientes, services, staff, s] = await Promise.all([
     listSolicitudes(),
     listPacientes(),
+    listServices(true),
+    listStaff(true),
     stats(),
   ]);
   const pendientes = solicitudes.filter((x) => x.estado === "pendiente");
@@ -153,15 +167,21 @@ export default async function AdminPage() {
                       defaultValue={x.startsAt ? isoToArLocal(x.startsAt) : ""}
                       className="admin-input rounded-full px-3 py-2 text-[13px]"
                     />
-                    <button className="rounded-full bg-espresso px-4 py-2.5 text-[13px] font-medium text-cream transition-colors hover:bg-espresso/90">
+                    <SubmitButton
+                      pendingText="Confirmando…"
+                      className="rounded-full bg-espresso px-4 py-2.5 text-[13px] font-medium text-cream transition-colors hover:bg-espresso/90"
+                    >
                       {x.startsAt ? "Confirmar" : "Confirmar con fecha"}
-                    </button>
+                    </SubmitButton>
                   </form>
                   <form action={rechazarSolicitud}>
                     <input type="hidden" name="id" value={x.id} />
-                    <button className="rounded-full border border-[var(--color-line)] px-4 py-2.5 text-[13px] text-espresso-soft transition-colors hover:text-[#9C5475]">
+                    <SubmitButton
+                      pendingText="Guardando…"
+                      className="rounded-full border border-[var(--color-line)] px-4 py-2.5 text-[13px] text-espresso-soft transition-colors hover:text-[#9C5475]"
+                    >
                       Rechazar
-                    </button>
+                    </SubmitButton>
                   </form>
                   <a
                     href={`https://wa.me/${x.contacto.replace(/[^0-9]/g, "")}`}
@@ -183,6 +203,10 @@ export default async function AdminPage() {
         <h2 className="font-serif text-xl tracking-tight text-espresso">
           Próximos turnos
         </h2>
+
+        <AgendarManualForm services={services} staff={staff} />
+
+        <div className="mt-8" />
         {agenda.length === 0 ? (
           <p className="mt-4 rounded-2xl admin-empty p-8 text-center text-espresso-soft">
             Todavía no hay turnos confirmados.
@@ -216,15 +240,30 @@ export default async function AdminPage() {
                       defaultValue={x.startsAt ? isoToArLocal(x.startsAt) : ""}
                       className="admin-input rounded-full px-3 py-2 text-[13px]"
                     />
-                    <button className="rounded-full border border-[var(--color-line)] px-4 py-2.5 text-[13px] text-espresso-soft transition-colors hover:text-espresso">
+                    <SubmitButton
+                      pendingText="Reprogramando…"
+                      className="rounded-full border border-[var(--color-line)] px-4 py-2.5 text-[13px] text-espresso-soft transition-colors hover:text-espresso"
+                    >
                       Reprogramar
-                    </button>
+                    </SubmitButton>
                   </form>
-                  <form action={marcarRealizado} className="ml-auto">
+                  <form action={marcarNoAsistio} className="ml-auto">
                     <input type="hidden" name="id" value={x.id} />
-                    <button className="rounded-full border border-[var(--color-line)] px-4 py-2.5 text-[13px] text-espresso-soft transition-colors hover:text-espresso">
+                    <SubmitButton
+                      pendingText="Guardando…"
+                      className="rounded-full border border-[var(--color-line)] px-4 py-2.5 text-[13px] text-espresso-soft transition-colors hover:text-[#9C5475]"
+                    >
+                      No asistió
+                    </SubmitButton>
+                  </form>
+                  <form action={marcarRealizado}>
+                    <input type="hidden" name="id" value={x.id} />
+                    <SubmitButton
+                      pendingText="Guardando…"
+                      className="rounded-full bg-sage/15 px-4 py-2.5 text-[13px] font-medium text-sage-deep transition-colors hover:bg-sage/25"
+                    >
                       Marcar realizado
-                    </button>
+                    </SubmitButton>
                   </form>
                 </div>
               </li>

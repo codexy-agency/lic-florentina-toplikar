@@ -2,10 +2,12 @@ import { getScheduling } from "@/lib/store";
 import { AdminHeader } from "@/components/AdminHeader";
 import { AdminShell } from "@/components/AdminShell";
 import { DisponibilidadEditor } from "@/components/DisponibilidadEditor";
+import { requireAdmin } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function DisponibilidadPage() {
+  await requireAdmin();
   const { config, rules, exceptions } = await getScheduling();
 
   return (

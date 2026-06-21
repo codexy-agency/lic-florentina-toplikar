@@ -17,7 +17,12 @@ import { getServiceClient, supabaseConfigurado, PROFESSIONAL_ID } from "./supaba
 
 export type { Service, Staff } from "./scheduling/types";
 
-export type Estado = "pendiente" | "confirmado" | "rechazado" | "realizado";
+export type Estado =
+  | "pendiente"
+  | "confirmado"
+  | "rechazado"
+  | "realizado"
+  | "no_asistio";
 
 export interface Solicitud {
   id: string;
@@ -351,6 +356,56 @@ export async function addSolicitudSiLibre(
       creadoEn: new Date().toISOString(),
     };
     db.solicitudes.unshift(sol);
+    return sol;
+  });
+}
+
+/** Agenda un turno a mano (desde el panel): lo crea YA confirmado y registra al
+ *  paciente, todo en una sola operación atómica con chequeo de solape. */
+export async function crearTurnoManual(input: {
+  nombre: string;
+  contacto: string;
+  modalidad: string;
+  serviceId?: string;
+  serviceName?: string;
+  staffId?: string;
+  staffName?: string;
+  precio?: number;
+  startsAt: string;
+  endsAt: string;
+}): Promise<Solicitud | null> {
+  return mutate((db) => {
+    const s = new Date(input.startsAt).getTime();
+    const e = new Date(input.endsAt).getTime();
+    const choca = db.solicitudes.some((x) => {
+      if (x.estado !== "pendiente" && x.estado !== "confirmado") return false;
+      if (input.staffId && x.staffId && x.staffId !== input.staffId) return false;
+      if (!x.startsAt || !x.endsAt) return false;
+      const bs = new Date(x.startsAt).getTime();
+      const be = new Date(x.endsAt).getTime();
+      return s < be && bs < e;
+    });
+    if (choca) return null;
+    const sol: Solicitud = {
+      ...input,
+      preferencia: "",
+      motivo: "",
+      id: randomUUID(),
+      estado: "confirmado",
+      creadoEn: new Date().toISOString(),
+    };
+    db.solicitudes.unshift(sol);
+    const key = input.contacto.trim().toLowerCase();
+    if (!db.pacientes.find((p) => p.contacto.trim().toLowerCase() === key)) {
+      db.pacientes.unshift({
+        id: randomUUID(),
+        nombre: input.nombre,
+        contacto: input.contacto,
+        modalidad: input.modalidad,
+        notas: "",
+        creadoEn: new Date().toISOString(),
+      });
+    }
     return sol;
   });
 }

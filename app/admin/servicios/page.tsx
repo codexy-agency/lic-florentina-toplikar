@@ -2,10 +2,12 @@ import { listServices } from "@/lib/store";
 import { AdminHeader } from "@/components/AdminHeader";
 import { AdminShell } from "@/components/AdminShell";
 import { ServiciosEditor } from "@/components/ServiciosEditor";
+import { requireAdmin } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function ServiciosPage() {
+  await requireAdmin();
   const services = await listServices();
   return (
     <AdminShell>

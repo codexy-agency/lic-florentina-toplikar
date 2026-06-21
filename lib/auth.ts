@@ -6,6 +6,9 @@
 const COOKIE = "pp_admin";
 const PASSWORD = process.env.ADMIN_PASSWORD;
 const SECRET = process.env.ADMIN_SECRET;
+// Versión de sesión rotable: cambiarla en Vercel invalida TODOS los tokens ya
+// emitidos (revocación de emergencia ante robo de cookie) sin tocar ADMIN_SECRET.
+const SESSION_VERSION = process.env.ADMIN_SESSION_VERSION || "1";
 
 export const SESSION_COOKIE = COOKIE;
 
@@ -48,11 +51,11 @@ export function checkPassword(input: string) {
   return safeEqual(input, PASSWORD);
 }
 
-// Token de sesión con vencimiento (TTL). payload = "ok.<emitido>".
+// Token de sesión con vencimiento (TTL). payload = "ok.<version>.<emitido>".
 const TTL_MS = 1000 * 60 * 60 * 12; // 12 horas
 
 export async function makeToken(): Promise<string> {
-  const payload = `ok.${Date.now()}`;
+  const payload = `ok.${SESSION_VERSION}.${Date.now()}`;
   return `${payload}.${await sign(payload)}`;
 }
 
@@ -63,8 +66,12 @@ export async function verifyToken(token: string | undefined): Promise<boolean> {
   const payload = token.slice(0, i);
   const sig = token.slice(i + 1);
   if (!safeEqual(sig, await sign(payload))) return false;
-  // Chequeo de vencimiento
-  const ts = Number(payload.split(".")[1]);
+  // Formato esperado: ok.<version>.<timestamp>
+  const parts = payload.split(".");
+  if (parts[0] !== "ok") return false;
+  // Versión rotada en Vercel ⇒ token viejo inválido (revocación global).
+  if (parts[1] !== SESSION_VERSION) return false;
+  const ts = Number(parts[2]);
   if (!Number.isFinite(ts) || Date.now() - ts > TTL_MS) return false;
   return true;
 }

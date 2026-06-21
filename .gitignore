@@ -40,3 +40,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 /data/
+
+# vault interno de planificación (NO publicar: lleva PII real del cliente,
+# project ref de Supabase y la estrategia comercial de la agencia)
+/cerebro/
+
+# scripts/artefactos locales de verificación (no son parte de la app)
+/capturas/
+check*.js
+.serverlog.txt

@@ -2,6 +2,7 @@ import { getFinanzas } from "@/lib/store";
 import { fechaHoraAR } from "@/lib/scheduling/slots";
 import { AdminShell } from "@/components/AdminShell";
 import { AdminHeader } from "@/components/AdminHeader";
+import { requireAdmin } from "@/lib/session";
 import { registrarPago, quitarPago } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,7 @@ const METODO_LABEL: Record<string, string> = {
 };
 
 export default async function FinanzasPage() {
+  await requireAdmin();
   const f = await getFinanzas();
   const maxMes = Math.max(1, ...f.porMes.map((m) => m.facturado));
 

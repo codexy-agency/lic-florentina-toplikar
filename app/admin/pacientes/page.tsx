@@ -3,10 +3,12 @@ import { AdminShell } from "@/components/AdminShell";
 import { AdminHeader } from "@/components/AdminHeader";
 import { PacientesList } from "@/components/PacientesList";
 import { crearPaciente } from "./actions";
+import { requireAdmin } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function PacientesPage() {
+  await requireAdmin();
   const pacientes = await listPacientes();
   const field =
     "admin-input w-full px-3 py-2.5 text-[14px] text-espresso";

@@ -9,6 +9,7 @@ import {
 } from "@/lib/store";
 import { getAvailableSlots, endFromStart } from "@/lib/scheduling/slots";
 import { notificarTurno } from "@/lib/telegram";
+import { rateLimit, clientIp } from "@/lib/ratelimit";
 import type { Modalidad } from "@/lib/scheduling/types";
 
 const MAX = 600;
@@ -16,9 +17,40 @@ function clean(v: unknown, max = MAX) {
   return String(v ?? "").trim().slice(0, max);
 }
 
+// Tope de tamaño del body (un turno son <2KB; 16KB es holgado). Evita pagar el
+// costo de parsear payloads gigantes en la lambda.
+function tooLarge(req: Request): boolean {
+  const len = Number(req.headers.get("content-length") || 0);
+  return Number.isFinite(len) && len > 16_000;
+}
+
+// Acepta como contacto un email o un teléfono con al menos 7 dígitos.
+function contactoPlausible(c: string): boolean {
+  const digits = (c.match(/\d/g) || []).length;
+  const esEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c);
+  return esEmail || digits >= 7;
+}
+
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    // Rechazo temprano de bodies enormes (DoS por parseo) antes de leer el JSON.
+    if (tooLarge(req)) {
+      return NextResponse.json({ ok: false, error: "Solicitud demasiado grande." }, { status: 413 });
+    }
+    // Anti-flood: máx. 8 reservas cada 10 min por IP. Frena spam de turnos
+    // falsos y abuso del notificador antes de tocar la base.
+    const rl = rateLimit(`turnos:${clientIp(req)}`, 8, 10 * 60_000);
+    if (!rl.ok) {
+      return NextResponse.json(
+        { ok: false, error: "Demasiadas solicitudes. Probá de nuevo en unos minutos." },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfter) } }
+      );
+    }
+
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== "object") {
+      return NextResponse.json({ ok: false, error: "Datos inválidos." }, { status: 400 });
+    }
     const nombre = clean(body.nombre, 120);
     const contacto = clean(body.contacto, 160);
     const modalidad: Modalidad = body.modalidad === "presencial" ? "presencial" : "online";
@@ -34,15 +66,39 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+    // Contacto con un mínimo de sustancia (un teléfono o email real): frena
+    // basura tipo "a" y dificulta el spam con contactos sintéticos.
+    if (!contactoPlausible(contacto)) {
+      return NextResponse.json(
+        { ok: false, error: "Dejanos un WhatsApp o email válido para confirmarte." },
+        { status: 400 }
+      );
+    }
+    // Segundo límite, por contacto: evita que un mismo número/email squattee
+    // muchos slots aunque rote de IP.
+    const rlC = rateLimit(`turnos-c:${contacto.toLowerCase()}`, 4, 30 * 60_000);
+    if (!rlC.ok) {
+      return NextResponse.json(
+        { ok: false, error: "Ya tenés varias solicitudes en curso. Te contactamos pronto." },
+        { status: 429, headers: { "Retry-After": String(rlC.retryAfter) } }
+      );
+    }
 
     // Servicio/profesional autoritativos desde el servidor (no del cliente).
     const services = await listServices(); // catálogo completo (precio aunque esté inactivo)
     const svc = serviceId ? services.find((s) => s.id === serviceId) : undefined;
+    if (serviceId && !svc) {
+      return NextResponse.json({ ok: false, error: "Servicio inválido." }, { status: 400 });
+    }
+    const stf = staffId
+      ? (await listStaff()).find((s) => s.id === staffId)
+      : undefined;
+    if (staffId && !stf) {
+      return NextResponse.json({ ok: false, error: "Profesional inválido." }, { status: 400 });
+    }
     const serviceName = svc?.nombre;
     const precio = svc?.priceARS;
-    const staffName = staffId
-      ? (await listStaff()).find((s) => s.id === staffId)?.nombre
-      : undefined;
+    const staffName = stf?.nombre;
 
     let startsAt: string | undefined;
     let endsAt: string | undefined;

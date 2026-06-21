@@ -9,6 +9,7 @@ import { fechaHoraAR, isoToArLocal } from "@/lib/scheduling/slots";
 import { AdminShell } from "@/components/AdminShell";
 import { AdminHeader } from "@/components/AdminHeader";
 import { agregarNota, borrarNota, guardarFicha } from "../actions";
+import { requireAdmin } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,10 @@ const ESTADO_BADGE: Record<string, string> = {
   confirmado: "bg-sage/15 text-sage-deep",
   realizado: "bg-espresso/10 text-espresso",
   rechazado: "bg-[#9C5475]/10 text-[#9C5475]",
+  no_asistio: "bg-[#9C5475]/10 text-[#9C5475]",
+};
+const ESTADO_LABEL: Record<string, string> = {
+  no_asistio: "No asistió",
 };
 
 export default async function PacienteDetalle({
@@ -37,6 +42,7 @@ export default async function PacienteDetalle({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireAdmin();
   const { id } = await params;
   const paciente = await getPaciente(id);
   if (!paciente) notFound();
@@ -187,7 +193,7 @@ export default async function PacienteDetalle({
                         <span
                           className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_BADGE[t.estado] || "bg-cream-deep text-espresso-soft"}`}
                         >
-                          {t.estado}
+                          {ESTADO_LABEL[t.estado] || t.estado}
                         </span>
                       </div>
                       <span className="text-[13px] text-espresso-soft">
