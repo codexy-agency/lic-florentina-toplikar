@@ -13,7 +13,12 @@ import {
   type Staff,
   DEFAULT_CONFIG,
 } from "./scheduling/types";
-import { getServiceClient, supabaseConfigurado, PROFESSIONAL_ID } from "./supabase";
+import {
+  getServiceClient,
+  supabaseConfigurado,
+  assertBackendConfigOk,
+  PROFESSIONAL_ID,
+} from "./supabase";
 
 export type { Service, Staff } from "./scheduling/types";
 
@@ -190,6 +195,7 @@ async function sbWrite(db: DB, rev: number): Promise<boolean> {
 
 // Lectura (no mutante): despacha a Supabase o archivo.
 async function read(): Promise<DB> {
+  assertBackendConfigOk();
   if (supabaseConfigurado) return (await sbRead()).db;
   return fileRead();
 }
@@ -200,6 +206,7 @@ async function read(): Promise<DB> {
 let queue: Promise<unknown> = Promise.resolve();
 function mutate<T>(fn: (db: DB) => T | Promise<T>): Promise<T> {
   const next = queue.then(async () => {
+    assertBackendConfigOk();
     if (supabaseConfigurado) {
       for (let intento = 0; intento < 6; intento++) {
         const { db, rev } = await sbRead();
