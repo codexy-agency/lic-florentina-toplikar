@@ -1,14 +1,26 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { addNota, removeNota, updatePacienteFicha } from "@/lib/store";
+import { addNota, removeNota, updatePacienteFicha, addPaciente } from "@/lib/store";
 import { verifyToken, SESSION_COOKIE } from "@/lib/auth";
 import { arLocalToIso } from "@/lib/scheduling/slots";
 
 async function auth() {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!(await verifyToken(token))) throw new Error("No autorizado");
+}
+
+export async function crearPaciente(formData: FormData) {
+  await auth();
+  const nombre = String(formData.get("nombre") || "").trim().slice(0, 120);
+  const contacto = String(formData.get("contacto") || "").trim().slice(0, 160);
+  const modalidad = String(formData.get("modalidad") || "online") === "presencial" ? "presencial" : "online";
+  if (!nombre || !contacto) return;
+  const p = await addPaciente({ nombre, contacto, modalidad });
+  revalidatePath("/admin/pacientes");
+  redirect(`/admin/pacientes/${p.id}`); // va directo a su historia
 }
 
 export async function agregarNota(formData: FormData) {

@@ -86,7 +86,7 @@ const jsonLd = {
     addressRegion: "Río Negro",
     addressCountry: "AR",
   },
-  sameAs: ["https://www.instagram.com/"],
+  sameAs: ["https://www.instagram.com/psicoterapia.pauli/"],
 };
 
 export default function RootLayout({

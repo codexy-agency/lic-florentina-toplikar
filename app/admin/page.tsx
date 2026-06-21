@@ -151,7 +151,7 @@ export default async function AdminPage() {
                       type="datetime-local"
                       name="fecha"
                       defaultValue={x.startsAt ? isoToArLocal(x.startsAt) : ""}
-                      className="rounded-full border border-[rgba(58,49,55,0.16)] bg-[#FBF7F8] px-3 py-2 text-[13px] text-espresso focus:border-sage/60 focus:outline-none"
+                      className="admin-input rounded-full px-3 py-2 text-[13px]"
                     />
                     <button className="rounded-full bg-espresso px-4 py-2.5 text-[13px] font-medium text-cream transition-colors hover:bg-espresso/90">
                       {x.startsAt ? "Confirmar" : "Confirmar con fecha"}
@@ -214,7 +214,7 @@ export default async function AdminPage() {
                       type="datetime-local"
                       name="fecha"
                       defaultValue={x.startsAt ? isoToArLocal(x.startsAt) : ""}
-                      className="rounded-full border border-[rgba(58,49,55,0.16)] bg-[#FBF7F8] px-3 py-2 text-[13px] text-espresso focus:border-sage/60 focus:outline-none"
+                      className="admin-input rounded-full px-3 py-2 text-[13px]"
                     />
                     <button className="rounded-full border border-[var(--color-line)] px-4 py-2.5 text-[13px] text-espresso-soft transition-colors hover:text-espresso">
                       Reprogramar

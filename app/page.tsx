@@ -124,9 +124,9 @@ export default function Home() {
 
             <div className="hero-rise" style={{ "--d": "0.55s" } as React.CSSProperties}>
               <p className="mt-6 max-w-lg text-[16px] leading-relaxed text-cream/85 md:text-[18px]">
-                Terapia basada en evidencia para acompañarte en tu proceso, con
-                calidez y sin juicios. Consultorio en Viedma y sesiones online a
-                todo el país.
+                Terapia con respaldo científico para la ansiedad, el estrés y los
+                momentos de cambio. Con calidez y sin juicios. Consultorio en Viedma
+                y sesiones online a todo el país.
               </p>
             </div>
 
@@ -144,6 +144,10 @@ export default function Home() {
                 </span>
               </a>
             </div>
+
+            <p className="hero-rise mt-4 text-[13px] text-cream/75 [text-shadow:none]" style={{ "--d": "0.85s" } as React.CSSProperties}>
+              Sesiones de 50 min · Online o presencial en Viedma · Te respondo en menos de 24 h
+            </p>
           </div>
         </div>
 
@@ -518,7 +522,7 @@ export default function Home() {
                 ))}
               </ul>
               <div className="mt-8">
-                <BookingCTA label="Reservar en pantalla completa" variant="sage" />
+                <BookingCTA label="Reservar turno" variant="sage" />
               </div>
             </Reveal>
           </div>
@@ -664,6 +668,11 @@ export default function Home() {
               <p className="mt-6 text-[12px] uppercase tracking-[0.18em] text-cream/70">
                 Respondo personalmente cada consulta en menos de 24 horas
               </p>
+              <p className="mx-auto mt-5 max-w-md text-[12px] leading-relaxed text-cream/60">
+                Los turnos no son un servicio de urgencia. Si estás atravesando una
+                crisis o tenés pensamientos de hacerte daño, comunicate de inmediato
+                con el <strong className="text-cream/80">911</strong> o con la guardia de salud mental más cercana.
+              </p>
             </div>
           </div>
         </Reveal>
@@ -746,7 +755,7 @@ export default function Home() {
                   </li>
                   <li>
                     <a
-                      href="https://www.instagram.com/"
+                      href="https://www.instagram.com/psicoterapia.pauli/"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="group inline-flex items-center gap-1.5 text-espresso transition-colors duration-300 hover:text-sage-deep focus-visible:outline-none"

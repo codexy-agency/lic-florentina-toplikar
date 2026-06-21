@@ -38,11 +38,14 @@ export async function guardarProfesionales(list: Entrada[]) {
   revalidatePath("/reservar");
 }
 
-/** Solo URLs http(s) o rutas locales (/...). Evita javascript:, data:, etc. */
+/** Acepta: foto subida (data:image/...), URL http(s) o ruta local (/...).
+ *  Bloquea javascript:, data:text, etc. */
 function safeImageUrl(v: unknown): string | undefined {
   if (typeof v !== "string") return undefined;
-  const s = v.trim().slice(0, 500);
+  const s = v.trim();
   if (!s) return undefined;
-  if (s.startsWith("/") || /^https?:\/\//i.test(s)) return s;
+  // Foto subida desde el dispositivo (redimensionada en el navegador). ~20-40KB.
+  if (/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(s)) return s.slice(0, 2_000_000);
+  if (s.startsWith("/") || /^https?:\/\//i.test(s)) return s.slice(0, 500);
   return undefined;
 }

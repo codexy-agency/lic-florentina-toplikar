@@ -6,6 +6,37 @@ import type { Staff, Service } from "@/lib/scheduling/types";
 
 const COLORES = ["#9C5475", "#7c8a6f", "#C9A227", "#6E7BA6", "#B07154"];
 
+/** Lee una imagen, la recorta cuadrada y la achica a `size`px → data URL liviano.
+ *  Todo en el navegador: no necesita storage ni servidor. */
+function resizeToDataUrl(file: File, size = 256): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("no canvas");
+        const scale = Math.max(size / img.width, size / img.height); // cover
+        const w = img.width * scale;
+        const h = img.height * scale;
+        ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("imagen inválida"));
+    };
+    img.src = url;
+  });
+}
+
 export function ProfesionalesEditor({
   initial,
   services,
@@ -15,6 +46,20 @@ export function ProfesionalesEditor({
 }) {
   const [rows, setRows] = useState<Staff[]>(initial);
   const [estado, setEstado] = useState<"idle" | "guardando" | "ok">("idle");
+  const [subiendo, setSubiendo] = useState<string | null>(null);
+
+  async function onFile(i: number, id: string, file?: File) {
+    if (!file) return;
+    setSubiendo(id);
+    try {
+      const dataUrl = await resizeToDataUrl(file, 256);
+      patch(i, { imageUrl: dataUrl });
+    } catch {
+      alert("No se pudo procesar la imagen. Probá con otra.");
+    } finally {
+      setSubiendo(null);
+    }
+  }
 
   function add() {
     setRows((r) => [
@@ -125,23 +170,18 @@ export function ProfesionalesEditor({
             className={`${inp} mt-3 w-full`}
           />
 
-          {/* Foto de perfil */}
+          {/* Foto de perfil — subida desde el dispositivo (se redimensiona acá) */}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className="text-[12px] uppercase tracking-[0.1em] text-sage-deep">Foto</span>
-            <input
-              value={m.imageUrl ?? ""}
-              onChange={(e) => patch(i, { imageUrl: e.target.value })}
-              placeholder="URL de la foto (https://…)"
-              aria-label="URL de la foto de perfil"
-              className={`${inp} min-w-[200px] flex-1`}
-            />
-            <button
-              type="button"
-              onClick={() => patch(i, { imageUrl: "/avatar-provisional.svg" })}
-              className="rounded-full border border-[rgba(58,49,55,0.14)] px-3 py-1.5 text-[13px] text-espresso-soft transition-colors hover:text-espresso"
-            >
-              Usar provisoria
-            </button>
+            <label className="cursor-pointer rounded-full border border-[rgba(45,49,58,0.15)] bg-[#F4F6F8] px-3.5 py-1.5 text-[13px] font-medium text-espresso-soft transition-colors hover:text-espresso">
+              {subiendo === m.id ? "Procesando…" : m.imageUrl ? "Cambiar foto" : "Subir foto"}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => onFile(i, m.id, e.target.files?.[0])}
+              />
+            </label>
             {m.imageUrl && (
               <button
                 type="button"
@@ -151,6 +191,7 @@ export function ProfesionalesEditor({
                 Quitar
               </button>
             )}
+            <span className="text-[12px] text-espresso-soft/70">JPG o PNG — se recorta cuadrada y se achica sola.</span>
           </div>
 
           {/* Color */}

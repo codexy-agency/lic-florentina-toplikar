@@ -226,7 +226,7 @@ export function DisponibilidadEditor({
           {blocked.map((d) => (
             <span
               key={d}
-              className="inline-flex items-center gap-2 rounded-full border border-[var(--color-line)] bg-cream-deep/40 px-3 py-1.5 text-[13px] text-espresso"
+              className="admin-soft inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[13px] text-espresso"
             >
               {d}
               <button
@@ -242,7 +242,7 @@ export function DisponibilidadEditor({
       </section>
 
       {/* Guardar */}
-      <div className="sticky bottom-0 z-10 -mx-1 flex items-center gap-4 rounded-2xl border-t border-[var(--color-line)] bg-[#ECEAE9]/85 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-[#ECEAE9]/70">
+      <div className="sticky bottom-0 z-10 -mx-1 flex items-center gap-4 rounded-2xl border-t border-[var(--color-line)] bg-[#ECEEF1]/85 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-[#ECEEF1]/70">
         <button
           onClick={guardar}
           disabled={estado === "guardando"}

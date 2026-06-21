@@ -234,6 +234,30 @@ export async function getPaciente(id: string): Promise<Paciente | null> {
   return db.pacientes.find((p) => p.id === id) ?? null;
 }
 
+/** Crea un paciente a mano. Si ya existe ese contacto, devuelve el existente. */
+export async function addPaciente(input: {
+  nombre: string;
+  contacto: string;
+  modalidad?: string;
+  notas?: string;
+}): Promise<Paciente> {
+  return mutate((db) => {
+    const key = input.contacto.trim().toLowerCase();
+    const existe = db.pacientes.find((p) => p.contacto.trim().toLowerCase() === key);
+    if (existe) return existe;
+    const p: Paciente = {
+      id: randomUUID(),
+      nombre: input.nombre,
+      contacto: input.contacto,
+      modalidad: input.modalidad || "online",
+      notas: input.notas || "",
+      creadoEn: new Date().toISOString(),
+    };
+    db.pacientes.unshift(p);
+    return p;
+  });
+}
+
 /** Turnos del paciente (match por contacto normalizado). */
 export async function getPacienteTurnos(contacto: string): Promise<Solicitud[]> {
   const key = contacto.trim().toLowerCase();
