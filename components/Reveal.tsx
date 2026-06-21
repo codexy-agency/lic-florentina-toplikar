@@ -32,6 +32,11 @@ export function Reveal({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    // Si el usuario pidió menos movimiento, mostramos al instante sin animación.
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      setShown(true);
+      return;
+    }
     const io = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -42,7 +47,13 @@ export function Reveal({
       { rootMargin: "-80px" }
     );
     io.observe(el);
-    return () => io.disconnect();
+    // Failsafe: si el observer no dispara (conexión lenta, layout raro, navegador
+    // sin soporte), revelamos igual a los 1.4 s para no dejar contenido "a medias".
+    const t = setTimeout(() => setShown(true), 1400);
+    return () => {
+      io.disconnect();
+      clearTimeout(t);
+    };
   }, []);
 
   return (

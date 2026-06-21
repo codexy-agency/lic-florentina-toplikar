@@ -169,7 +169,11 @@ export function TurnoForm() {
   // correlativo (1·2·3), para que nunca se vea "saltar" un número.
   const staffNeeded =
     staff.length > 1 && services.some((s) => eligibles(s.id).length > 1);
-  const pasos = staffNeeded
+  // Mostramos "Profesional" sólo si el tenant lo usa Y el servicio elegido no lo
+  // saltea: si se salteó (skipStaff), usamos 3 pasos para no marcar como ✓ hecho
+  // un paso que el paciente nunca vio.
+  const mostrarProfesional = staffNeeded && !skipStaff;
+  const pasos = mostrarProfesional
     ? [
         { label: "Servicio", n: 1 },
         { label: "Profesional", n: 2 },
