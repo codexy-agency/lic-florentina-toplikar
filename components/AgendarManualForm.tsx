@@ -41,8 +41,7 @@ export function AgendarManualForm({
 
   const field =
     "admin-input w-full rounded-xl px-3.5 py-2.5 text-[14px] text-espresso";
-  const label =
-    "mb-1.5 block text-[12px] uppercase tracking-[0.1em] text-sage-deep";
+  const label = "admin-kicker mb-1.5 block text-[12px]";
 
   if (!open) {
     return (
@@ -57,7 +56,7 @@ export function AgendarManualForm({
           Agendar turno a mano
         </button>
         {justSubmitted && state?.ok && (
-          <span className="ml-3 text-[14px] font-medium text-sage-deep">
+          <span className="ml-3 text-[14px] font-medium text-[var(--a-accent-ink)]">
             ✓ Turno agendado{state.nombre ? ` para ${state.nombre}` : ""}.
           </span>
         )}
@@ -138,10 +137,10 @@ export function AgendarManualForm({
             Agendar turno
           </SubmitButton>
           {state && !state.ok && state.error && (
-            <span className="text-[13px] font-medium text-[#9C5475]">{state.error}</span>
+            <span className="admin-danger text-[13px] font-medium">{state.error}</span>
           )}
           {justSubmitted && state?.ok && (
-            <span className="text-[13px] font-medium text-sage-deep">✓ Agendado.</span>
+            <span className="text-[13px] font-medium text-[var(--a-accent-ink)]">✓ Agendado.</span>
           )}
         </div>
       </form>

@@ -302,53 +302,114 @@ details.faq > .faq-body > div {
 }
 
 /* =====================================================================
-   PANEL INTERNO (admin) — sistema de superficies con contraste real.
-   Fondo greige más profundo que las tarjetas, para que el blanco "flote".
+   PANEL INTERNO (admin) — sistema de color SOBRIO.
+   Filosofía: base NEUTRA y cálida (crema/blanco/gris suave), un ÚNICO acento
+   (vino) reservado para acciones primarias / estado activo / detalles puntuales,
+   y rojo apagado para acciones destructivas. El rosa de marca NO se usa como
+   estructura acá: descansa la vista y deja resaltar lo importante.
+   Todas las superficies y textos referencian estos tokens para mantener
+   coherencia entre secciones.
    ===================================================================== */
 .admin-shell {
-  /* Gris frío neutro (sin tinte rosa) — más sobrio y descansado para trabajar.
-     El contraste con las tarjetas blancas lo da la sombra (.admin-card). */
-  background: #ECEEF1;
+  background: #F4F1EC; /* crema cálida muy suave — neutro, no gris frío ni rosa */
   min-height: 100dvh;
+
+  --a-text: #2B2729;          /* texto principal (≈13:1) */
+  --a-text-2: #555055;        /* texto secundario legible (≈7.4:1, cumple AA) */
+  --a-text-3: #837B82;        /* terciario — solo metadatos no críticos */
+  --a-border: #E4DEDA;        /* borde neutro cálido (estructura) */
+  --a-border-strong: #D2CAC6; /* borde de inputs, un poco más marcado */
+  --a-surface: #ffffff;       /* tarjetas */
+  --a-surface-2: #F5F1EE;     /* sub-superficie cálida */
+  --a-accent: #8A4A66;        /* VINO — único acento (≈5.3:1) */
+  --a-accent-ink: #6F3A52;    /* vino más oscuro para texto sobre claro (≈7:1) */
+  --a-accent-soft: #F1E7EC;   /* fondo tenue del acento (chips/pestaña hover) */
+  --a-danger: #A8473D;        /* rojo apagado para destructivos (≈5.6:1) */
+  --a-danger-soft: #F3E5E2;
+
+  color: var(--a-text);
 }
 
 /* Tarjeta blanca elevada — el patrón base del panel */
 .admin-card {
-  background: #ffffff;
-  border: 1px solid rgba(58, 49, 55, 0.08);
+  background: var(--a-surface);
+  border: 1px solid var(--a-border);
+  border-radius: 1rem;
   box-shadow:
-    0 1px 2px rgba(58, 49, 55, 0.05),
-    0 12px 28px -20px rgba(58, 49, 55, 0.20);
+    0 1px 2px rgba(43, 39, 41, 0.04),
+    0 14px 30px -22px rgba(43, 39, 41, 0.18);
 }
 
 /* Superficie interna suave (inputs agrupados, sub-bloques) */
 .admin-soft {
-  background: #F3F5F7;
-  border: 1px solid rgba(45, 49, 58, 0.06);
+  background: var(--a-surface-2);
+  border: 1px solid var(--a-border);
 }
 
 /* Caja de estado vacío — punteada pero visible */
 .admin-empty {
-  background: rgba(255, 255, 255, 0.72);
-  border: 1.5px dashed rgba(58, 49, 55, 0.22);
+  background: rgba(255, 255, 255, 0.6);
+  border: 1.5px dashed var(--a-border-strong);
+  color: var(--a-text-2);
 }
 
-/* Input del panel: bien delimitado del fondo blanco de la tarjeta */
+/* Input del panel: borde gris NEUTRO (no rosa) bien delimitado */
 .admin-input {
-  background: #F4F6F8;
-  border: 1px solid rgba(45, 49, 58, 0.15);
-  color: var(--color-espresso);
+  background: var(--a-surface);
+  border: 1px solid var(--a-border-strong);
+  color: var(--a-text);
   border-radius: 0.75rem;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 .admin-input:focus {
   outline: none;
-  border-color: var(--color-sage-deep);
-  box-shadow: 0 0 0 3px rgba(156, 84, 117, 0.14);
+  border-color: var(--a-accent);
+  box-shadow: 0 0 0 3px rgba(138, 74, 102, 0.16);
 }
 .admin-input::placeholder {
-  color: rgba(107, 94, 102, 0.55);
+  color: var(--a-text-3);
 }
+
+/* ---- Tipografía semántica del panel (contraste correcto) ---- */
+.admin-kicker { /* etiqueta chica en mayúscula — acento vino, el "toque" de marca */
+  color: var(--a-accent-ink);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+}
+.admin-label { color: var(--a-text-2); } /* labels de campos — gris legible */
+.admin-muted { color: var(--a-text-2); } /* texto secundario legible */
+.admin-faint { color: var(--a-text-3); } /* metadatos no críticos */
+.admin-stat  { color: var(--a-text); }   /* números importantes — OSCUROS y grandes */
+
+/* ---- Chips / badges ---- */
+.admin-chip { /* chip neutro por defecto */
+  background: var(--a-surface-2);
+  border: 1px solid var(--a-border);
+  color: var(--a-text-2);
+}
+.admin-chip-accent { /* chip con el acento, para destacar UNO */
+  background: var(--a-accent-soft);
+  color: var(--a-accent-ink);
+}
+
+/* ---- Acciones ---- */
+.admin-btn { /* acción primaria — vino sólido */
+  background: var(--a-accent);
+  color: #fff;
+  transition: filter 0.2s, transform 0.2s;
+}
+.admin-btn:hover { filter: brightness(1.08); }
+.admin-btn-ghost { /* acción secundaria — contorno neutro */
+  background: var(--a-surface);
+  border: 1px solid var(--a-border-strong);
+  color: var(--a-text-2);
+  transition: color 0.2s, border-color 0.2s;
+}
+.admin-btn-ghost:hover { color: var(--a-text); border-color: var(--a-text-3); }
+.admin-danger { color: var(--a-danger); }          /* "×", "Eliminar" — rojo apagado */
+.admin-danger:hover { color: #8f3a32; }
+.admin-tab-active { background: var(--a-accent); color: #fff; } /* pestaña activa */
 
 @media (prefers-reduced-motion: reduce) {
   * {

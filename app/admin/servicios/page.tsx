@@ -14,7 +14,7 @@ export default async function ServiciosPage() {
       <AdminHeader />
       <section className="mt-8">
         <h2 className="font-serif text-xl tracking-tight text-espresso">Servicios</h2>
-        <p className="mt-1 text-[14px] text-espresso-soft">
+        <p className="admin-muted mt-1 text-[14px]">
           Lo que el paciente puede reservar. La duración de cada servicio define
           la duración del turno.
         </p>

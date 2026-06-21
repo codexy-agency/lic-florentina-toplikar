@@ -63,6 +63,9 @@ export function DisponibilidadEditor({
   function delFranja(day: number, idx: number) {
     setByDay((p) => ({ ...p, [day]: p[day].filter((_, i) => i !== idx) }));
   }
+  function franjaInvalida(f: Franja) {
+    return f.endTime <= f.startTime;
+  }
   function copiarLunesATodos() {
     const base = byDay[1];
     setByDay((p) => {
@@ -100,7 +103,7 @@ export function DisponibilidadEditor({
             { k: "bookingWindowDays", l: "Reservar hasta (días)" },
           ].map((x) => (
             <label key={x.k} className="block">
-              <span className="mb-1.5 block text-[12px] uppercase tracking-[0.1em] text-sage-deep">
+              <span className="admin-kicker mb-1.5 block text-[12px]">
                 {x.l}
               </span>
               <input
@@ -114,7 +117,7 @@ export function DisponibilidadEditor({
             </label>
           ))}
         </div>
-        <p className="mt-3 text-[13px] leading-relaxed text-espresso-soft">
+        <p className="admin-muted mt-3 text-[13px] leading-relaxed">
           Los turnos arrancan <strong>cada {config.slotIntervalMin} min</strong> (en
           horarios redondos) y cada uno dura {config.slotDurationMin} min.
           {config.slotIntervalMin > config.slotDurationMin
@@ -131,7 +134,7 @@ export function DisponibilidadEditor({
           </h2>
           <button
             onClick={copiarLunesATodos}
-            className="rounded-full border border-[var(--color-line)] px-4 py-2 text-[13px] text-espresso-soft transition-colors hover:text-espresso"
+            className="admin-btn-ghost rounded-full px-4 py-2 text-[13px]"
           >
             Copiar lunes a días hábiles
           </button>
@@ -146,46 +149,60 @@ export function DisponibilidadEditor({
                 <span className="w-24 font-medium text-espresso">{d.n}</span>
                 <div className="flex-1 space-y-2">
                   {byDay[d.i].length === 0 && (
-                    <span className="text-[14px] text-espresso-soft/70">No atiende</span>
+                    <span className="admin-muted text-[14px]">No atiende</span>
                   )}
-                  {byDay[d.i].map((f, idx) => (
-                    <div key={idx} className="flex flex-wrap items-center gap-2">
-                      <input
-                        type="time"
-                        value={f.startTime}
-                        onChange={(e) => setFranja(d.i, idx, { startTime: e.target.value })}
-                        className={time}
-                      />
-                      <span className="text-espresso-soft">a</span>
-                      <input
-                        type="time"
-                        value={f.endTime}
-                        onChange={(e) => setFranja(d.i, idx, { endTime: e.target.value })}
-                        className={time}
-                      />
-                      <select
-                        value={f.modalidad}
-                        onChange={(e) =>
-                          setFranja(d.i, idx, { modalidad: e.target.value as Modalidad })
-                        }
-                        className={time}
-                      >
-                        <option value="online">Online</option>
-                        <option value="presencial">Presencial</option>
-                      </select>
-                      <button
-                        onClick={() => delFranja(d.i, idx)}
-                        className="text-[13px] text-espresso-soft transition-colors hover:text-[#9C5475]"
-                        aria-label="Eliminar franja"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
+                  {byDay[d.i].map((f, idx) => {
+                    const invalida = franjaInvalida(f);
+                    return (
+                      <div key={idx} className="flex flex-wrap items-center gap-2">
+                        <input
+                          type="time"
+                          value={f.startTime}
+                          onChange={(e) => setFranja(d.i, idx, { startTime: e.target.value })}
+                          className={
+                            invalida ? time + " border-[var(--a-danger)]" : time
+                          }
+                          aria-invalid={invalida}
+                        />
+                        <span className="admin-muted">a</span>
+                        <input
+                          type="time"
+                          value={f.endTime}
+                          onChange={(e) => setFranja(d.i, idx, { endTime: e.target.value })}
+                          className={
+                            invalida ? time + " border-[var(--a-danger)]" : time
+                          }
+                          aria-invalid={invalida}
+                        />
+                        <select
+                          value={f.modalidad}
+                          onChange={(e) =>
+                            setFranja(d.i, idx, { modalidad: e.target.value as Modalidad })
+                          }
+                          className={time}
+                        >
+                          <option value="online">Online</option>
+                          <option value="presencial">Presencial</option>
+                        </select>
+                        <button
+                          onClick={() => delFranja(d.i, idx)}
+                          className="admin-danger text-[13px] transition-colors"
+                          aria-label="Eliminar franja"
+                        >
+                          ✕
+                        </button>
+                        {invalida && (
+                          <span className="admin-danger w-full text-[12px]">
+                            El fin debe ser posterior al inicio.
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
                 <button
                   onClick={() => addFranja(d.i)}
-                  className="rounded-full border border-sage/30 bg-sage/10 px-3 py-1.5 text-[13px] font-medium text-sage-deep transition-colors hover:bg-sage/20"
+                  className="admin-btn-ghost rounded-full px-3 py-1.5 text-[13px] font-medium"
                 >
                   + Franja
                 </button>
@@ -200,7 +217,7 @@ export function DisponibilidadEditor({
         <h2 className="font-serif text-xl tracking-tight text-espresso">
           Días que no atiende
         </h2>
-        <p className="mt-1 text-[14px] text-espresso-soft">
+        <p className="admin-muted mt-1 text-[14px]">
           Feriados, vacaciones o días puntuales que querés bloquear.
         </p>
         <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -231,7 +248,7 @@ export function DisponibilidadEditor({
               {d}
               <button
                 onClick={() => setBlocked((b) => b.filter((x) => x !== d))}
-                className="text-espresso-soft hover:text-[#9C5475]"
+                className="admin-danger transition-colors"
                 aria-label="Quitar"
               >
                 ✕
@@ -242,7 +259,7 @@ export function DisponibilidadEditor({
       </section>
 
       {/* Guardar */}
-      <div className="sticky bottom-0 z-10 -mx-1 flex items-center gap-4 rounded-2xl border-t border-[var(--color-line)] bg-[#ECEEF1]/85 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-[#ECEEF1]/70">
+      <div className="sticky bottom-0 z-10 -mx-1 flex items-center gap-4 rounded-2xl border-t border-[var(--a-border)] bg-[var(--a-surface-2)]/85 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-[var(--a-surface-2)]/70">
         <button
           onClick={guardar}
           disabled={estado === "guardando"}
@@ -251,7 +268,7 @@ export function DisponibilidadEditor({
           {estado === "guardando" ? "Guardando…" : "Guardar disponibilidad"}
         </button>
         {estado === "ok" && (
-          <span className="text-[14px] font-medium text-sage-deep">✓ Guardado</span>
+          <span className="text-[14px] font-medium text-[var(--a-accent-ink)]">✓ Guardado</span>
         )}
       </div>
     </div>

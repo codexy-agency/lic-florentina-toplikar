@@ -23,7 +23,7 @@ export function PacientesList({ pacientes }: { pacientes: Paciente[] }) {
       />
 
       {lista.length === 0 ? (
-        <p className="admin-empty mt-5 rounded-2xl p-8 text-center text-[14px] text-espresso-soft">
+        <p className="admin-empty admin-muted mt-5 rounded-2xl p-8 text-center text-[14px]">
           {pacientes.length === 0
             ? "Todavía no hay pacientes. Se crean automáticamente al confirmar un turno."
             : "Ningún paciente coincide con la búsqueda."}
@@ -36,14 +36,14 @@ export function PacientesList({ pacientes }: { pacientes: Paciente[] }) {
                 href={`/admin/pacientes/${p.id}`}
                 className="admin-card group flex items-center gap-3 rounded-2xl p-4 transition-transform duration-200 hover:-translate-y-0.5"
               >
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-sage/15 font-medium text-sage-deep">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--a-border)] bg-[var(--a-accent-soft)] font-medium text-[var(--a-accent-ink)]">
                   {(p.nombre.trim()[0] || "?").toUpperCase()}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium text-espresso">{p.nombre}</span>
-                  <span className="block truncate text-[13px] text-espresso-soft">{p.contacto}</span>
+                  <span className="admin-muted block truncate text-[13px]">{p.contacto}</span>
                 </span>
-                <span className="text-espresso-soft/60 transition-transform duration-200 group-hover:translate-x-0.5">
+                <span className="admin-faint transition-transform duration-200 group-hover:translate-x-0.5">
                   →
                 </span>
               </Link>

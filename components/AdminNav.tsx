@@ -26,7 +26,7 @@ export function AdminNav() {
               className={`shrink-0 snap-start rounded-full px-3.5 py-2.5 text-[13px] font-medium transition-colors sm:px-4 sm:text-[13.5px] ${
                 active
                   ? "bg-espresso text-cream shadow-[0_8px_20px_-12px_rgba(58,49,55,0.6)]"
-                  : "text-espresso-soft hover:bg-[#EAEDF0] hover:text-espresso"
+                  : "admin-muted hover:bg-[var(--a-accent-soft)] hover:text-[var(--a-text)]"
               }`}
             >
               {t.label}

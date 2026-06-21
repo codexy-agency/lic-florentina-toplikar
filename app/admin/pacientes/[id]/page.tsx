@@ -27,11 +27,11 @@ function fmtFecha(iso: string) {
 }
 
 const ESTADO_BADGE: Record<string, string> = {
-  pendiente: "bg-clay/25 text-[#7a5a86]",
-  confirmado: "bg-sage/15 text-sage-deep",
+  pendiente: "admin-chip",
+  confirmado: "admin-chip",
   realizado: "bg-espresso/10 text-espresso",
-  rechazado: "bg-[#9C5475]/10 text-[#9C5475]",
-  no_asistio: "bg-[#9C5475]/10 text-[#9C5475]",
+  rechazado: "bg-[var(--a-danger-soft)] text-[var(--a-danger)]",
+  no_asistio: "bg-[var(--a-danger-soft)] text-[var(--a-danger)]",
 };
 const ESTADO_LABEL: Record<string, string> = {
   no_asistio: "No asistió",
@@ -60,21 +60,21 @@ export default async function PacienteDetalle({
       <div className="mt-8">
         <Link
           href="/admin/pacientes"
-          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-espresso-soft transition-colors hover:text-espresso"
+          className="admin-muted inline-flex items-center gap-1.5 text-[13px] font-medium transition-colors hover:text-[var(--a-text)]"
         >
           ← Pacientes
         </Link>
 
         {/* Cabecera del paciente */}
         <div className="mt-3 flex items-center gap-4">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-sage/15 font-serif text-xl text-sage-deep">
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--a-accent-soft)] font-serif text-xl text-[var(--a-accent-ink)]">
             {(paciente.nombre.trim()[0] || "?").toUpperCase()}
           </span>
           <div>
             <h2 className="font-serif text-2xl tracking-tight text-espresso">
               {paciente.nombre}
             </h2>
-            <p className="text-[14px] text-espresso-soft">
+            <p className="admin-muted text-[14px]">
               {paciente.contacto} · paciente desde {fmtFecha(paciente.creadoEn)}
             </p>
           </div>
@@ -82,7 +82,7 @@ export default async function PacienteDetalle({
             href={`https://wa.me/${paciente.contacto.replace(/[^0-9]/g, "")}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="ml-auto hidden rounded-full border border-[rgba(58,49,55,0.14)] px-4 py-2 text-[13px] font-medium text-sage-deep transition-colors hover:text-espresso sm:inline-block"
+            className="admin-btn-ghost ml-auto hidden rounded-full px-4 py-2 text-[13px] font-medium sm:inline-block"
           >
             WhatsApp →
           </a>
@@ -99,7 +99,7 @@ export default async function PacienteDetalle({
             <form action={agregarNota} className="admin-card mt-3 rounded-2xl p-4">
               <input type="hidden" name="patientId" value={id} />
               <div className="flex flex-wrap items-center gap-2">
-                <label className="text-[12px] uppercase tracking-[0.1em] text-sage-deep">
+                <label className="admin-kicker text-[12px]">
                   Fecha
                 </label>
                 <input
@@ -117,7 +117,7 @@ export default async function PacienteDetalle({
                 className="admin-input mt-3 w-full resize-y px-4 py-3 text-[15px]"
               />
               <div className="mt-3 flex justify-end">
-                <button className="rounded-full bg-espresso px-5 py-2.5 text-[14px] font-medium text-cream transition-all hover:-translate-y-px">
+                <button className="admin-btn rounded-full px-5 py-2.5 text-[14px] font-medium transition-transform hover:-translate-y-px">
                   Agregar nota
                 </button>
               </div>
@@ -125,7 +125,7 @@ export default async function PacienteDetalle({
 
             {/* Timeline */}
             {notas.length === 0 ? (
-              <p className="admin-empty mt-4 rounded-2xl p-8 text-center text-[14px] text-espresso-soft">
+              <p className="admin-empty admin-muted mt-4 rounded-2xl p-8 text-center text-[14px]">
                 Todavía no hay notas. La primera que cargues abre la historia.
               </p>
             ) : (
@@ -133,13 +133,13 @@ export default async function PacienteDetalle({
                 {notas.map((n) => (
                   <li key={n.id} className="admin-card rounded-2xl p-4">
                     <div className="flex items-start justify-between gap-3">
-                      <span className="inline-flex items-center gap-2 rounded-full bg-sage/10 px-3 py-1 text-[12px] font-medium text-sage-deep">
+                      <span className="admin-chip inline-flex items-center gap-2 rounded-full px-3 py-1 text-[12px] font-medium">
                         {fechaHoraAR(n.fecha)} hs
                       </span>
                       <form action={borrarNota}>
                         <input type="hidden" name="id" value={n.id} />
                         <input type="hidden" name="patientId" value={id} />
-                        <button className="text-[12px] text-espresso-soft/60 transition-colors hover:text-[#9C5475]">
+                        <button className="admin-danger text-[12px]">
                           Eliminar
                         </button>
                       </form>
@@ -157,7 +157,7 @@ export default async function PacienteDetalle({
           <div className="space-y-5">
             {/* Ficha */}
             <div className="admin-card rounded-2xl p-4">
-              <h3 className="text-[13px] font-medium uppercase tracking-[0.1em] text-espresso-soft">
+              <h3 className="admin-kicker text-[13px]">
                 Ficha
               </h3>
               <form action={guardarFicha} className="mt-3">
@@ -169,7 +169,7 @@ export default async function PacienteDetalle({
                   placeholder="Datos fijos: obra social, motivo de consulta, contacto de emergencia…"
                   className="admin-input w-full resize-y px-3 py-2.5 text-[14px]"
                 />
-                <button className="mt-2 rounded-full border border-[rgba(58,49,55,0.14)] px-4 py-2 text-[13px] font-medium text-espresso-soft transition-colors hover:text-espresso">
+                <button className="admin-btn-ghost mt-2 rounded-full px-4 py-2 text-[13px] font-medium">
                   Guardar ficha
                 </button>
               </form>
@@ -177,26 +177,26 @@ export default async function PacienteDetalle({
 
             {/* Turnos */}
             <div className="admin-card rounded-2xl p-4">
-              <h3 className="text-[13px] font-medium uppercase tracking-[0.1em] text-espresso-soft">
+              <h3 className="admin-kicker text-[13px]">
                 Turnos ({turnos.length})
               </h3>
               {turnos.length === 0 ? (
-                <p className="mt-3 text-[14px] text-espresso-soft/70">Sin turnos aún.</p>
+                <p className="admin-muted mt-3 text-[14px]">Sin turnos aún.</p>
               ) : (
                 <ul className="mt-3 space-y-2.5">
                   {turnos.map((t) => (
-                    <li key={t.id} className="border-b border-[rgba(58,49,55,0.06)] pb-2.5 last:border-0 last:pb-0">
+                    <li key={t.id} className="border-b border-[var(--a-border)] pb-2.5 last:border-0 last:pb-0">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-[14px] font-medium text-espresso">
                           {t.startsAt ? fechaHoraAR(t.startsAt) : "Sin fecha"}
                         </span>
                         <span
-                          className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_BADGE[t.estado] || "bg-cream-deep text-espresso-soft"}`}
+                          className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_BADGE[t.estado] || "admin-chip"}`}
                         >
                           {ESTADO_LABEL[t.estado] || t.estado}
                         </span>
                       </div>
-                      <span className="text-[13px] text-espresso-soft">
+                      <span className="admin-muted text-[13px]">
                         {t.serviceName || "—"}
                         {t.staffName ? ` · ${t.staffName}` : ""}
                       </span>

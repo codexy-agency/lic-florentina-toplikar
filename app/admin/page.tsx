@@ -41,8 +41,8 @@ const MOD_LABEL: Record<string, string> = {
   presencial: "Presencial",
 };
 const MOD_BADGE: Record<string, string> = {
-  online: "bg-sage/15 text-sage-deep",
-  presencial: "bg-clay/25 text-[#7a5a86]",
+  online: "admin-chip",
+  presencial: "admin-chip",
 };
 
 // Clave de día (YYYY-MM-DD) en horario de Argentina, para agrupar la agenda.
@@ -128,7 +128,7 @@ export default async function AdminPage() {
 
       <div className="mt-8">
         <h2 className="font-serif text-2xl tracking-tight text-espresso">Agenda</h2>
-        <p className="mt-1 text-[14px] text-espresso-soft">
+        <p className="admin-muted mt-1 text-[14px]">
           Tu día a día: solicitudes, próximos turnos y pacientes.
         </p>
       </div>
@@ -136,18 +136,47 @@ export default async function AdminPage() {
       {/* Stats */}
       <div className="mt-6 grid grid-cols-3 gap-3 md:gap-4">
         {[
-          { n: s.pendientes, l: "Solicitudes pendientes" },
-          { n: s.confirmados, l: "Turnos confirmados" },
-          { n: s.pacientes, l: "Pacientes" },
+          {
+            n: s.pendientes,
+            l: "Solicitudes pendientes",
+            icon: (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 4h16v12H7l-3 3V4Z" /><path d="M8 9h8M8 12h5" />
+              </svg>
+            ),
+          },
+          {
+            n: s.confirmados,
+            l: "Turnos confirmados",
+            icon: (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4" />
+              </svg>
+            ),
+          },
+          {
+            n: s.pacientes,
+            l: "Pacientes",
+            icon: (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.9" />
+              </svg>
+            ),
+          },
         ].map((x) => (
           <div
             key={x.l}
-            className="rounded-2xl admin-card p-5"
+            className="relative overflow-hidden rounded-2xl admin-card p-5"
           >
-            <p className="font-serif text-3xl font-light text-espresso md:text-4xl">
+            <span
+              aria-hidden
+              className="absolute inset-y-0 left-0 w-1 bg-[var(--a-accent)]"
+            />
+            <span className="text-[var(--a-accent-ink)]">{x.icon}</span>
+            <p className="admin-stat mt-2 font-serif text-3xl font-light md:text-4xl">
               {x.n}
             </p>
-            <p className="mt-1 text-[11px] uppercase tracking-[0.12em] text-espresso-soft md:text-[12px]">
+            <p className="admin-kicker mt-1 text-[11px] md:text-[12px]">
               {x.l}
             </p>
           </div>
@@ -160,7 +189,7 @@ export default async function AdminPage() {
           Bandeja de solicitudes
         </h2>
         {pendientes.length === 0 ? (
-          <p className="mt-4 rounded-2xl admin-empty p-8 text-center text-espresso-soft">
+          <p className="mt-4 rounded-2xl admin-empty p-8 text-center">
             No hay solicitudes pendientes. Las nuevas aparecen acá apenas alguien
             reserva un horario desde el sitio.
           </p>
@@ -174,10 +203,10 @@ export default async function AdminPage() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="font-medium text-espresso">{x.nombre}</p>
-                    <p className="text-[14px] text-espresso-soft">{x.contacto}</p>
+                    <p className="admin-muted text-[14px]">{x.contacto}</p>
                   </div>
                   <span
-                    className={`rounded-full px-3 py-1 text-[11px] font-medium uppercase tracking-[0.1em] ${MOD_BADGE[x.modalidad] || "bg-cream-deep text-espresso-soft"}`}
+                    className={`rounded-full px-3 py-1 text-[11px] font-medium uppercase tracking-[0.1em] ${MOD_BADGE[x.modalidad] || "admin-chip"}`}
                   >
                     {MOD_LABEL[x.modalidad] || x.modalidad}
                   </span>
@@ -188,14 +217,14 @@ export default async function AdminPage() {
                     {x.serviceName && <span className="font-medium">{x.serviceName}</span>}
                     {x.serviceName && x.staffName ? " · " : ""}
                     {x.staffName && (
-                      <span className="text-espresso-soft">con {x.staffName}</span>
+                      <span className="admin-muted">con {x.staffName}</span>
                     )}
                   </p>
                 )}
 
                 {/* Slot elegido por el paciente */}
                 {x.startsAt ? (
-                  <p className="mt-3 inline-flex items-center gap-2 rounded-xl bg-sage/10 px-3 py-2 text-[14px] font-medium text-sage-deep">
+                  <p className="admin-chip-accent mt-3 inline-flex items-center gap-2 rounded-xl px-3 py-2 text-[14px] font-medium">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                       <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
                     </svg>
@@ -203,19 +232,19 @@ export default async function AdminPage() {
                   </p>
                 ) : (
                   x.preferencia && (
-                    <p className="mt-3 text-[14px] text-espresso-soft">
-                      <span className="text-sage-deep">Disponibilidad:</span>{" "}
+                    <p className="admin-muted mt-3 text-[14px]">
+                      <span className="text-[var(--a-accent-ink)]">Disponibilidad:</span>{" "}
                       {x.preferencia}
                     </p>
                   )
                 )}
 
                 {x.motivo && (
-                  <p className="mt-2 text-[14px] text-espresso-soft">
-                    <span className="text-sage-deep">Motivo:</span> {x.motivo}
+                  <p className="admin-muted mt-2 text-[14px]">
+                    <span className="text-[var(--a-accent-ink)]">Motivo:</span> {x.motivo}
                   </p>
                 )}
-                <p className="mt-1 text-[13px] text-espresso-soft/70">
+                <p className="admin-faint mt-1 text-[13px]">
                   Recibido {fmt(x.creadoEn)}
                 </p>
 
@@ -239,7 +268,7 @@ export default async function AdminPage() {
                     <input type="hidden" name="id" value={x.id} />
                     <SubmitButton
                       pendingText="Guardando…"
-                      className="rounded-full border border-[var(--color-line)] px-4 py-2.5 text-[13px] text-espresso-soft transition-colors hover:text-[#9C5475]"
+                      className="admin-danger rounded-full border border-[var(--a-border-strong)] px-4 py-2.5 text-[13px] font-medium transition-colors"
                     >
                       Rechazar
                     </SubmitButton>
@@ -248,7 +277,7 @@ export default async function AdminPage() {
                     href={`https://wa.me/${x.contacto.replace(/[^0-9]/g, "")}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="ml-auto text-[13px] font-medium text-sage-deep underline-offset-4 hover:underline"
+                    className="ml-auto text-[13px] font-medium text-[var(--a-accent-ink)] underline-offset-4 hover:underline"
                   >
                     Responder por WhatsApp →
                   </a>
@@ -269,7 +298,7 @@ export default async function AdminPage() {
 
         <div className="mt-8" />
         {agenda.length === 0 ? (
-          <p className="mt-4 rounded-2xl admin-empty p-8 text-center text-espresso-soft">
+          <p className="mt-4 rounded-2xl admin-empty p-8 text-center">
             Todavía no hay turnos confirmados.
           </p>
         ) : (
@@ -280,10 +309,10 @@ export default async function AdminPage() {
                   <h3 className="font-serif text-[17px] tracking-tight text-espresso">
                     {dayLabel(g.key, todayKey, tomorrowKey)}
                   </h3>
-                  <span className="text-[12px] uppercase tracking-[0.1em] text-espresso-soft">
+                  <span className="admin-kicker text-[12px]">
                     {g.items.length} {g.items.length === 1 ? "turno" : "turnos"}
                   </span>
-                  <span className="h-px flex-1 bg-[var(--color-line)]" />
+                  <span className="h-px flex-1 bg-[var(--a-border)]" />
                 </div>
                 <ul className="mt-3 space-y-3">
                   {g.items.map((x) => (
@@ -291,7 +320,7 @@ export default async function AdminPage() {
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                           <p className="font-medium text-espresso">{x.nombre}</p>
-                          <p className="text-[14px] text-espresso-soft">
+                          <p className="admin-muted text-[14px]">
                             {x.serviceName ? `${x.serviceName} · ` : ""}
                             {x.staffName ? `${x.staffName} · ` : ""}
                             {MOD_LABEL[x.modalidad] || x.modalidad} · {x.contacto}
@@ -300,7 +329,7 @@ export default async function AdminPage() {
                             href={waRecordatorio(x)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="mt-2 inline-flex items-center gap-1.5 text-[13px] font-medium text-sage-deep underline-offset-4 hover:underline"
+                            className="mt-2 inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--a-accent-ink)] underline-offset-4 hover:underline"
                           >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                               <path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-2.8.7.8-2.7-.2-.3A8 8 0 1 1 12 20Zm4.6-5.9c-.3-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.3-.6.8-.8 1-.1.1-.3.2-.5 0a6.5 6.5 0 0 1-3.2-2.8c-.2-.4.2-.4.6-1.2.1-.1 0-.3 0-.4l-.8-1.9c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.4.1-.7.3a3 3 0 0 0-.9 2.2c0 1.3 1 2.6 1.1 2.8.1.2 1.9 2.9 4.6 4 .6.3 1.1.4 1.5.5.6.2 1.2.2 1.6.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2 0-.1-.2-.2-.5-.3Z" />
@@ -308,9 +337,9 @@ export default async function AdminPage() {
                             Enviar recordatorio
                           </a>
                         </div>
-                        <p className="whitespace-nowrap font-serif text-2xl italic text-sage-deep">
+                        <p className="admin-stat whitespace-nowrap font-serif text-2xl italic">
                           {x.startsAt ? `${horaAR(x.startsAt)}` : "Sin hora"}
-                          <span className="ml-1 text-[13px] not-italic text-espresso-soft">hs</span>
+                          <span className="admin-muted ml-1 text-[13px] not-italic">hs</span>
                         </p>
                       </div>
                       <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -324,7 +353,7 @@ export default async function AdminPage() {
                           />
                           <SubmitButton
                             pendingText="Reprogramando…"
-                            className="rounded-full border border-[var(--color-line)] px-4 py-2.5 text-[13px] text-espresso-soft transition-colors hover:text-espresso"
+                            className="admin-btn-ghost rounded-full px-4 py-2.5 text-[13px] font-medium"
                           >
                             Reprogramar
                           </SubmitButton>
@@ -333,7 +362,7 @@ export default async function AdminPage() {
                           <input type="hidden" name="id" value={x.id} />
                           <SubmitButton
                             pendingText="Guardando…"
-                            className="rounded-full border border-[var(--color-line)] px-4 py-2.5 text-[13px] text-espresso-soft transition-colors hover:text-[#9C5475]"
+                            className="admin-danger rounded-full border border-[var(--a-border-strong)] px-4 py-2.5 text-[13px] font-medium transition-colors"
                           >
                             No asistió
                           </SubmitButton>
@@ -342,7 +371,7 @@ export default async function AdminPage() {
                           <input type="hidden" name="id" value={x.id} />
                           <SubmitButton
                             pendingText="Guardando…"
-                            className="rounded-full bg-sage/15 px-4 py-2.5 text-[13px] font-medium text-sage-deep transition-colors hover:bg-sage/25"
+                            className="rounded-full border border-[var(--a-accent)] px-4 py-2.5 text-[13px] font-medium text-[var(--a-accent-ink)] transition-colors hover:bg-[var(--a-accent-soft)]"
                           >
                             Marcar realizado
                           </SubmitButton>
@@ -363,7 +392,7 @@ export default async function AdminPage() {
           Pacientes
         </h2>
         {pacientes.length === 0 ? (
-          <p className="mt-4 rounded-2xl admin-empty p-8 text-center text-espresso-soft">
+          <p className="mt-4 rounded-2xl admin-empty p-8 text-center">
             Los pacientes se crean automáticamente al confirmar un turno.
           </p>
         ) : (
@@ -375,8 +404,8 @@ export default async function AdminPage() {
                   className="admin-card block rounded-2xl p-5 transition-transform duration-200 hover:-translate-y-0.5"
                 >
                   <p className="font-medium text-espresso">{p.nombre}</p>
-                  <p className="mt-0.5 text-[14px] text-espresso-soft">{p.contacto}</p>
-                  <p className="mt-2 text-[12px] uppercase tracking-[0.1em] text-sage-deep">
+                  <p className="admin-muted mt-0.5 text-[14px]">{p.contacto}</p>
+                  <p className="admin-kicker mt-2 text-[12px]">
                     {MOD_LABEL[p.modalidad] || p.modalidad}
                   </p>
                 </Link>
@@ -386,7 +415,7 @@ export default async function AdminPage() {
         )}
       </section>
 
-      <p className="mt-14 text-center text-[12px] text-espresso-soft/60">
+      <p className="admin-faint mt-14 text-center text-[12px]">
         MVP · datos en archivo local. En producción: Supabase + facturación AFIP
         + recordatorios automáticos.
       </p>

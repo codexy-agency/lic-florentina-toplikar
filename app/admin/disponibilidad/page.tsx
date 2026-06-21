@@ -18,7 +18,7 @@ export default async function DisponibilidadPage() {
         <h2 className="font-serif text-xl tracking-tight text-espresso">
           Disponibilidad
         </h2>
-        <p className="mt-1 text-[14px] text-espresso-soft">
+        <p className="admin-muted mt-1 text-[14px]">
           Configurá tus horarios. El sitio muestra automáticamente los slots
           libres a tus pacientes.
         </p>

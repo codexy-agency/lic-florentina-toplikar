@@ -8,7 +8,11 @@ type Row = Service;
 
 export function ServiciosEditor({ initial }: { initial: Service[] }) {
   const [rows, setRows] = useState<Row[]>(initial);
-  const [estado, setEstado] = useState<"idle" | "guardando" | "ok">("idle");
+  const [estado, setEstado] = useState<"idle" | "guardando" | "ok" | "error">("idle");
+
+  const milesFmt = new Intl.NumberFormat("es-AR");
+  const formatPrecio = (v: number | undefined) =>
+    typeof v === "number" && Number.isFinite(v) ? `$${milesFmt.format(v)}` : "";
 
   function add() {
     setRows((r) => [
@@ -31,9 +35,14 @@ export function ServiciosEditor({ initial }: { initial: Service[] }) {
   }
   async function guardar() {
     setEstado("guardando");
-    await guardarServicios(rows);
-    setEstado("ok");
-    setTimeout(() => setEstado("idle"), 2200);
+    try {
+      await guardarServicios(rows);
+      setEstado("ok");
+      setTimeout(() => setEstado("idle"), 2200);
+    } catch {
+      setEstado("error");
+      setTimeout(() => setEstado("idle"), 4000);
+    }
   }
 
   const inp =
@@ -42,7 +51,7 @@ export function ServiciosEditor({ initial }: { initial: Service[] }) {
   return (
     <div className="space-y-4">
       {rows.length === 0 && (
-        <p className="rounded-2xl admin-empty p-8 text-center text-espresso-soft">
+        <p className="rounded-2xl admin-empty p-8 text-center">
           Todavía no hay servicios. Agregá el primero.
         </p>
       )}
@@ -50,52 +59,51 @@ export function ServiciosEditor({ initial }: { initial: Service[] }) {
       {rows.map((s, i) => (
         <div
           key={s.id}
-          className="rounded-2xl admin-card p-4"
+          className="rounded-2xl admin-soft p-4"
         >
-          <div className="flex flex-wrap items-center gap-3">
-            <input
-              value={s.nombre}
-              onChange={(e) => patch(i, { nombre: e.target.value })}
-              placeholder="Nombre del servicio"
-              aria-label="Nombre del servicio"
-              className={`${inp} min-w-[200px] flex-1 font-medium`}
-            />
-            <label className="flex items-center gap-2 text-[13px] text-espresso-soft">
+          <div className="grid gap-4 sm:grid-cols-[1fr_auto_auto]">
+            <label className="flex flex-col gap-1.5">
+              <span className="admin-label text-[12px] font-medium">Nombre</span>
               <input
-                type="number"
-                value={s.durationMin}
-                onChange={(e) => patch(i, { durationMin: Number(e.target.value) })}
-                className={`${inp} w-20`}
-              />
-              min
-            </label>
-            <label className="flex items-center gap-2 text-[13px] text-espresso-soft">
-              $
-              <input
-                type="number"
-                value={s.priceARS ?? ""}
-                onChange={(e) =>
-                  patch(i, { priceARS: e.target.value ? Number(e.target.value) : undefined })
-                }
-                placeholder="precio"
-                className={`${inp} w-28`}
+                value={s.nombre}
+                onChange={(e) => patch(i, { nombre: e.target.value })}
+                placeholder="Nombre del servicio"
+                aria-label="Nombre del servicio"
+                className={`${inp} w-full font-medium`}
               />
             </label>
-            <label className="flex items-center gap-2 text-[13px] text-espresso-soft">
-              <input
-                type="checkbox"
-                checked={s.activo}
-                onChange={(e) => patch(i, { activo: e.target.checked })}
-                className="h-4 w-4 accent-[#9C5475]"
-              />
-              Activo
+            <label className="flex flex-col gap-1.5">
+              <span className="admin-label text-[12px] font-medium">Duración</span>
+              <span className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={s.durationMin}
+                  onChange={(e) => patch(i, { durationMin: Number(e.target.value) })}
+                  className={`${inp} w-20`}
+                />
+                <span className="admin-muted text-[13px]">min</span>
+              </span>
             </label>
-            <button
-              onClick={() => del(i)}
-              className="ml-auto text-[13px] text-espresso-soft transition-colors hover:text-[#9C5475]"
-            >
-              Eliminar
-            </button>
+            <label className="flex flex-col gap-1.5">
+              <span className="admin-label text-[12px] font-medium">Precio</span>
+              <span className="flex items-center gap-2">
+                <span className="admin-muted text-[14px]">$</span>
+                <input
+                  type="number"
+                  value={s.priceARS ?? ""}
+                  onChange={(e) =>
+                    patch(i, { priceARS: e.target.value ? Number(e.target.value) : undefined })
+                  }
+                  placeholder="precio"
+                  className={`${inp} w-28`}
+                />
+                {formatPrecio(s.priceARS) && (
+                  <span className="admin-stat text-[14px] font-semibold tabular-nums">
+                    {formatPrecio(s.priceARS)}
+                  </span>
+                )}
+              </span>
+            </label>
           </div>
           <input
             value={s.descripcion ?? ""}
@@ -104,13 +112,30 @@ export function ServiciosEditor({ initial }: { initial: Service[] }) {
             aria-label="Descripción del servicio"
             className={`${inp} mt-3 w-full`}
           />
+          <div className="mt-3 flex items-center gap-4">
+            <label className="flex items-center gap-2 text-[13px]">
+              <input
+                type="checkbox"
+                checked={s.activo}
+                onChange={(e) => patch(i, { activo: e.target.checked })}
+                className="h-4 w-4 accent-[var(--a-accent)]"
+              />
+              <span className="admin-muted">Activo</span>
+            </label>
+            <button
+              onClick={() => del(i)}
+              className="admin-danger ml-auto text-[13px] font-medium transition-colors"
+            >
+              Eliminar
+            </button>
+          </div>
         </div>
       ))}
 
       <div className="flex flex-wrap items-center gap-4">
         <button
           onClick={add}
-          className="rounded-full border border-sage/30 bg-sage/10 px-4 py-2 text-[13px] font-medium text-sage-deep transition-colors hover:bg-sage/20"
+          className="admin-btn-ghost rounded-full px-4 py-2 text-[13px] font-medium"
         >
           + Agregar servicio
         </button>
@@ -122,7 +147,12 @@ export function ServiciosEditor({ initial }: { initial: Service[] }) {
           {estado === "guardando" ? "Guardando…" : "Guardar servicios"}
         </button>
         {estado === "ok" && (
-          <span className="text-[14px] font-medium text-sage-deep">✓ Guardado</span>
+          <span className="text-[14px] font-medium text-[var(--a-accent-ink)]">✓ Guardado</span>
+        )}
+        {estado === "error" && (
+          <span className="admin-danger text-[14px] font-medium">
+            No se pudo guardar. Reintentá.
+          </span>
         )}
       </div>
     </div>

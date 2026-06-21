@@ -45,7 +45,7 @@ export function ProfesionalesEditor({
   services: Service[];
 }) {
   const [rows, setRows] = useState<Staff[]>(initial);
-  const [estado, setEstado] = useState<"idle" | "guardando" | "ok">("idle");
+  const [estado, setEstado] = useState<"idle" | "guardando" | "ok" | "error">("idle");
   const [subiendo, setSubiendo] = useState<string | null>(null);
 
   async function onFile(i: number, id: string, file?: File) {
@@ -97,9 +97,13 @@ export function ProfesionalesEditor({
   }
   async function guardar() {
     setEstado("guardando");
-    await guardarProfesionales(rows);
-    setEstado("ok");
-    setTimeout(() => setEstado("idle"), 2200);
+    try {
+      await guardarProfesionales(rows);
+      setEstado("ok");
+      setTimeout(() => setEstado("idle"), 2200);
+    } catch {
+      setEstado("error");
+    }
   }
 
   const inp =
@@ -108,7 +112,7 @@ export function ProfesionalesEditor({
   return (
     <div className="space-y-4">
       {services.length === 0 && (
-        <p className="rounded-2xl admin-empty p-5 text-center text-[14px] text-espresso-soft">
+        <p className="rounded-2xl admin-empty p-5 text-center text-[14px] admin-muted">
           Primero cargá algún servicio para poder asignárselo a cada profesional.
         </p>
       )}
@@ -121,7 +125,7 @@ export function ProfesionalesEditor({
               <img
                 src={m.imageUrl}
                 alt={m.nombre}
-                className="h-11 w-11 shrink-0 rounded-full object-cover ring-1 ring-[var(--color-line)]"
+                className="h-11 w-11 shrink-0 rounded-full object-cover ring-1 ring-[var(--a-border-strong)]"
               />
             ) : (
               <span
@@ -145,18 +149,18 @@ export function ProfesionalesEditor({
               aria-label="Título o matrícula"
               className={`${inp} min-w-[180px] flex-1`}
             />
-            <label className="flex items-center gap-2 text-[13px] text-espresso-soft">
+            <label className="flex items-center gap-2 text-[13px] admin-muted">
               <input
                 type="checkbox"
                 checked={m.activo}
                 onChange={(e) => patch(i, { activo: e.target.checked })}
-                className="h-4 w-4 accent-[#9C5475]"
+                className="h-4 w-4 accent-[var(--a-accent)]"
               />
               Activo
             </label>
             <button
               onClick={() => del(i)}
-              className="text-[13px] text-espresso-soft transition-colors hover:text-[#9C5475]"
+              className="admin-danger text-[13px] transition-colors"
             >
               Eliminar
             </button>
@@ -172,8 +176,8 @@ export function ProfesionalesEditor({
 
           {/* Foto de perfil — subida desde el dispositivo (se redimensiona acá) */}
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className="text-[12px] uppercase tracking-[0.1em] text-sage-deep">Foto</span>
-            <label className="cursor-pointer rounded-full border border-[rgba(45,49,58,0.15)] bg-[#F4F6F8] px-3.5 py-1.5 text-[13px] font-medium text-espresso-soft transition-colors hover:text-espresso">
+            <span className="admin-kicker text-[12px]">Foto</span>
+            <label className="admin-btn-ghost cursor-pointer rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors">
               {subiendo === m.id ? "Procesando…" : m.imageUrl ? "Cambiar foto" : "Subir foto"}
               <input
                 type="file"
@@ -186,17 +190,17 @@ export function ProfesionalesEditor({
               <button
                 type="button"
                 onClick={() => patch(i, { imageUrl: "" })}
-                className="px-2 py-1.5 text-[13px] text-espresso-soft transition-colors hover:text-[#9C5475]"
+                className="admin-danger px-2 py-1.5 text-[13px] transition-colors"
               >
                 Quitar
               </button>
             )}
-            <span className="text-[12px] text-espresso-soft/70">JPG o PNG — se recorta cuadrada y se achica sola.</span>
+            <span className="admin-faint text-[12px]">JPG o PNG — se recorta cuadrada y se achica sola.</span>
           </div>
 
           {/* Color */}
           <div className="mt-3 flex items-center gap-2">
-            <span className="text-[12px] uppercase tracking-[0.1em] text-sage-deep">Color</span>
+            <span className="admin-kicker text-[12px]">Color</span>
             {COLORES.map((c) => (
               <button
                 key={c}
@@ -215,7 +219,7 @@ export function ProfesionalesEditor({
           {/* Servicios que ofrece */}
           {services.length > 0 && (
             <div className="mt-3">
-              <span className="mb-2 block text-[12px] uppercase tracking-[0.1em] text-sage-deep">
+              <span className="admin-kicker mb-2 block text-[12px]">
                 Servicios que ofrece
               </span>
               <div className="flex flex-wrap gap-2">
@@ -227,8 +231,8 @@ export function ProfesionalesEditor({
                       onClick={() => toggleSvc(i, svc.id)}
                       className={`rounded-full border px-3 py-1.5 text-[13px] transition-colors ${
                         on
-                          ? "border-sage bg-sage/15 text-espresso"
-                          : "border-[rgba(58,49,55,0.14)] bg-[#FBF7F8] text-espresso-soft hover:border-sage/40"
+                          ? "admin-chip-accent border-transparent font-medium"
+                          : "admin-chip hover:border-[var(--a-border-strong)]"
                       }`}
                     >
                       {on ? "✓ " : ""}
@@ -245,7 +249,7 @@ export function ProfesionalesEditor({
       <div className="flex flex-wrap items-center gap-4">
         <button
           onClick={add}
-          className="rounded-full border border-sage/30 bg-sage/10 px-4 py-2 text-[13px] font-medium text-sage-deep transition-colors hover:bg-sage/20"
+          className="admin-btn-ghost rounded-full px-4 py-2 text-[13px] font-medium transition-colors"
         >
           + Agregar profesional
         </button>
@@ -257,7 +261,12 @@ export function ProfesionalesEditor({
           {estado === "guardando" ? "Guardando…" : "Guardar profesionales"}
         </button>
         {estado === "ok" && (
-          <span className="text-[14px] font-medium text-sage-deep">✓ Guardado</span>
+          <span className="text-[14px] font-medium text-[var(--a-accent-ink)]">✓ Guardado</span>
+        )}
+        {estado === "error" && (
+          <span className="admin-danger text-[14px] font-medium">
+            No se pudo guardar. Reintentá.
+          </span>
         )}
       </div>
     </div>

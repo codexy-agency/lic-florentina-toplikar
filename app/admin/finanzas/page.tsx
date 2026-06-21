@@ -34,7 +34,7 @@ export default async function FinanzasPage() {
 
       <section className="mt-8">
         <h2 className="font-serif text-2xl tracking-tight text-espresso">Finanzas</h2>
-        <p className="mt-1 text-[14px] text-espresso-soft">
+        <p className="admin-muted mt-1 text-[14px]">
           Cuentas por servicio y por profesional. Se calculan sobre los turnos
           confirmados y realizados.
         </p>
@@ -45,20 +45,14 @@ export default async function FinanzasPage() {
             <div
               key={k.l}
               className={`admin-card rounded-2xl p-4 md:p-5 ${
-                k.accent ? "ring-1 ring-sage-deep/30" : ""
+                k.accent ? "border-[var(--a-accent)]" : ""
               }`}
             >
-              <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-espresso-soft">
-                {k.l}
-              </p>
-              <p
-                className={`mt-1.5 font-serif text-2xl font-light tabular-nums md:text-[28px] ${
-                  k.accent ? "text-sage-deep" : "text-espresso"
-                }`}
-              >
+              <p className="admin-kicker text-[11px]">{k.l}</p>
+              <p className="admin-stat mt-1.5 font-serif text-2xl font-light tabular-nums md:text-[28px]">
                 {k.v}
               </p>
-              <p className="mt-0.5 text-[12px] text-espresso-soft">{k.sub}</p>
+              <p className="admin-faint mt-0.5 text-[12px]">{k.sub}</p>
             </div>
           ))}
         </div>
@@ -67,11 +61,11 @@ export default async function FinanzasPage() {
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           {/* Por mes */}
           <div className="admin-card rounded-2xl p-5">
-            <h3 className="text-[13px] font-medium uppercase tracking-[0.1em] text-espresso-soft">
+            <h3 className="admin-kicker text-[13px]">
               Evolución mensual
             </h3>
             {f.porMes.length === 0 ? (
-              <p className="mt-6 text-[14px] text-espresso-soft">Todavía sin datos.</p>
+              <p className="admin-muted mt-6 text-[14px]">Todavía sin datos.</p>
             ) : (
               <div
                 role="img"
@@ -85,17 +79,17 @@ export default async function FinanzasPage() {
                   <div key={m.key} className="flex flex-1 flex-col items-center justify-end gap-2">
                     <div className="relative flex w-full max-w-[44px] flex-1 items-end">
                       <div
-                        className="w-full rounded-t-md border border-clay/50 bg-clay/40"
+                        className="w-full rounded-t-md border border-[var(--a-border-strong)] bg-[var(--a-border)]"
                         style={{ height: `${(m.facturado / maxMes) * 100}%` }}
                       />
                       <div
-                        className="absolute bottom-0 w-full rounded-t-md bg-sage-deep"
+                        className="absolute bottom-0 w-full rounded-t-md bg-[var(--a-accent)]"
                         style={{ height: `${(m.cobrado / maxMes) * 100}%` }}
                       />
                     </div>
-                    <span className="text-center text-[11px] capitalize leading-tight text-espresso-soft">
+                    <span className="admin-muted text-center text-[11px] capitalize leading-tight">
                       {m.label}
-                      <span className="block text-[10px] tabular-nums text-espresso-soft">
+                      <span className="admin-faint block text-[10px] tabular-nums">
                         {money(m.cobrado)}
                       </span>
                     </span>
@@ -103,39 +97,39 @@ export default async function FinanzasPage() {
                 ))}
               </div>
             )}
-            <div className="mt-4 flex gap-4 text-[12px] text-espresso-soft">
+            <div className="admin-muted mt-4 flex gap-4 text-[12px]">
               <span className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-sage-deep" /> Cobrado
+                <span className="h-2.5 w-2.5 rounded-full bg-[var(--a-accent)]" /> Cobrado
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full border border-clay/50 bg-clay/40" /> Facturado
+                <span className="h-2.5 w-2.5 rounded-full border border-[var(--a-border-strong)] bg-[var(--a-border)]" /> Facturado
               </span>
             </div>
           </div>
 
           {/* Por servicio */}
           <div className="admin-card rounded-2xl p-5">
-            <h3 className="text-[13px] font-medium uppercase tracking-[0.1em] text-espresso-soft">
+            <h3 className="admin-kicker text-[13px]">
               Por servicio
             </h3>
             {f.porServicio.length === 0 ? (
-              <p className="mt-6 text-[14px] text-espresso-soft">Todavía sin datos.</p>
+              <p className="admin-muted mt-6 text-[14px]">Todavía sin datos.</p>
             ) : (
               <ul className="mt-4 space-y-3">
                 {f.porServicio.map((s) => (
                   <li key={s.nombre}>
                     <div className="flex items-baseline justify-between gap-3">
                       <span className="text-[14px] font-medium text-espresso">{s.nombre}</span>
-                      <span className="text-[14px] tabular-nums text-espresso">{money(s.monto)}</span>
+                      <span className="admin-stat text-[14px] tabular-nums">{money(s.monto)}</span>
                     </div>
                     <div className="mt-1 flex items-center gap-3">
-                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#EFE6E8]">
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--a-border)]">
                         <div
-                          className="h-full rounded-full bg-sage-deep"
+                          className="h-full rounded-full bg-[var(--a-accent)]"
                           style={{ width: `${s.monto ? (s.cobrado / s.monto) * 100 : 0}%` }}
                         />
                       </div>
-                      <span className="text-[12px] text-espresso-soft">
+                      <span className="admin-muted text-[12px]">
                         {s.cantidad} · {money(s.cobrado)} cobrado
                       </span>
                     </div>
@@ -149,15 +143,15 @@ export default async function FinanzasPage() {
         {/* Por profesional */}
         {f.porProfesional.length > 0 && (
           <div className="admin-card mt-4 rounded-2xl p-5">
-            <h3 className="text-[13px] font-medium uppercase tracking-[0.1em] text-espresso-soft">
+            <h3 className="admin-kicker text-[13px]">
               Por profesional
             </h3>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {f.porProfesional.map((p) => (
                 <div key={p.nombre} className="admin-soft rounded-xl p-4">
                   <p className="font-medium text-espresso">{p.nombre}</p>
-                  <p className="mt-1 font-serif text-xl text-espresso tabular-nums">{money(p.monto)}</p>
-                  <p className="text-[12px] text-espresso-soft">
+                  <p className="admin-stat mt-1 font-serif text-xl tabular-nums">{money(p.monto)}</p>
+                  <p className="admin-muted text-[12px]">
                     {p.cantidad} turnos · {money(p.cobrado)} cobrado
                   </p>
                 </div>
@@ -170,7 +164,7 @@ export default async function FinanzasPage() {
         <div className="mt-4">
           <h3 className="font-serif text-lg tracking-tight text-espresso">Movimientos</h3>
           {f.movimientos.length === 0 ? (
-            <p className="admin-empty mt-3 rounded-2xl p-8 text-center text-[14px] text-espresso-soft">
+            <p className="admin-empty admin-muted mt-3 rounded-2xl p-8 text-center text-[14px]">
               Acá vas a ver cada turno con su cobro. Aparecen al confirmar turnos.
             </p>
           ) : (
@@ -182,25 +176,25 @@ export default async function FinanzasPage() {
                 >
                   <div className="min-w-[160px] flex-1">
                     <p className="font-medium text-espresso">{m.nombre}</p>
-                    <p className="text-[13px] text-espresso-soft">
+                    <p className="admin-muted text-[13px]">
                       {m.serviceName || "—"}
                       {m.staffName ? ` · ${m.staffName}` : ""}
                       {m.fecha ? ` · ${fechaHoraAR(m.fecha)} hs` : ""}
                     </p>
                   </div>
-                  <span className="font-serif text-lg tabular-nums text-espresso">
+                  <span className="admin-stat font-serif text-lg tabular-nums">
                     {money(m.monto)}
                   </span>
                   {m.pagado ? (
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-sage/15 px-3 py-1.5 text-[12px] font-medium text-sage-deep">
+                      <span className="admin-chip inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium">
                         ✓ {METODO_LABEL[m.metodoPago || ""] || "Pagado"}
                       </span>
                       <form action={quitarPago}>
                         <input type="hidden" name="id" value={m.id} />
                         <button
                           aria-label={`Deshacer pago de ${m.nombre}`}
-                          className="rounded-full px-2.5 py-2 text-[12px] text-espresso-soft transition-colors hover:text-[#9C5475]"
+                          className="admin-danger rounded-full px-2.5 py-2 text-[12px]"
                         >
                           Deshacer
                         </button>

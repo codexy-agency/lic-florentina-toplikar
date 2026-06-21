@@ -14,7 +14,7 @@ export default async function ProfesionalesPage() {
       <AdminHeader />
       <section className="mt-8">
         <h2 className="font-serif text-xl tracking-tight text-espresso">Profesionales</h2>
-        <p className="mt-1 text-[14px] text-espresso-soft">
+        <p className="admin-muted mt-1 text-[14px]">
           Quiénes atienden y qué servicios ofrece cada una. En la reserva, si un
           servicio lo da una sola profesional, se asigna automáticamente.
         </p>

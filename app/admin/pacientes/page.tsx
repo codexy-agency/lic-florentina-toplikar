@@ -19,7 +19,7 @@ export default async function PacientesPage() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="font-serif text-2xl tracking-tight text-espresso">Pacientes</h2>
-            <p className="mt-1 text-[14px] text-espresso-soft">
+            <p className="admin-muted mt-1 text-[14px]">
               {pacientes.length} {pacientes.length === 1 ? "paciente" : "pacientes"}.
               Se crean solos al confirmar un turno, o agregalos a mano.
             </p>
@@ -30,20 +30,20 @@ export default async function PacientesPage() {
         <details className="admin-card group mt-5 rounded-2xl">
           <summary className="flex cursor-pointer list-none items-center justify-between p-4 text-[14px] font-medium text-espresso">
             <span>+ Nuevo paciente</span>
-            <span className="text-espresso-soft transition-transform group-open:rotate-180">⌄</span>
+            <span className="admin-faint transition-transform group-open:rotate-180">⌄</span>
           </summary>
           <form action={crearPaciente} className="border-t border-[var(--color-line)] p-4">
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="block">
-                <span className="mb-1 block text-[12px] uppercase tracking-[0.1em] text-sage-deep">Nombre</span>
+                <span className="admin-kicker mb-1 block text-[12px]">Nombre</span>
                 <input name="nombre" required placeholder="Nombre y apellido" className={field} />
               </label>
               <label className="block">
-                <span className="mb-1 block text-[12px] uppercase tracking-[0.1em] text-sage-deep">Contacto</span>
+                <span className="admin-kicker mb-1 block text-[12px]">Contacto</span>
                 <input name="contacto" required placeholder="Email o WhatsApp" className={field} />
               </label>
               <label className="block">
-                <span className="mb-1 block text-[12px] uppercase tracking-[0.1em] text-sage-deep">Modalidad</span>
+                <span className="admin-kicker mb-1 block text-[12px]">Modalidad</span>
                 <select name="modalidad" defaultValue="online" className={field}>
                   <option value="online">Online</option>
                   <option value="presencial">Presencial</option>
