@@ -193,56 +193,67 @@ export function DisponibilidadEditor({
                   )}
                   {franjas.map((f, idx) => {
                     const invalida = franjaInvalida(f);
+                    // Cada franja agrupada en su propia caja (mobile) para que se vea
+                    // sin ambigüedad qué rango horario va con qué modalidad.
+                    const modColor =
+                      f.modalidad === "presencial" ? "#9C5475" : "#5F7A8C";
                     return (
                       <div
                         key={idx}
-                        className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:flex sm:flex-wrap"
+                        className="rounded-xl border border-[var(--a-border)] bg-[var(--a-surface-2)]/55 p-3 sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0"
                       >
-                        <input
-                          type="time"
-                          value={f.startTime}
-                          onChange={(e) => setFranja(d.i, idx, { startTime: e.target.value })}
-                          className={
-                            (invalida ? time + " border-[var(--a-danger)]" : time) +
-                            " w-full min-w-0 sm:w-auto"
-                          }
-                          aria-invalid={invalida}
-                        />
-                        <span className="admin-muted text-[13px]">a</span>
-                        <input
-                          type="time"
-                          value={f.endTime}
-                          onChange={(e) => setFranja(d.i, idx, { endTime: e.target.value })}
-                          className={
-                            (invalida ? time + " border-[var(--a-danger)]" : time) +
-                            " w-full min-w-0 sm:w-auto"
-                          }
-                          aria-invalid={invalida}
-                        />
-                        <div className="col-span-3 flex items-center gap-2 sm:contents">
-                          <select
-                            value={f.modalidad}
-                            onChange={(e) =>
-                              setFranja(d.i, idx, { modalidad: e.target.value as Modalidad })
+                        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:flex sm:flex-wrap">
+                          <input
+                            type="time"
+                            value={f.startTime}
+                            onChange={(e) => setFranja(d.i, idx, { startTime: e.target.value })}
+                            className={
+                              (invalida ? time + " border-[var(--a-danger)]" : time) +
+                              " w-full min-w-0 sm:w-auto"
                             }
-                            className={time + " w-full sm:w-auto"}
-                          >
-                            <option value="online">Online</option>
-                            <option value="presencial">Presencial</option>
-                          </select>
-                          <button
-                            onClick={() => delFranja(d.i, idx)}
-                            className="admin-danger flex h-10 w-10 items-center justify-center rounded-full text-[14px] transition-colors hover:bg-[var(--a-danger)]/10 sm:h-8 sm:w-8"
-                            aria-label="Eliminar franja"
-                          >
-                            ✕
-                          </button>
+                            aria-invalid={invalida}
+                          />
+                          <span className="admin-muted text-[13px]">a</span>
+                          <input
+                            type="time"
+                            value={f.endTime}
+                            onChange={(e) => setFranja(d.i, idx, { endTime: e.target.value })}
+                            className={
+                              (invalida ? time + " border-[var(--a-danger)]" : time) +
+                              " w-full min-w-0 sm:w-auto"
+                            }
+                            aria-invalid={invalida}
+                          />
+                          <div className="col-span-3 mt-2.5 flex items-center gap-2 border-t border-[var(--a-border)] pt-2.5 sm:mt-0 sm:border-0 sm:pt-0 sm:contents">
+                            <span
+                              aria-hidden
+                              className="h-2 w-2 shrink-0 rounded-full sm:hidden"
+                              style={{ backgroundColor: modColor }}
+                            />
+                            <select
+                              value={f.modalidad}
+                              onChange={(e) =>
+                                setFranja(d.i, idx, { modalidad: e.target.value as Modalidad })
+                              }
+                              className={time + " w-full sm:w-auto"}
+                            >
+                              <option value="online">Online</option>
+                              <option value="presencial">Presencial</option>
+                            </select>
+                            <button
+                              onClick={() => delFranja(d.i, idx)}
+                              className="admin-danger flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[14px] transition-colors hover:bg-[var(--a-danger)]/10 sm:h-8 sm:w-8"
+                              aria-label="Eliminar franja"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                          {invalida && (
+                            <span className="admin-danger col-span-3 w-full text-[12px]">
+                              El fin debe ser posterior al inicio.
+                            </span>
+                          )}
                         </div>
-                        {invalida && (
-                          <span className="admin-danger col-span-3 w-full text-[12px]">
-                            El fin debe ser posterior al inicio.
-                          </span>
-                        )}
                       </div>
                     );
                   })}
@@ -382,12 +393,12 @@ export function DisponibilidadEditor({
         </div>
       </details>
 
-      {/* ───────────── Guardar (horarios + ajustes) ───────────── */}
+      {/* ───────────── Guardar (horarios + ajustes) — barra de vidrio ───────────── */}
       <div
-        className={`sticky bottom-0 z-10 -mx-1 flex flex-col items-stretch gap-2 rounded-2xl border px-4 py-3 backdrop-blur transition-colors sm:flex-row sm:flex-wrap sm:items-center sm:gap-3 ${
+        className={`sticky bottom-0 z-10 -mx-1 flex flex-col items-stretch gap-2 rounded-2xl border px-4 py-3 shadow-[0_-12px_32px_-16px_rgba(43,39,41,0.35)] backdrop-blur-xl backdrop-saturate-150 transition-colors sm:flex-row sm:flex-wrap sm:items-center sm:gap-3 ${
           dirty
-            ? "border-[var(--a-accent)] bg-[var(--a-accent-soft)]/90"
-            : "border-[var(--a-border)] bg-[var(--a-surface-2)]/85"
+            ? "border-[var(--a-accent)]/60 bg-[var(--a-accent-soft)]/70"
+            : "border-[var(--a-border)] bg-[var(--a-surface)]/62"
         }`}
       >
         <button

@@ -89,9 +89,29 @@ function Fondo() {
 export function AdminSidebar() {
   const path = usePathname();
   const [open, setOpen] = useState(false);
+  // El topbar mobile se oculta al bajar y reaparece al subir (más lugar para el contenido).
+  const [hideBar, setHideBar] = useState(false);
   useEffect(() => {
     setOpen(false);
+    setHideBar(false);
   }, [path]);
+  useEffect(() => {
+    let last = window.scrollY;
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const y = window.scrollY;
+        if (y > last && y > 72) setHideBar(true); // bajando: ocultar
+        else if (y < last - 4) setHideBar(false); // subiendo: mostrar
+        last = y;
+        ticking = false;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
   // Título de la sección actual (para el topbar mobile estilo panel).
   const current = NAV.find((t) => isActive(path, t.href))?.label ?? "Panel";
 
@@ -149,9 +169,13 @@ export function AdminSidebar() {
 
   return (
     <>
-      {/* Topbar — solo mobile. Barra de panel limpia (no header de landing):
-          botón de menú claro + sección actual + monograma de marca. */}
-      <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-[var(--a-border)] bg-[var(--a-surface)]/90 px-4 py-2.5 backdrop-blur md:hidden">
+      {/* Topbar — solo mobile. Barra de panel de vidrio (no header de landing):
+          botón de menú claro + sección actual + monograma. Se oculta al bajar. */}
+      <header
+        className={`sticky top-0 z-30 flex items-center gap-3 border-b border-[var(--a-border)] bg-[var(--a-surface)]/72 px-4 py-2.5 backdrop-blur-xl backdrop-saturate-150 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] md:hidden ${
+          hideBar ? "-translate-y-full" : "translate-y-0"
+        }`}
+      >
         <button
           onClick={() => setOpen(true)}
           aria-label="Abrir menú de navegación"
