@@ -1,7 +1,6 @@
 import { getFinanzas } from "@/lib/store";
 import { fechaHoraAR } from "@/lib/scheduling/slots";
 import { AdminShell } from "@/components/AdminShell";
-import { AdminHeader } from "@/components/AdminHeader";
 import { requireAdmin } from "@/lib/session";
 import { registrarPago, quitarPago } from "./actions";
 
@@ -30,14 +29,16 @@ export default async function FinanzasPage() {
 
   return (
     <AdminShell>
-      <AdminHeader />
-
-      <section className="mt-8">
-        <h2 className="font-serif text-2xl tracking-tight text-espresso">Finanzas</h2>
-        <p className="admin-muted mt-1 text-[14px]">
-          Cuentas por servicio y por profesional. Se calculan sobre los turnos
-          confirmados y realizados.
-        </p>
+      <section>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="font-serif text-[26px] tracking-tight text-espresso md:text-[30px]">Finanzas</h1>
+            <p className="admin-muted mt-1 text-[14px]">
+              Cuentas por servicio y por profesional. Se calculan sobre los turnos
+              confirmados y realizados.
+            </p>
+          </div>
+        </div>
 
         {/* KPIs */}
         <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">

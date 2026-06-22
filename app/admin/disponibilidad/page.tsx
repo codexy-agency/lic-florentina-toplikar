@@ -1,5 +1,4 @@
 import { getScheduling } from "@/lib/store";
-import { AdminHeader } from "@/components/AdminHeader";
 import { AdminShell } from "@/components/AdminShell";
 import { DisponibilidadEditor } from "@/components/DisponibilidadEditor";
 import { requireAdmin } from "@/lib/session";
@@ -12,17 +11,17 @@ export default async function DisponibilidadPage() {
 
   return (
     <AdminShell>
-      <AdminHeader />
-
-      <section className="mt-8">
-        <h2 className="font-serif text-xl tracking-tight text-espresso">
-          Disponibilidad
-        </h2>
-        <p className="admin-muted mt-1 text-[14px]">
-          Configurá tus horarios. El sitio muestra automáticamente los slots
-          libres a tus pacientes.
-        </p>
-      </section>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="font-serif text-[26px] tracking-tight text-espresso md:text-[30px]">
+            Disponibilidad
+          </h1>
+          <p className="admin-muted mt-1 text-[14px]">
+            Configurá tus horarios. El sitio muestra automáticamente los slots
+            libres a tus pacientes.
+          </p>
+        </div>
+      </div>
 
       <div className="mt-8">
         <DisponibilidadEditor

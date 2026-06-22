@@ -1,10 +1,14 @@
-/** Contenedor del panel: fondo greige profundo + ancho máximo consistente. */
+import { AdminSidebar } from "./AdminSidebar";
+
+/** Layout del panel: sidebar fijo a la izquierda (desktop) / drawer (mobile),
+ *  y el contenido aprovechando el ancho. */
 export function AdminShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="admin-shell">
-      <div className="mx-auto max-w-6xl px-4 py-7 md:px-8 md:py-12">
+    <div className="admin-shell md:pl-[252px]">
+      <AdminSidebar />
+      <main className="mx-auto w-full max-w-6xl px-5 pb-16 pt-6 md:px-10 md:pt-12">
         {children}
-      </div>
+      </main>
     </div>
   );
 }

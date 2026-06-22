@@ -7,7 +7,6 @@ import {
   stats,
 } from "@/lib/store";
 import { fechaHoraAR, horaAR, isoToArLocal } from "@/lib/scheduling/slots";
-import { AdminHeader } from "@/components/AdminHeader";
 import { AdminShell } from "@/components/AdminShell";
 import { SubmitButton } from "@/components/SubmitButton";
 import { AgendarManualForm } from "@/components/AgendarManualForm";
@@ -124,13 +123,15 @@ export default async function AdminPage() {
 
   return (
     <AdminShell>
-      <AdminHeader />
-
-      <div className="mt-8">
-        <h2 className="font-serif text-2xl tracking-tight text-espresso">Agenda</h2>
-        <p className="admin-muted mt-1 text-[14px]">
-          Tu día a día: solicitudes, próximos turnos y pacientes.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="font-serif text-[26px] tracking-tight text-espresso md:text-[30px]">
+            Agenda
+          </h1>
+          <p className="admin-muted mt-1 text-[14px]">
+            Tu día a día: solicitudes, próximos turnos y pacientes.
+          </p>
+        </div>
       </div>
 
       {/* Stats */}

@@ -1,6 +1,5 @@
 import { listPacientes } from "@/lib/store";
 import { AdminShell } from "@/components/AdminShell";
-import { AdminHeader } from "@/components/AdminHeader";
 import { PacientesList } from "@/components/PacientesList";
 import { crearPaciente } from "./actions";
 import { requireAdmin } from "@/lib/session";
@@ -14,11 +13,10 @@ export default async function PacientesPage() {
     "admin-input w-full px-3 py-2.5 text-[14px] text-espresso";
   return (
     <AdminShell>
-      <AdminHeader />
-      <section className="mt-8">
-        <div className="flex flex-wrap items-end justify-between gap-3">
+      <section>
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h2 className="font-serif text-2xl tracking-tight text-espresso">Pacientes</h2>
+            <h1 className="font-serif text-[26px] tracking-tight text-espresso md:text-[30px]">Pacientes</h1>
             <p className="admin-muted mt-1 text-[14px]">
               {pacientes.length} {pacientes.length === 1 ? "paciente" : "pacientes"}.
               Se crean solos al confirmar un turno, o agregalos a mano.
