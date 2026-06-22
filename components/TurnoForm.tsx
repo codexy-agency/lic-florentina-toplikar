@@ -44,6 +44,9 @@ export function TurnoForm() {
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [enviado, setEnviado] = useState(false);
+  // Teaser de disponibilidad inmediata (gancho de conversión): el primer horario
+  // libre, mostrado en el paso 1 antes de elegir nada.
+  const [proximo, setProximo] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -62,6 +65,28 @@ export function TurnoForm() {
 
   const eligibles = (svcId: string) =>
     staff.filter((s) => s.serviceIds.includes(svcId));
+
+  // Busca el primer slot disponible (servicio principal, online) para el gancho.
+  useEffect(() => {
+    if (!services.length) return;
+    const svc = services[0];
+    const staffId = staff.find((s) => s.serviceIds.includes(svc.id))?.id;
+    (async () => {
+      try {
+        const q = new URLSearchParams({ modalidad: "online", serviceId: svc.id });
+        if (staffId) q.set("staffId", staffId);
+        const r = await fetch(`/api/slots?${q}`, { cache: "no-store" });
+        const d = await r.json();
+        const dia = (d.dias ?? [])[0];
+        if (dia?.slots?.length) {
+          setProximo(`${dia.label} · ${horaAR(dia.slots[0].startsAt)} hs`);
+        }
+      } catch {
+        /* sin teaser */
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [services.length]);
 
   function pickService(svc: Service) {
     setService(svc);
@@ -290,6 +315,17 @@ export function TurnoForm() {
             {/* PASO 1 — Servicio */}
             {step === 1 && (
               <div className="space-y-3">
+                {proximo && (
+                  <div className="flex items-center gap-2.5 rounded-xl bg-sage/12 px-3.5 py-2.5 text-[13px] text-sage-deep">
+                    <span className="relative flex h-2 w-2 shrink-0">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sage/60" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-sage-deep" />
+                    </span>
+                    <span>
+                      <strong className="font-semibold">Próximo turno disponible:</strong> {proximo}
+                    </span>
+                  </div>
+                )}
                 <H>Elegí el servicio</H>
                 {services.map((s, i) => (
                   <button
