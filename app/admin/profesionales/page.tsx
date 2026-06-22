@@ -1,5 +1,6 @@
 import { listStaff, listServices } from "@/lib/store";
 import { AdminShell } from "@/components/AdminShell";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { ProfesionalesEditor } from "@/components/ProfesionalesEditor";
 import { requireAdmin } from "@/lib/session";
 
@@ -11,15 +12,10 @@ export default async function ProfesionalesPage() {
   return (
     <AdminShell>
       <section>
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="font-serif text-[26px] tracking-tight text-espresso md:text-[30px]">Profesionales</h1>
-            <p className="admin-muted mt-1 text-[14px]">
-              Quiénes atienden y qué servicios ofrece cada una. En la reserva, si un
-              servicio lo da una sola profesional, se asigna automáticamente.
-            </p>
-          </div>
-        </div>
+        <AdminPageHeader
+          title="Profesionales"
+          description="Quiénes atienden y qué servicios ofrece cada una. En la reserva, si un servicio lo da una sola profesional, se asigna automáticamente."
+        />
         <div className="mt-6">
           <ProfesionalesEditor initial={staff} services={services} />
         </div>

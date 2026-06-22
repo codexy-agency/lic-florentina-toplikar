@@ -1,6 +1,7 @@
 import { getFinanzas } from "@/lib/store";
 import { fechaHoraAR, isoToArLocal } from "@/lib/scheduling/slots";
 import { AdminShell } from "@/components/AdminShell";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { requireAdmin } from "@/lib/session";
 import { registrarPago, quitarPago, agregarMovimiento, quitarMovimiento } from "./actions";
 
@@ -31,14 +32,10 @@ export default async function FinanzasPage() {
   return (
     <AdminShell>
       <section>
-        <div className="flex flex-col items-stretch gap-3 md:flex-row md:flex-wrap md:items-end md:justify-between md:gap-4">
-          <div>
-            <h1 className="font-serif text-[26px] tracking-tight text-espresso md:text-[30px]">Finanzas</h1>
-            <p className="admin-muted mt-1 text-[14px]">
-              Ingresos por turnos y cargados a mano (consultorio). Se calculan
-              sobre turnos confirmados y realizados.
-            </p>
-          </div>
+        <AdminPageHeader
+          title="Finanzas"
+          description="Ingresos por turnos y cargados a mano (consultorio). Se calculan sobre turnos confirmados y realizados."
+        >
           {/* Cargar un ingreso a mano (plata del consultorio).
               Mobile: bloque estático full-width (evita overflow horizontal).
               sm+: dropdown flotante anclado a la derecha. */}
@@ -75,7 +72,7 @@ export default async function FinanzasPage() {
               </button>
             </form>
           </details>
-        </div>
+        </AdminPageHeader>
 
         {/* KPIs */}
         <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">

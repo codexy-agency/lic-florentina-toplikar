@@ -540,9 +540,25 @@ export async function setEstado(
 
 export async function stats() {
   const db = await read();
+  const hoyAR = new Date().toLocaleDateString("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+  });
+  const turnosHoy = db.solicitudes.filter((s) => {
+    if (s.estado !== "confirmado" || !s.startsAt) return false;
+    try {
+      return (
+        new Date(s.startsAt).toLocaleDateString("en-CA", {
+          timeZone: "America/Argentina/Buenos_Aires",
+        }) === hoyAR
+      );
+    } catch {
+      return false;
+    }
+  }).length;
   return {
     pendientes: db.solicitudes.filter((s) => s.estado === "pendiente").length,
     confirmados: db.solicitudes.filter((s) => s.estado === "confirmado").length,
+    turnosHoy,
     pacientes: db.pacientes.length,
   };
 }

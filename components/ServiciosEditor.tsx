@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { guardarServicios } from "@/app/admin/servicios/actions";
+import { DeleteConfirm } from "@/components/DeleteConfirm";
 import type { Service } from "@/lib/scheduling/types";
 
 type Row = Service;
@@ -83,26 +84,21 @@ export function ServiciosEditor({ initial }: { initial: Service[] }) {
               aria-checked={s.activo}
               aria-label={s.activo ? "Servicio activo" : "Servicio inactivo"}
               onClick={() => patch(i, { activo: !s.activo })}
-              className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full py-1 transition-colors ${
+              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
                 s.activo ? "bg-[var(--a-accent)]" : "bg-[var(--a-border-strong)]"
               }`}
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                  s.activo ? "translate-x-[18px]" : "translate-x-0.5"
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                  s.activo ? "translate-x-[22px]" : "translate-x-0.5"
                 }`}
               />
             </button>
             <span className="admin-faint hidden md:inline w-14 text-[12px]">{s.activo ? "Activo" : "Inactivo"}</span>
-            <button
-              onClick={() => del(i)}
-              aria-label="Eliminar servicio"
-              className="admin-danger flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:bg-[var(--a-danger-soft)] sm:h-auto sm:w-auto sm:p-1.5"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" />
-              </svg>
-            </button>
+            <DeleteConfirm
+              onConfirm={() => del(i)}
+              itemLabel={s.nombre ? `"${s.nombre}"` : "este servicio"}
+            />
           </div>
 
           {/* Campos */}

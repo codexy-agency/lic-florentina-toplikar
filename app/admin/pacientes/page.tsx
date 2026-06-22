@@ -1,5 +1,6 @@
 import { listPacientes } from "@/lib/store";
 import { AdminShell } from "@/components/AdminShell";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { PacientesList } from "@/components/PacientesList";
 import { crearPaciente } from "./actions";
 import { requireAdmin } from "@/lib/session";
@@ -14,15 +15,10 @@ export default async function PacientesPage() {
   return (
     <AdminShell>
       <section>
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="font-serif text-[26px] tracking-tight text-espresso md:text-[30px]">Pacientes</h1>
-            <p className="admin-muted mt-1 text-[14px]">
-              {pacientes.length} {pacientes.length === 1 ? "paciente" : "pacientes"}.
-              Se crean solos al confirmar un turno, o agregalos a mano.
-            </p>
-          </div>
-        </div>
+        <AdminPageHeader
+          title="Pacientes"
+          description={`${pacientes.length} ${pacientes.length === 1 ? "paciente" : "pacientes"}. Se crean solos al confirmar un turno, o agregalos a mano.`}
+        />
 
         {/* Nuevo paciente (a mano) */}
         <details className="admin-card group mt-5 rounded-2xl">

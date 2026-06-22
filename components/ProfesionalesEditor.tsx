@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { guardarProfesionales } from "@/app/admin/profesionales/actions";
+import { DeleteConfirm } from "@/components/DeleteConfirm";
 import type { Staff, Service } from "@/lib/scheduling/types";
 
 const COLORES = ["#9C5475", "#7c8a6f", "#C9A227", "#6E7BA6", "#B07154"];
@@ -215,16 +216,10 @@ export function ProfesionalesEditor({
                     />
                   </span>
                 </button>
-                <button
-                  onClick={() => del(i)}
-                  className="flex h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-full text-espresso-soft transition-colors hover:bg-[var(--a-danger)]/12 hover:text-[var(--a-danger)]"
-                  aria-label="Eliminar profesional"
-                  title="Eliminar"
-                >
-                  <svg className="h-[17px] w-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" />
-                  </svg>
-                </button>
+                <DeleteConfirm
+                  onConfirm={() => del(i)}
+                  itemLabel={m.nombre ? `a ${m.nombre}` : "esta profesional"}
+                />
               </div>
             </div>
 

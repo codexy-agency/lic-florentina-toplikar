@@ -8,6 +8,7 @@ import {
 } from "@/lib/store";
 import { fechaHoraAR, horaAR, isoToArLocal } from "@/lib/scheduling/slots";
 import { AdminShell } from "@/components/AdminShell";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { SubmitButton } from "@/components/SubmitButton";
 import { AgendarManualForm } from "@/components/AgendarManualForm";
 import {
@@ -123,19 +124,13 @@ export default async function AdminPage() {
 
   return (
     <AdminShell>
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-serif text-[26px] tracking-tight text-espresso md:text-[30px]">
-            Agenda
-          </h1>
-          <p className="admin-muted mt-1 text-[14px]">
-            Tu día a día: solicitudes, próximos turnos y pacientes.
-          </p>
-        </div>
-      </div>
+      <AdminPageHeader
+        title="Agenda"
+        description="Tu día a día: solicitudes, próximos turnos y pacientes."
+      />
 
       {/* Stats */}
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4">
+      <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         {[
           {
             n: s.pendientes,
@@ -152,6 +147,15 @@ export default async function AdminPage() {
             icon: (
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4" />
+              </svg>
+            ),
+          },
+          {
+            n: s.turnosHoy,
+            l: "Turnos hoy",
+            icon: (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="13" r="8" /><path d="M12 9v4l2.5 1.5M9 2h6M5 5l1.5-1.5" />
               </svg>
             ),
           },
