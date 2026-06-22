@@ -222,7 +222,7 @@ export function TurnoForm() {
 
   return (
     <Shell>
-      <div className="p-6 md:p-8">
+      <div className="min-w-0 p-6 md:p-8">
         {/* Encabezado "en vivo": deja claro que es un reservador funcional. */}
         <div className="mb-5 flex items-center gap-2.5">
           <span className="relative flex h-2.5 w-2.5">
@@ -234,13 +234,13 @@ export function TurnoForm() {
           </span>
         </div>
 
-        {/* Progreso */}
-        <ol className="mb-6 flex items-center gap-2">
+        {/* Progreso — visible y sin desbordar en mobile (labels truncan) */}
+        <ol className="mb-6 flex items-center gap-1.5">
           {pasos.map((p, i) => {
             const done = step > p.n;
             const active = step === p.n;
             return (
-              <li key={p.label} className="flex flex-1 items-center gap-2">
+              <li key={p.label} className="flex min-w-0 flex-1 items-center gap-2">
                 <span
                   className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-medium transition-colors ${
                     active
@@ -253,14 +253,14 @@ export function TurnoForm() {
                   {done ? "✓" : i + 1}
                 </span>
                 <span
-                  className={`hidden text-[12px] font-medium uppercase tracking-[0.08em] sm:block ${
-                    active ? "text-espresso" : "text-espresso-soft/60"
+                  className={`truncate text-[11px] font-medium uppercase tracking-[0.06em] ${
+                    active ? "text-espresso" : "text-espresso-soft/70"
                   }`}
                 >
                   {p.label}
                 </span>
                 {i < pasos.length - 1 && (
-                  <span className="ml-1 hidden h-px flex-1 bg-[var(--color-line)] sm:block" />
+                  <span className="ml-0.5 hidden h-px flex-1 bg-[var(--color-line)] sm:block" />
                 )}
               </li>
             );
@@ -345,10 +345,10 @@ export function TurnoForm() {
 
             {/* PASO 3 — Fecha y hora */}
             {step === 3 && service && member && (
-              <div>
-                <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl bg-cream-deep/40 px-4 py-3 text-[13px]">
+              <div className="min-w-0">
+                <div className="mb-4 flex items-center gap-3 rounded-2xl bg-cream-deep/40 px-4 py-3 text-[13px]">
                   <Avatar staff={member} small />
-                  <span className="text-espresso">
+                  <span className="min-w-0 text-espresso">
                     <span className="font-medium">{service.nombre}</span> con{" "}
                     {member.nombre} · {service.durationMin} min
                   </span>

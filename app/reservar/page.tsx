@@ -67,9 +67,9 @@ export default function ReservarPage() {
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-6xl gap-6 px-5 py-8 md:px-8 md:py-12 lg:grid-cols-12 lg:gap-10">
+      <main className="reservar-main mx-auto grid max-w-6xl gap-6 px-5 py-8 md:px-8 md:py-12 lg:grid-cols-12 lg:gap-10">
         {/* Panel de marca (izquierda) */}
-        <aside className="lg:col-span-5">
+        <aside className="min-w-0 lg:col-span-5">
           <div className="lg:sticky lg:top-8">
             <div className="relative overflow-hidden rounded-[2rem] p-7 text-cream shadow-card md:p-9">
               {/* Fondo con gradiente cálido de marca */}
@@ -116,7 +116,7 @@ export default function ReservarPage() {
         </aside>
 
         {/* Wizard (derecha) */}
-        <div className="lg:col-span-7">
+        <div className="min-w-0 lg:col-span-7">
           <TurnoForm />
         </div>
       </main>

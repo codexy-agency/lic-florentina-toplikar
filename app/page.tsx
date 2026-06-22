@@ -517,7 +517,7 @@ export default async function Home() {
         />
         <div className="mx-auto max-w-7xl px-5 md:px-10">
           <div className="grid gap-12 md:grid-cols-12 md:gap-14">
-            <div className="md:col-span-5">
+            <div className="min-w-0 md:col-span-5">
               <Reveal>
                 <span className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.22em] text-sage-deep ring-1 ring-sage/20">
                   <span className="relative flex h-1.5 w-1.5">
@@ -600,7 +600,7 @@ export default async function Home() {
                 </div>
               </Reveal>
             </div>
-            <div className="md:col-span-6 md:col-start-7">
+            <div className="min-w-0 md:col-span-6 md:col-start-7">
               <Reveal delay={0.1}>
                 <TurnoForm />
               </Reveal>
