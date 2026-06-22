@@ -65,6 +65,7 @@ export interface NotaClinica {
   id: string;
   patientId: string;
   fecha: string; // fecha de la sesión/nota (ISO, editable)
+  titulo?: string; // título opcional (ej: "Primera consulta", "Sesión 3")
   contenido: string;
   creadoEn: string;
 }
@@ -335,13 +336,15 @@ export async function listNotas(patientId: string): Promise<NotaClinica[]> {
 export async function addNota(
   patientId: string,
   contenido: string,
-  fecha?: string
+  fecha?: string,
+  titulo?: string
 ): Promise<NotaClinica> {
   return mutate((db) => {
     const n: NotaClinica = {
       id: randomUUID(),
       patientId,
       fecha: fecha || new Date().toISOString(),
+      titulo: titulo || undefined,
       contenido,
       creadoEn: new Date().toISOString(),
     };

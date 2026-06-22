@@ -27,10 +27,11 @@ export async function agregarNota(formData: FormData) {
   await auth();
   const patientId = String(formData.get("patientId") || "");
   const contenido = String(formData.get("contenido") || "").trim().slice(0, 4000);
+  const titulo = String(formData.get("titulo") || "").trim().slice(0, 80) || undefined;
   const fechaLocal = String(formData.get("fecha") || "").trim();
   if (!patientId || !contenido) return;
   const fecha = fechaLocal ? arLocalToIso(fechaLocal) || undefined : undefined;
-  await addNota(patientId, contenido, fecha);
+  await addNota(patientId, contenido, fecha, titulo);
   revalidatePath(`/admin/pacientes/${patientId}`);
 }
 

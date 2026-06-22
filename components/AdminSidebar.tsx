@@ -74,9 +74,14 @@ function Fondo() {
       />
       <div
         aria-hidden
-        className="absolute inset-0 bg-gradient-to-b from-[#2a1f26]/90 via-[#32242c]/93 to-[#1b1418]/96"
+        className="absolute inset-0 bg-gradient-to-b from-[#2a1f26]/68 via-[#2c2026]/74 to-[#1b1418]/88"
       />
-      <div aria-hidden className="absolute inset-0 bg-[#241a20]/30" />
+      {/* Refuerzo de legibilidad sólo detrás del texto (izquierda), dejando ver
+          más la imagen sin perder contraste. */}
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-gradient-to-r from-[#1f161b]/55 via-[#1f161b]/15 to-transparent"
+      />
     </>
   );
 }

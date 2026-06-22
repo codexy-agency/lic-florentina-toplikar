@@ -68,79 +68,99 @@ export function ServiciosEditor({ initial }: { initial: Service[] }) {
       )}
 
       {rows.map((s, i) => (
-        <div
-          key={s.id}
-          className="rounded-2xl admin-soft p-4"
-        >
-          <div className="grid gap-4 sm:grid-cols-[1fr_auto_auto]">
-            <label className="flex flex-col gap-1.5">
-              <span className="admin-label text-[12px] font-medium">Nombre</span>
+        <div key={s.id} className="admin-card rounded-2xl p-5">
+          {/* Header de la tarjeta: índice + nombre vivo + activo + eliminar */}
+          <div className="flex items-center gap-3 border-b border-[var(--a-border)] pb-3">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--a-accent-soft)] text-[12px] font-semibold text-[var(--a-accent-ink)]">
+              {i + 1}
+            </span>
+            <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-espresso">
+              {s.nombre || "Servicio nuevo"}
+            </span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={s.activo}
+              aria-label={s.activo ? "Servicio activo" : "Servicio inactivo"}
+              onClick={() => patch(i, { activo: !s.activo })}
+              className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
+                s.activo ? "bg-[var(--a-accent)]" : "bg-[var(--a-border-strong)]"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                  s.activo ? "translate-x-[18px]" : "translate-x-0.5"
+                }`}
+              />
+            </button>
+            <span className="admin-faint w-14 text-[12px]">{s.activo ? "Activo" : "Inactivo"}</span>
+            <button
+              onClick={() => del(i)}
+              aria-label="Eliminar servicio"
+              className="admin-danger rounded-lg p-1.5 transition-colors hover:bg-[var(--a-danger-soft)]"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Campos */}
+          <div className="mt-4 space-y-4">
+            <label className="block">
+              <span className="admin-label mb-1.5 block text-[12px] font-medium">Nombre</span>
               <input
                 value={s.nombre}
                 onChange={(e) => patch(i, { nombre: e.target.value })}
                 placeholder="Nombre del servicio"
-                aria-label="Nombre del servicio"
                 className={`${inp} w-full font-medium`}
               />
             </label>
-            <label className="flex flex-col gap-1.5">
-              <span className="admin-label text-[12px] font-medium">Duración</span>
-              <span className="flex items-center gap-2">
-                <input
-                  type="number"
-                  value={Number.isFinite(s.durationMin) ? s.durationMin : ""}
-                  onChange={(e) =>
-                    patch(i, { durationMin: e.target.value === "" ? NaN : Number(e.target.value) })
-                  }
-                  className={`${inp} w-20`}
-                />
-                <span className="admin-muted text-[13px]">min</span>
-              </span>
-            </label>
-            <label className="flex flex-col gap-1.5">
-              <span className="admin-label text-[12px] font-medium">Precio</span>
-              <span className="flex items-center gap-2">
-                <span className="admin-muted text-[14px]">$</span>
-                <input
-                  type="number"
-                  value={s.priceARS ?? ""}
-                  onChange={(e) =>
-                    patch(i, { priceARS: e.target.value ? Number(e.target.value) : undefined })
-                  }
-                  placeholder="precio"
-                  className={`${inp} w-28`}
-                />
-                {formatPrecio(s.priceARS) && (
-                  <span className="admin-stat text-[14px] font-semibold tabular-nums">
-                    {formatPrecio(s.priceARS)}
-                  </span>
-                )}
-              </span>
-            </label>
-          </div>
-          <input
-            value={s.descripcion ?? ""}
-            onChange={(e) => patch(i, { descripcion: e.target.value })}
-            placeholder="Descripción breve (opcional)"
-            aria-label="Descripción del servicio"
-            className={`${inp} mt-3 w-full`}
-          />
-          <div className="mt-3 flex items-center gap-4">
-            <label className="flex items-center gap-2 text-[13px]">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block">
+                <span className="admin-label mb-1.5 block text-[12px] font-medium">Duración del turno</span>
+                <span className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    value={Number.isFinite(s.durationMin) ? s.durationMin : ""}
+                    onChange={(e) =>
+                      patch(i, { durationMin: e.target.value === "" ? NaN : Number(e.target.value) })
+                    }
+                    className={`${inp} w-24`}
+                  />
+                  <span className="admin-muted text-[13px]">minutos</span>
+                </span>
+              </label>
+              <label className="block">
+                <span className="admin-label mb-1.5 block text-[12px] font-medium">Precio de referencia</span>
+                <span className="flex items-center gap-2">
+                  <span className="admin-muted text-[14px]">$</span>
+                  <input
+                    type="number"
+                    value={s.priceARS ?? ""}
+                    onChange={(e) =>
+                      patch(i, { priceARS: e.target.value ? Number(e.target.value) : undefined })
+                    }
+                    placeholder="precio"
+                    className={`${inp} w-28`}
+                  />
+                  {formatPrecio(s.priceARS) && (
+                    <span className="text-[15px] font-semibold tabular-nums text-espresso">
+                      {formatPrecio(s.priceARS)}
+                    </span>
+                  )}
+                </span>
+              </label>
+            </div>
+            <label className="block">
+              <span className="admin-label mb-1.5 block text-[12px] font-medium">Descripción <span className="admin-faint normal-case">(opcional)</span></span>
               <input
-                type="checkbox"
-                checked={s.activo}
-                onChange={(e) => patch(i, { activo: e.target.checked })}
-                className="h-4 w-4 accent-[var(--a-accent)]"
+                value={s.descripcion ?? ""}
+                onChange={(e) => patch(i, { descripcion: e.target.value })}
+                placeholder="Breve descripción que ve el paciente al reservar"
+                className={`${inp} w-full`}
               />
-              <span className="admin-muted">Activo</span>
             </label>
-            <button
-              onClick={() => del(i)}
-              className="admin-danger ml-auto text-[13px] font-medium transition-colors"
-            >
-              Eliminar
-            </button>
           </div>
         </div>
       ))}
