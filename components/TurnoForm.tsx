@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode, type CSSProperties } from "react";
 import { horaAR } from "@/lib/scheduling/slots";
 import { Arrow, ArrowLeft } from "./Arrow";
 import type { DaySlots, Slot, Modalidad, Service, Staff } from "@/lib/scheduling/types";
@@ -23,6 +23,36 @@ function iniciales(nombre: string) {
     .slice(0, 2)
     .map((p) => p[0]?.toUpperCase() ?? "")
     .join("");
+}
+
+// Identidad visual por servicio: cada tarjeta recibe un color de acento y un
+// ícono representativo, derivados del nombre (con índice como respaldo) para que
+// se distingan de un vistazo SIN configurar nada por tenant.
+const SVC_ACCENTS = ["#7C8A6F", "#9C5475", "#B0846A", "#5F7A8C", "#8E7CA8", "#A8746A"];
+function serviceVisual(nombre: string, i: number): { color: string; icon: ReactNode } {
+  const n = nombre.toLowerCase();
+  const color = SVC_ACCENTS[i % SVC_ACCENTS.length];
+  let icon: ReactNode;
+  if (/pareja|v[ií]nculo|amor|dos/.test(n)) {
+    // Corazón → vínculo / pareja
+    icon = <path d="M12 20s-6.5-4-9-8.2C1.4 8.9 3 5.8 6.1 5.8c1.8 0 3 1 3.9 2.1.9-1.1 2.1-2.1 3.9-2.1 3.1 0 4.7 3.1 3.1 6C18.5 16 12 20 12 20z" />;
+  } else if (/padre|madre|famil|crianza|hij|ni[ñn]ez|infan/.test(n)) {
+    // Dos adultos → familia / orientación a padres
+    icon = <><circle cx="8" cy="8" r="2.4" /><circle cx="16" cy="8" r="2.4" /><path d="M3.5 19a4.5 4.5 0 0 1 9 0M11.5 19a4.5 4.5 0 0 1 9 0" /></>;
+  } else if (/primera|inicial|conocer|consulta/.test(n)) {
+    // Sol → primer encuentro / bienvenida
+    icon = <><circle cx="12" cy="12" r="3.6" /><path d="M12 3.5v2M12 18.5v2M4.5 12h2M17.5 12h2M6.3 6.3l1.4 1.4M16.3 16.3l1.4 1.4M17.7 6.3l-1.4 1.4M7.7 16.3l-1.4 1.4" /></>;
+  } else if (/adolesc|joven|juvenil/.test(n)) {
+    // Persona joven
+    icon = <><circle cx="12" cy="7.5" r="3" /><path d="M6 20a6 6 0 0 1 12 0" /></>;
+  } else if (/individual|sesi[oó]n|terap|adult/.test(n)) {
+    // Persona → sesión individual
+    icon = <><circle cx="12" cy="8" r="3.2" /><path d="M5.5 20a6.5 6.5 0 0 1 13 0" /></>;
+  } else {
+    // Hoja → genérico / bienestar
+    icon = <><path d="M11 20.5C6 19.5 3.5 15.5 3.5 11 3.5 7 6.5 3.5 11 3c.3 4.5-.5 9.5-0 17.5z" /><path d="M7 16.5C9 13 11 9.5 11 3.5" /></>;
+  }
+  return { color, icon };
 }
 
 export function TurnoForm() {
@@ -327,39 +357,54 @@ export function TurnoForm() {
                   </div>
                 )}
                 <H>Elegí el servicio</H>
-                {services.map((s, i) => (
-                  <button
-                    key={s.id}
-                    onClick={() => pickService(s)}
-                    className="group relative flex w-full items-center justify-between gap-4 rounded-2xl border border-[var(--color-line)] bg-white px-5 py-4 text-left shadow-[0_1px_2px_rgba(58,49,55,0.05)] transition-all duration-300 hover:-translate-y-0.5 hover:border-sage-deep/40 hover:shadow-card-hover"
-                  >
-                    <span className="min-w-0">
-                      <span className="flex flex-wrap items-center gap-2">
-                        <span className="font-medium text-espresso">{s.nombre}</span>
-                        {i === 0 && (
-                          <span className="rounded-full bg-sage/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-sage-deep">
-                            Más elegida
+                {services.map((s, i) => {
+                  const v = serviceVisual(s.nombre, i);
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => pickService(s)}
+                      style={{ "--svc": v.color } as CSSProperties}
+                      className="group relative flex w-full items-center gap-3.5 overflow-hidden rounded-2xl border border-[var(--color-line)] bg-white py-4 pl-4 pr-4 text-left shadow-[0_1px_2px_rgba(58,49,55,0.05)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--svc)] hover:shadow-card-hover sm:pl-5"
+                    >
+                      {/* Barra de acento del servicio (identidad de un vistazo) */}
+                      <span aria-hidden className="absolute inset-y-0 left-0 w-1 bg-[var(--svc)] opacity-70 transition-opacity duration-300 group-hover:opacity-100" />
+                      {/* Ícono representativo */}
+                      <span
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-105"
+                        style={{ backgroundColor: `${v.color}1A`, color: v.color }}
+                      >
+                        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                          {v.icon}
+                        </svg>
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="font-medium text-espresso">{s.nombre}</span>
+                          {i === 0 && (
+                            <span className="rounded-full bg-sage/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-sage-deep">
+                              Más elegida
+                            </span>
+                          )}
+                        </span>
+                        {s.descripcion && (
+                          <span className="mt-0.5 block text-[13px] leading-snug text-espresso-soft">
+                            {s.descripcion}
                           </span>
                         )}
-                      </span>
-                      {s.descripcion && (
-                        <span className="mt-0.5 block text-[13px] text-espresso-soft">
-                          {s.descripcion}
+                        <span className="mt-1.5 inline-flex items-center gap-2 text-[13px]">
+                          <span className="font-semibold tabular-nums text-espresso">
+                            {precio(s.priceARS) ?? "A coordinar"}
+                          </span>
+                          <span className="text-espresso-soft/50">·</span>
+                          <span className="text-espresso-soft">{s.durationMin} min</span>
                         </span>
-                      )}
-                      <span className="mt-1.5 inline-flex items-center gap-2 text-[13px]">
-                        <span className="font-semibold text-espresso">
-                          {precio(s.priceARS) ?? "A coordinar"}
-                        </span>
-                        <span className="text-espresso-soft/60">·</span>
-                        <span className="text-espresso-soft">{s.durationMin} min</span>
                       </span>
-                    </span>
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cream-deep/60 text-espresso transition-all duration-300 group-hover:translate-x-0.5 group-hover:bg-sage-deep group-hover:text-cream">
-                      <Arrow className="h-[18px] w-[18px]" />
-                    </span>
-                  </button>
-                ))}
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cream-deep/60 text-espresso transition-all duration-300 group-hover:translate-x-0.5 group-hover:bg-[var(--svc)] group-hover:text-cream">
+                        <Arrow className="h-[18px] w-[18px]" />
+                      </span>
+                    </button>
+                  );
+                })}
                 <p className="flex items-center justify-center gap-2 pt-2 text-center text-[13px] text-espresso-soft">
                   <svg className="h-4 w-4 shrink-0 text-sage-deep" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="4" y="11" width="16" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" />
@@ -479,7 +524,7 @@ export function TurnoForm() {
                               setSlot(sl);
                               setStep(4);
                             }}
-                            className="rounded-xl border border-[var(--color-line)] bg-cream px-2 py-2.5 text-[14px] font-medium text-espresso transition-all duration-200 hover:border-sage/60 hover:bg-sage/10"
+                            className="rounded-xl border border-[var(--color-line)] bg-cream px-2 py-3 text-[15px] font-medium tabular-nums text-espresso transition-all duration-200 hover:border-sage/60 hover:bg-sage/10 active:scale-[0.97]"
                           >
                             {horaAR(sl.startsAt)}
                           </button>
