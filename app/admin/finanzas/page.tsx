@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { getFinanzas } from "@/lib/store";
 import { fechaHoraAR, isoToArLocal } from "@/lib/scheduling/slots";
 import { AdminShell } from "@/components/AdminShell";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { requireAdmin } from "@/lib/session";
 import { registrarPago, quitarPago, agregarMovimiento, quitarMovimiento } from "./actions";
 
@@ -15,16 +17,29 @@ const METODO_LABEL: Record<string, string> = {
   mercadopago: "Mercado Pago",
   tarjeta: "Tarjeta",
 };
+const PERIODOS = [
+  { k: "mes", l: "Este mes" },
+  { k: "mes-pasado", l: "Mes pasado" },
+  { k: "anio", l: "Este año" },
+  { k: "todo", l: "Histórico" },
+];
 
-export default async function FinanzasPage() {
+export default async function FinanzasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ periodo?: string }>;
+}) {
   await requireAdmin();
-  const f = await getFinanzas();
+  const sp = await searchParams;
+  const periodo = PERIODOS.some((p) => p.k === sp.periodo) ? sp.periodo! : "mes";
+  const f = await getFinanzas(periodo);
   const maxMes = Math.max(1, ...f.porMes.map((m) => m.facturado));
+  const maxMetodo = Math.max(1, ...f.porMetodo.map((m) => m.monto));
   const ahoraLocal = isoToArLocal(new Date().toISOString());
 
   const KPIS = [
     { l: "Cobrado", v: money(f.cobrado), sub: "ingresos recibidos", accent: true },
-    { l: "Por cobrar", v: money(f.porCobrar), sub: `${f.cantTurnos - f.cantCobrados} turnos pendientes` },
+    { l: "Por cobrar", v: money(f.porCobrar), sub: `${f.cantTurnos - f.cantCobrados} turnos sin cobrar` },
     { l: "Facturado", v: money(f.facturado), sub: `${f.cantTurnos} turnos` },
     { l: "Ticket promedio", v: money(f.ticketProm), sub: "por turno" },
   ];
@@ -74,8 +89,28 @@ export default async function FinanzasPage() {
           </details>
         </AdminPageHeader>
 
+        {/* Selector de período */}
+        <div className="mt-5 flex flex-wrap items-center gap-2">
+          {PERIODOS.map((p) => {
+            const active = p.k === periodo;
+            return (
+              <Link
+                key={p.k}
+                href={`/admin/finanzas?periodo=${p.k}`}
+                className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
+                  active
+                    ? "bg-[var(--a-accent)] text-white shadow-[0_6px_16px_-8px_rgba(138,74,102,0.6)]"
+                    : "admin-chip hover:border-[var(--a-border-strong)]"
+                }`}
+              >
+                {p.l}
+              </Link>
+            );
+          })}
+        </div>
+
         {/* KPIs */}
-        <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+        <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
           {KPIS.map((k) => (
             <div
               key={k.l}
@@ -92,8 +127,54 @@ export default async function FinanzasPage() {
           ))}
         </div>
 
+        {/* Cobranza pendiente — sesiones realizadas sin pagar (a quién reclamarle) */}
+        {f.cobranza.length > 0 && (
+          <section className="mt-8">
+            <div className="flex flex-wrap items-center gap-3 border-b border-[var(--a-border)] pb-3">
+              <h3 className="text-[18px] font-semibold tracking-tight text-espresso">
+                Cobranza pendiente
+              </h3>
+              <span className="rounded-full bg-[var(--a-danger-soft)] px-2.5 py-0.5 text-[12px] font-semibold tabular-nums text-[var(--a-danger)]">
+                {f.cobranza.length}
+              </span>
+              <span className="admin-muted ml-auto text-[13px]">
+                {money(f.cobranza.reduce((n, c) => n + c.monto, 0))} sin cobrar
+              </span>
+            </div>
+            <ul className="mt-4 space-y-2.5">
+              {f.cobranza.map((c) => (
+                <li
+                  key={c.id}
+                  className="admin-card flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl p-4"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-espresso">{c.nombre}</p>
+                    <p className="admin-muted text-[13px]">
+                      {c.serviceName || "—"}
+                      {c.fecha ? ` · ${fechaHoraAR(c.fecha)} hs` : ""}
+                    </p>
+                  </div>
+                  <span className="text-[1.05rem] font-bold tabular-nums text-[var(--a-text)]">
+                    {money(c.monto)}
+                  </span>
+                  <div className="flex w-full items-center gap-2 sm:w-auto">
+                    <WhatsAppButton phone={c.contacto} nombre={c.nombre} align="right" />
+                    <form action={registrarPago} className="flex-1 sm:flex-none">
+                      <input type="hidden" name="id" value={c.id} />
+                      <input type="hidden" name="metodo" value="efectivo" />
+                      <button className="admin-btn-ghost w-full rounded-full px-4 py-2 text-[13px] font-medium sm:w-auto">
+                        Marcar pagado
+                      </button>
+                    </form>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {/* Evolución por mes + por servicio */}
-        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <div className="mt-8 grid gap-4 lg:grid-cols-2">
           {/* Por mes */}
           <div className="admin-card rounded-2xl p-5">
             <h3 className="admin-kicker text-[13px]">
@@ -174,6 +255,29 @@ export default async function FinanzasPage() {
             )}
           </div>
         </div>
+
+        {/* Cobrado por método de pago */}
+        {f.porMetodo.length > 0 && (
+          <div className="admin-card mt-4 rounded-2xl p-5">
+            <h3 className="admin-kicker text-[13px]">Cobrado por método</h3>
+            <ul className="mt-4 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+              {f.porMetodo.map((m) => (
+                <li key={m.metodo}>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-[14px] font-medium text-espresso">{m.label}</span>
+                    <span className="admin-stat text-[14px] tabular-nums">{money(m.monto)}</span>
+                  </div>
+                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[var(--a-border)]">
+                    <div
+                      className="h-full rounded-full bg-[var(--a-accent)]"
+                      style={{ width: `${(m.monto / maxMetodo) * 100}%` }}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Por profesional */}
         {f.porProfesional.length > 0 && (

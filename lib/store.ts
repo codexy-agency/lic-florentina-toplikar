@@ -686,6 +686,53 @@ export interface FinanzasResumen {
   porProfesional: { nombre: string; cantidad: number; monto: number; cobrado: number }[];
   porMes: { key: string; label: string; facturado: number; cobrado: number }[];
   movimientos: Movimiento[];
+  periodo: string; // "mes" | "mes-pasado" | "anio" | "todo"
+  periodoLabel: string;
+  // Desglose de lo COBRADO por método de pago.
+  porMetodo: { metodo: string; label: string; monto: number }[];
+  // Cobranza pendiente: turnos realizados sin pagar (a quién reclamarle).
+  cobranza: {
+    id: string;
+    nombre: string;
+    contacto: string;
+    serviceName?: string;
+    fecha?: string;
+    monto: number;
+  }[];
+}
+
+const METODO_PAGO_LABEL: Record<string, string> = {
+  efectivo: "Efectivo",
+  transferencia: "Transferencia",
+  mercadopago: "Mercado Pago",
+  tarjeta: "Tarjeta",
+  manual: "Manual / consultorio",
+};
+
+const PERIODO_LABEL: Record<string, string> = {
+  mes: "Este mes",
+  "mes-pasado": "Mes pasado",
+  anio: "Este año",
+  todo: "Histórico",
+};
+
+/** Devuelve un predicado que dice si una fecha ISO (AR, -03:00) cae en el período. */
+function enPeriodo(periodo: string): (iso?: string) => boolean {
+  if (periodo === "todo") return () => true;
+  const hoyAR = new Date().toLocaleDateString("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+  });
+  const mesActual = hoyAR.slice(0, 7);
+  const anioActual = hoyAR.slice(0, 4);
+  if (periodo === "anio") return (iso) => !!iso && iso.slice(0, 4) === anioActual;
+  if (periodo === "mes-pasado") {
+    const [y, m] = mesActual.split("-").map(Number);
+    const d = new Date(y, m - 2, 1);
+    const prev = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    return (iso) => !!iso && iso.slice(0, 7) === prev;
+  }
+  // "mes" (por defecto)
+  return (iso) => !!iso && iso.slice(0, 7) === mesActual;
 }
 
 /** Marca/desmarca un turno como pagado. */
@@ -708,18 +755,23 @@ export async function setPago(
   });
 }
 
-export async function getFinanzas(): Promise<FinanzasResumen> {
+export async function getFinanzas(periodo: string = "mes"): Promise<FinanzasResumen> {
   const db = await read();
+  const dentro = enPeriodo(periodo);
+  // Turnos del período (KPIs, servicio, profesional, método, cobranza).
   const turnos = db.solicitudes.filter(
-    (s) => s.estado === "confirmado" || s.estado === "realizado"
+    (s) =>
+      (s.estado === "confirmado" || s.estado === "realizado") && dentro(s.startsAt)
   );
+  const manualesP = db.movimientosManuales.filter((m) => dentro(m.fecha));
 
   let facturado = 0;
   let cobrado = 0;
   let cantCobrados = 0;
   const svc = new Map<string, { cantidad: number; monto: number; cobrado: number }>();
   const prof = new Map<string, { cantidad: number; monto: number; cobrado: number }>();
-  const mes = new Map<string, { facturado: number; cobrado: number }>();
+  const metodo = new Map<string, number>();
+  const cobranza: FinanzasResumen["cobranza"] = [];
 
   for (const t of turnos) {
     const monto = t.precio ?? 0;
@@ -727,6 +779,18 @@ export async function getFinanzas(): Promise<FinanzasResumen> {
     if (t.pagado) {
       cobrado += monto;
       cantCobrados++;
+      const mp = t.metodoPago || "efectivo";
+      metodo.set(mp, (metodo.get(mp) || 0) + monto);
+    } else if (t.estado === "realizado") {
+      // Sesión realizada y sin pagar → cobranza pendiente.
+      cobranza.push({
+        id: t.id,
+        nombre: t.nombre,
+        contacto: t.contacto,
+        serviceName: t.serviceName,
+        fecha: t.startsAt,
+        monto,
+      });
     }
     const sName = t.serviceName || "Sin servicio";
     const a = svc.get(sName) || { cantidad: 0, monto: 0, cobrado: 0 };
@@ -741,30 +805,49 @@ export async function getFinanzas(): Promise<FinanzasResumen> {
     b.monto += monto;
     if (t.pagado) b.cobrado += monto;
     prof.set(pName, b);
-
-    if (t.startsAt) {
-      const key = t.startsAt.slice(0, 7); // "2026-06"
-      const m = mes.get(key) || { facturado: 0, cobrado: 0 };
-      m.facturado += monto;
-      if (t.pagado) m.cobrado += monto;
-      mes.set(key, m);
-    }
   }
 
   // Ingresos cargados a mano (consultorio): cuentan como cobrado y facturado,
   // pero NO entran al ticket promedio por turno (no son turnos).
   const facturadoTurnos = facturado;
-  for (const m of db.movimientosManuales) {
+  for (const m of manualesP) {
     facturado += m.monto;
     cobrado += m.monto;
-    const key = (m.fecha || "").slice(0, 7);
-    if (key) {
-      const mm = mes.get(key) || { facturado: 0, cobrado: 0 };
-      mm.facturado += m.monto;
-      mm.cobrado += m.monto;
-      mes.set(key, mm);
-    }
+    metodo.set("manual", (metodo.get("manual") || 0) + m.monto);
   }
+
+  // Evolución mensual: tendencia de los últimos 6 meses, SIN filtrar por período.
+  const mes = new Map<string, { facturado: number; cobrado: number }>();
+  for (const t of db.solicitudes) {
+    if (t.estado !== "confirmado" && t.estado !== "realizado") continue;
+    if (!t.startsAt) continue;
+    const monto = t.precio ?? 0;
+    const key = t.startsAt.slice(0, 7);
+    const m = mes.get(key) || { facturado: 0, cobrado: 0 };
+    m.facturado += monto;
+    if (t.pagado) m.cobrado += monto;
+    mes.set(key, m);
+  }
+  for (const m of db.movimientosManuales) {
+    const key = (m.fecha || "").slice(0, 7);
+    if (!key) continue;
+    const mm = mes.get(key) || { facturado: 0, cobrado: 0 };
+    mm.facturado += m.monto;
+    mm.cobrado += m.monto;
+    mes.set(key, mm);
+  }
+  const porMes = [...mes.entries()]
+    .sort((a, b) => (a[0] < b[0] ? -1 : 1))
+    .slice(-6)
+    .map(([key, v]) => {
+      const [y, mm] = key.split("-");
+      return {
+        key,
+        label: `${MESES_CORTO[Number(mm) - 1]} ${y}`,
+        facturado: v.facturado,
+        cobrado: v.cobrado,
+      };
+    });
 
   const movimientos: Movimiento[] = [
     ...turnos.map((t) => ({
@@ -778,7 +861,7 @@ export async function getFinanzas(): Promise<FinanzasResumen> {
       metodoPago: t.metodoPago,
       estado: t.estado,
     })),
-    ...db.movimientosManuales.map((m) => ({
+    ...manualesP.map((m) => ({
       id: m.id,
       nombre: m.concepto,
       fecha: m.fecha,
@@ -790,18 +873,9 @@ export async function getFinanzas(): Promise<FinanzasResumen> {
     })),
   ].sort((a, b) => ((a.fecha || "") < (b.fecha || "") ? 1 : -1));
 
-  const porMes = [...mes.entries()]
-    .sort((a, b) => (a[0] < b[0] ? -1 : 1))
-    .slice(-6)
-    .map(([key, v]) => {
-      const [y, mm] = key.split("-");
-      return {
-        key,
-        label: `${MESES_CORTO[Number(mm) - 1]} ${y}`,
-        facturado: v.facturado,
-        cobrado: v.cobrado,
-      };
-    });
+  const porMetodo = [...metodo.entries()]
+    .map(([m, monto]) => ({ metodo: m, label: METODO_PAGO_LABEL[m] || m, monto }))
+    .sort((a, b) => b.monto - a.monto);
 
   return {
     facturado,
@@ -818,6 +892,10 @@ export async function getFinanzas(): Promise<FinanzasResumen> {
       .sort((a, b) => b.monto - a.monto),
     porMes,
     movimientos,
+    periodo,
+    periodoLabel: PERIODO_LABEL[periodo] || PERIODO_LABEL.mes,
+    porMetodo,
+    cobranza: cobranza.sort((a, b) => ((a.fecha || "") < (b.fecha || "") ? 1 : -1)),
   };
 }
 
