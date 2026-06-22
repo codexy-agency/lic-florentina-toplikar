@@ -311,19 +311,18 @@ details.faq > .faq-body > div {
    coherencia entre secciones.
    ===================================================================== */
 .admin-shell {
-  /* Fondo del ÁREA DE TRABAJO: greige cálido más profundo que antes, para que
-     las tarjetas blancas FLOTEN con claridad y el ojo separe zonas sin esfuerzo
-     (antes #F4F1EC quedaba casi blanco y todo se aplanaba → fatiga). */
-  background: #E9E3DB;
+  /* Área de trabajo CLARA y neutra (la jerarquía/zonas las da el sidebar oscuro
+     con imagen, no un fondo pesado). Tarjetas blancas con borde + sombra. */
+  background: #F2F1EE;
   min-height: 100dvh;
 
-  --a-text: #2B2729;          /* texto principal (≈13:1) */
-  --a-text-2: #555055;        /* texto secundario legible (≈7.4:1, cumple AA) */
-  --a-text-3: #837B82;        /* terciario — solo metadatos no críticos */
-  --a-border: #E2DBD3;        /* borde neutro cálido (estructura) */
-  --a-border-strong: #CFC7BE; /* borde de inputs, un poco más marcado */
+  --a-text: #24201F;          /* texto principal (casi negro cálido) */
+  --a-text-2: #565049;        /* texto secundario legible (cumple AA) */
+  --a-text-3: #8A837B;        /* terciario — solo metadatos no críticos */
+  --a-border: #E4DFD8;        /* borde neutro cálido (estructura) */
+  --a-border-strong: #CFC8BF; /* borde de inputs, un poco más marcado */
   --a-surface: #ffffff;       /* tarjetas */
-  --a-surface-2: #F4EFE9;     /* sub-superficie cálida */
+  --a-surface-2: #F6F4F0;     /* sub-superficie cálida */
   --a-accent: #8A4A66;        /* VINO — único acento (≈5.3:1) */
   --a-accent-ink: #6F3A52;    /* vino más oscuro para texto sobre claro (≈7:1) */
   --a-accent-soft: #F1E7EC;   /* fondo tenue del acento (chips/pestaña hover) */
@@ -384,6 +383,14 @@ details.faq > .faq-body > div {
 }
 .admin-input::placeholder {
   color: var(--a-text-3);
+}
+
+/* Títulos del panel en SANS moderno y prolijo (el serif se sentía fuera de lugar
+   en un dashboard). El wordmark de marca del sidebar conserva el serif, aparte. */
+.admin-shell main :is(h1, h2, h3) {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.015em;
 }
 
 /* ---- Tipografía semántica del panel (contraste correcto) ---- */

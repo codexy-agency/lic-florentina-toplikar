@@ -8,7 +8,7 @@ import { logout } from "@/app/admin/actions";
 type Item = { href: string; label: string; icon: React.ReactNode };
 
 const I = (d: string) => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
     <path d={d} />
   </svg>
 );
@@ -19,7 +19,7 @@ const NAV: Item[] = [
     href: "/admin/pacientes",
     label: "Pacientes",
     icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
         <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.9" />
       </svg>
     ),
@@ -30,7 +30,7 @@ const NAV: Item[] = [
     href: "/admin/profesionales",
     label: "Profesionales",
     icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" />
       </svg>
     ),
@@ -39,7 +39,7 @@ const NAV: Item[] = [
     href: "/admin/disponibilidad",
     label: "Disponibilidad",
     icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
       </svg>
     ),
@@ -53,11 +53,31 @@ function isActive(path: string, href: string) {
 function Brand() {
   return (
     <Link href="/admin" className="block">
-      <p className="font-serif text-xl tracking-tight text-espresso">
-        Paulina<span className="italic text-[var(--a-accent-ink)]"> Pilotti</span>
+      <p className="font-serif text-xl tracking-tight text-cream">
+        Paulina<span className="italic text-[#EBC4D2]"> Pilotti</span>
       </p>
-      <p className="admin-kicker mt-0.5 text-[11px]">Panel de gestión</p>
+      <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-cream/55">
+        Panel de gestión
+      </p>
     </Link>
+  );
+}
+
+/** Capas de fondo: imagen del hero + filtro oscuro para que el texto se lea. */
+function Fondo() {
+  return (
+    <>
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "url(/hero/c1.jpg)" }}
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-gradient-to-b from-[#2a1f26]/90 via-[#32242c]/93 to-[#1b1418]/96"
+      />
+      <div aria-hidden className="absolute inset-0 bg-[#241a20]/30" />
+    </>
   );
 }
 
@@ -78,14 +98,14 @@ export function AdminSidebar() {
             href={t.href}
             className={`relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[14px] font-medium transition-colors ${
               active
-                ? "bg-[var(--a-accent-soft)] text-[var(--a-accent-ink)]"
-                : "text-[var(--a-text-2)] hover:bg-[var(--a-surface-2)] hover:text-[var(--a-text)]"
+                ? "bg-white/[0.14] text-cream"
+                : "text-cream/70 hover:bg-white/[0.08] hover:text-cream"
             }`}
           >
             {active && (
-              <span aria-hidden className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[var(--a-accent)]" />
+              <span aria-hidden className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[#EBC4D2]" />
             )}
-            <span className={active ? "text-[var(--a-accent)]" : "text-[var(--a-text-3)]"}>{t.icon}</span>
+            <span className={active ? "text-[#EBC4D2]" : "text-cream/55"}>{t.icon}</span>
             {t.label}
           </Link>
         );
@@ -94,23 +114,23 @@ export function AdminSidebar() {
   );
 
   const footer = (
-    <div className="space-y-1 border-t border-[var(--a-border)] pt-4">
+    <div className="space-y-1 border-t border-white/10 pt-4">
       <a
         href="/reservar"
         target="_blank"
-        className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[14px] font-medium text-[var(--a-text-2)] transition-colors hover:bg-[var(--a-surface-2)] hover:text-[var(--a-text)]"
+        className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[14px] font-medium text-cream/70 transition-colors hover:bg-white/[0.08] hover:text-cream"
       >
-        <span className="text-[var(--a-text-3)]">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <span className="text-cream/55">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
             <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3" />
           </svg>
         </span>
         Ver el sitio
       </a>
       <form action={logout}>
-        <button className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-[14px] font-medium text-[var(--a-text-2)] transition-colors hover:bg-[var(--a-danger-soft)] hover:text-[var(--a-danger)]">
-          <span className="text-[var(--a-text-3)]">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <button className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-[14px] font-medium text-cream/70 transition-colors hover:bg-[#A8473D]/40 hover:text-cream">
+          <span className="text-cream/55">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
             </svg>
           </span>
@@ -123,14 +143,17 @@ export function AdminSidebar() {
   return (
     <>
       {/* Topbar — solo mobile */}
-      <div className="sticky top-0 z-30 flex items-center justify-between border-b border-[var(--a-border)] bg-white/90 px-4 py-3 backdrop-blur md:hidden">
-        <Brand />
+      <div className="sticky top-0 z-30 flex items-center justify-between overflow-hidden px-4 py-3 md:hidden">
+        <Fondo />
+        <div className="relative">
+          <Brand />
+        </div>
         <button
           onClick={() => setOpen(true)}
           aria-label="Abrir menú"
-          className="rounded-lg p-2 text-[var(--a-text-2)] hover:bg-[var(--a-surface-2)]"
+          className="relative rounded-lg p-2 text-cream/80 hover:bg-white/10"
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M3 6h18M3 12h18M3 18h18" />
           </svg>
         </button>
@@ -140,33 +163,36 @@ export function AdminSidebar() {
       {open && (
         <div
           onClick={() => setOpen(false)}
-          className="fixed inset-0 z-40 bg-[#2B2729]/35 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-40 bg-black/45 backdrop-blur-sm md:hidden"
           aria-hidden
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[252px] flex-col gap-6 border-r border-[var(--a-border)] bg-white px-4 py-6 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-[252px] flex-col overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] md:translate-x-0 ${
           open ? "translate-x-0 shadow-2xl" : "-translate-x-full md:shadow-none"
         }`}
       >
-        <div className="flex items-center justify-between">
-          <div className="px-1.5">
-            <Brand />
+        <Fondo />
+        <div className="relative flex h-full flex-col gap-6 px-4 py-6">
+          <div className="flex items-center justify-between">
+            <div className="px-1.5">
+              <Brand />
+            </div>
+            <button
+              onClick={() => setOpen(false)}
+              aria-label="Cerrar menú"
+              className="rounded-lg p-1.5 text-cream/60 hover:bg-white/10 md:hidden"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M18 6 6 18M6 6l12 12" />
+              </svg>
+            </button>
           </div>
-          <button
-            onClick={() => setOpen(false)}
-            aria-label="Cerrar menú"
-            className="rounded-lg p-1.5 text-[var(--a-text-3)] hover:bg-[var(--a-surface-2)] md:hidden"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-              <path d="M18 6 6 18M6 6l12 12" />
-            </svg>
-          </button>
+          {nav}
+          {footer}
         </div>
-        {nav}
-        {footer}
       </aside>
     </>
   );
