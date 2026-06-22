@@ -92,6 +92,8 @@ export function AdminSidebar() {
   useEffect(() => {
     setOpen(false);
   }, [path]);
+  // Título de la sección actual (para el topbar mobile estilo panel).
+  const current = NAV.find((t) => isActive(path, t.href))?.label ?? "Panel";
 
   const nav = (
     <nav className="flex-1 space-y-1">
@@ -147,22 +149,32 @@ export function AdminSidebar() {
 
   return (
     <>
-      {/* Topbar — solo mobile */}
-      <div className="sticky top-0 z-30 flex items-center justify-between overflow-hidden px-4 py-3 md:hidden">
-        <Fondo />
-        <div className="relative">
-          <Brand />
-        </div>
+      {/* Topbar — solo mobile. Barra de panel limpia (no header de landing):
+          botón de menú claro + sección actual + monograma de marca. */}
+      <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-[var(--a-border)] bg-[var(--a-surface)]/90 px-4 py-2.5 backdrop-blur md:hidden">
         <button
           onClick={() => setOpen(true)}
-          aria-label="Abrir menú"
-          className="relative rounded-lg p-2 text-cream/80 hover:bg-white/10"
+          aria-label="Abrir menú de navegación"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--a-border-strong)] bg-[var(--a-surface)] text-[var(--a-text)] transition-colors hover:bg-[var(--a-surface-2)] active:scale-95"
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M3 6h18M3 12h18M3 18h18" />
           </svg>
         </button>
-      </div>
+        <div className="min-w-0 flex-1">
+          <p className="admin-kicker text-[10px] leading-none">Panel de gestión</p>
+          <p className="mt-0.5 truncate text-[15px] font-semibold leading-tight text-[var(--a-text)]">
+            {current}
+          </p>
+        </div>
+        <Link
+          href="/admin"
+          aria-label="Inicio del panel"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--a-accent-soft)] font-serif text-[15px] tracking-tight text-[var(--a-accent-ink)]"
+        >
+          PP
+        </Link>
+      </header>
 
       {/* Backdrop drawer (mobile) */}
       {open && (
@@ -188,7 +200,7 @@ export function AdminSidebar() {
             <button
               onClick={() => setOpen(false)}
               aria-label="Cerrar menú"
-              className="rounded-lg p-1.5 text-cream/60 hover:bg-white/10 md:hidden"
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-cream/70 hover:bg-white/10 md:hidden"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M18 6 6 18M6 6l12 12" />

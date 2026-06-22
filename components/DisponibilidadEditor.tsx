@@ -148,7 +148,7 @@ export function DisponibilidadEditor({
     <div className="space-y-6">
       {/* ───────────── Horario semanal ───────────── */}
       <section className="admin-card p-5 md:p-6">
-        <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[var(--a-border)] pb-4">
+        <div className="flex flex-col gap-3 border-b border-[var(--a-border)] pb-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
           <div>
             <span className="admin-kicker text-[12px]">Tu semana</span>
             <h2 className="mt-1 text-[18px] font-semibold tracking-tight text-espresso">
@@ -162,7 +162,7 @@ export function DisponibilidadEditor({
           </div>
           <button
             onClick={copiarLunesATodos}
-            className="admin-btn-ghost rounded-full px-4 py-2 text-[13px]"
+            className="admin-btn-ghost w-full self-start rounded-full px-4 py-2 text-[13px] sm:w-auto sm:self-auto"
           >
             Copiar lunes a hábiles
           </button>
@@ -175,7 +175,7 @@ export function DisponibilidadEditor({
             return (
               <div
                 key={d.i}
-                className="grid gap-x-4 gap-y-2 border-b border-[var(--a-border)] py-3.5 last:border-0 sm:grid-cols-[8rem_1fr_auto] sm:items-start"
+                className="grid gap-x-4 gap-y-3 border-b border-[var(--a-border)] py-3.5 last:border-0 sm:grid-cols-[8rem_1fr_auto] sm:items-start sm:gap-y-2"
               >
                 <span
                   className={`flex items-center gap-2 pt-1.5 font-medium ${atiende ? "text-espresso" : "text-espresso-soft/70"}`}
@@ -194,12 +194,18 @@ export function DisponibilidadEditor({
                   {franjas.map((f, idx) => {
                     const invalida = franjaInvalida(f);
                     return (
-                      <div key={idx} className="flex flex-wrap items-center gap-2">
+                      <div
+                        key={idx}
+                        className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:flex sm:flex-wrap"
+                      >
                         <input
                           type="time"
                           value={f.startTime}
                           onChange={(e) => setFranja(d.i, idx, { startTime: e.target.value })}
-                          className={invalida ? time + " border-[var(--a-danger)]" : time}
+                          className={
+                            (invalida ? time + " border-[var(--a-danger)]" : time) +
+                            " w-full min-w-0 sm:w-auto"
+                          }
                           aria-invalid={invalida}
                         />
                         <span className="admin-muted text-[13px]">a</span>
@@ -207,28 +213,33 @@ export function DisponibilidadEditor({
                           type="time"
                           value={f.endTime}
                           onChange={(e) => setFranja(d.i, idx, { endTime: e.target.value })}
-                          className={invalida ? time + " border-[var(--a-danger)]" : time}
+                          className={
+                            (invalida ? time + " border-[var(--a-danger)]" : time) +
+                            " w-full min-w-0 sm:w-auto"
+                          }
                           aria-invalid={invalida}
                         />
-                        <select
-                          value={f.modalidad}
-                          onChange={(e) =>
-                            setFranja(d.i, idx, { modalidad: e.target.value as Modalidad })
-                          }
-                          className={time}
-                        >
-                          <option value="online">Online</option>
-                          <option value="presencial">Presencial</option>
-                        </select>
-                        <button
-                          onClick={() => delFranja(d.i, idx)}
-                          className="admin-danger flex h-8 w-8 items-center justify-center rounded-full text-[14px] transition-colors hover:bg-[var(--a-danger)]/10"
-                          aria-label="Eliminar franja"
-                        >
-                          ✕
-                        </button>
+                        <div className="col-span-3 flex items-center gap-2 sm:contents">
+                          <select
+                            value={f.modalidad}
+                            onChange={(e) =>
+                              setFranja(d.i, idx, { modalidad: e.target.value as Modalidad })
+                            }
+                            className={time + " w-full sm:w-auto"}
+                          >
+                            <option value="online">Online</option>
+                            <option value="presencial">Presencial</option>
+                          </select>
+                          <button
+                            onClick={() => delFranja(d.i, idx)}
+                            className="admin-danger flex h-10 w-10 items-center justify-center rounded-full text-[14px] transition-colors hover:bg-[var(--a-danger)]/10 sm:h-8 sm:w-8"
+                            aria-label="Eliminar franja"
+                          >
+                            ✕
+                          </button>
+                        </div>
                         {invalida && (
-                          <span className="admin-danger w-full text-[12px]">
+                          <span className="admin-danger col-span-3 w-full text-[12px]">
                             El fin debe ser posterior al inicio.
                           </span>
                         )}
@@ -238,7 +249,7 @@ export function DisponibilidadEditor({
                 </div>
                 <button
                   onClick={() => addFranja(d.i)}
-                  className="admin-btn-ghost justify-self-start rounded-full px-3.5 py-1.5 text-[13px] font-medium sm:justify-self-end"
+                  className="admin-btn-ghost justify-self-start rounded-full px-3.5 py-2.5 text-[13px] font-medium sm:justify-self-end sm:py-1.5"
                 >
                   + Franja
                 </button>
@@ -267,17 +278,17 @@ export function DisponibilidadEditor({
           </p>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2">
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           <input
             type="date"
             value={nuevaFecha}
             onChange={(e) => setNuevaFecha(e.target.value)}
-            className={time}
+            className={time + " w-full sm:w-auto"}
           />
           <button
             onClick={addBloqueo}
             disabled={!nuevaFecha || blockBusy}
-            className="rounded-full bg-espresso px-4 py-2 text-[13px] font-medium text-cream transition-all hover:-translate-y-px disabled:opacity-50"
+            className="w-full rounded-full bg-espresso px-4 py-2 text-[13px] font-medium text-cream transition-all hover:-translate-y-px disabled:opacity-50 sm:w-auto"
           >
             Bloquear día
           </button>
@@ -301,7 +312,7 @@ export function DisponibilidadEditor({
                 <button
                   onClick={() => quitarBloqueo(d)}
                   disabled={blockBusy}
-                  className="flex h-6 w-6 items-center justify-center rounded-full text-espresso-soft transition-colors hover:bg-[var(--a-danger)]/12 hover:text-[var(--a-danger)] disabled:opacity-50"
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-espresso-soft transition-colors hover:bg-[var(--a-danger)]/12 hover:text-[var(--a-danger)] disabled:opacity-50 sm:h-6 sm:w-6"
                   aria-label={`Quitar bloqueo del ${fmtFecha(d)}`}
                 >
                   ✕
@@ -373,7 +384,7 @@ export function DisponibilidadEditor({
 
       {/* ───────────── Guardar (horarios + ajustes) ───────────── */}
       <div
-        className={`sticky bottom-0 z-10 -mx-1 flex flex-wrap items-center gap-3 rounded-2xl border px-4 py-3 backdrop-blur transition-colors ${
+        className={`sticky bottom-0 z-10 -mx-1 flex flex-col items-stretch gap-2 rounded-2xl border px-4 py-3 backdrop-blur transition-colors sm:flex-row sm:flex-wrap sm:items-center sm:gap-3 ${
           dirty
             ? "border-[var(--a-accent)] bg-[var(--a-accent-soft)]/90"
             : "border-[var(--a-border)] bg-[var(--a-surface-2)]/85"
@@ -382,7 +393,7 @@ export function DisponibilidadEditor({
         <button
           onClick={guardar}
           disabled={estado === "guardando" || hayInvalidas || !dirty}
-          className="rounded-full bg-espresso px-7 py-3.5 text-[15px] font-medium text-cream shadow-float transition-all duration-300 hover:-translate-y-px disabled:opacity-60"
+          className="w-full rounded-full bg-espresso px-7 py-3 text-[15px] font-medium text-cream shadow-float transition-all duration-300 hover:-translate-y-px disabled:opacity-60 sm:w-auto sm:py-3.5"
         >
           {estado === "guardando" ? "Guardando…" : "Guardar horarios"}
         </button>

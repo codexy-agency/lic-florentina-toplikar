@@ -135,7 +135,7 @@ export default async function AdminPage() {
       </div>
 
       {/* Stats */}
-      <div className="mt-6 grid grid-cols-3 gap-3 md:gap-4">
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4">
         {[
           {
             n: s.pendientes,
@@ -165,11 +165,11 @@ export default async function AdminPage() {
             ),
           },
         ].map((x) => (
-          <div key={x.l} className="admin-card rounded-2xl p-5">
+          <div key={x.l} className="admin-card rounded-2xl p-4 md:p-5">
             <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--a-accent-soft)] text-[var(--a-accent-ink)]">
               {x.icon}
             </span>
-            <p className="mt-4 text-[2.1rem] font-bold leading-none tabular-nums text-[var(--a-text)] md:text-[2.6rem]">
+            <p className="mt-4 text-[1.8rem] font-bold leading-none tabular-nums text-[var(--a-text)] md:text-[2.6rem]">
               {x.n}
             </p>
             <p className="admin-kicker mt-2 text-[11px] md:text-[12px]">
@@ -252,13 +252,13 @@ export default async function AdminPage() {
                 </p>
 
                 <div className="mt-4 flex flex-wrap items-center gap-3">
-                  <form action={aceptarSolicitud} className="flex flex-wrap items-center gap-2">
+                  <form action={aceptarSolicitud} className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
                     <input type="hidden" name="id" value={x.id} />
                     <input
                       type="datetime-local"
                       name="fecha"
                       defaultValue={x.startsAt ? isoToArLocal(x.startsAt) : ""}
-                      className="admin-input rounded-full px-3 py-2 text-[13px]"
+                      className="admin-input w-full rounded-full px-3 py-2.5 text-[13px] sm:w-auto"
                     />
                     <SubmitButton
                       pendingText="Confirmando…"
@@ -280,7 +280,7 @@ export default async function AdminPage() {
                     href={`https://wa.me/${x.contacto.replace(/[^0-9]/g, "")}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="ml-auto inline-flex items-center gap-2 rounded-full bg-[#25D366]/12 px-4 py-2.5 text-[13px] font-semibold text-[#1c7a45] transition-colors hover:bg-[#25D366]/22"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#25D366]/12 px-4 py-2.5 text-[13px] font-semibold text-[#1c7a45] transition-colors hover:bg-[#25D366]/22 sm:ml-auto sm:w-auto"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                       <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2Zm5.8 14.18c-.24.68-1.42 1.31-1.95 1.35-.5.05-.99.22-3.4-.71-2.87-1.13-4.7-4.06-4.84-4.25-.14-.19-1.16-1.54-1.16-2.94s.73-2.08 1-2.37c.26-.29.57-.36.76-.36h.55c.18 0 .42-.07.64.49.24.57.81 1.97.88 2.11.07.14.12.31.02.5-.09.19-.14.31-.28.48-.14.17-.29.37-.42.5-.14.14-.28.29-.12.57.16.28.71 1.17 1.53 1.9 1.05.94 1.94 1.23 2.21 1.37.28.14.44.12.6-.07.17-.19.69-.81.88-1.09.18-.28.37-.23.62-.14.25.09 1.6.76 1.87.9.28.14.46.21.53.33.07.12.07.69-.17 1.37Z" />
@@ -331,9 +331,9 @@ export default async function AdminPage() {
                   {g.items.map((x) => (
                     <li key={x.id} className="rounded-2xl admin-card p-5">
                       <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <p className="font-medium text-espresso">{x.nombre}</p>
-                          <p className="admin-muted text-[14px]">
+                          <p className="admin-muted break-words text-[14px]">
                             {x.serviceName ? `${x.serviceName} · ` : ""}
                             {x.staffName ? `${x.staffName} · ` : ""}
                             {MOD_LABEL[x.modalidad] || x.modalidad} · {x.contacto}
@@ -350,19 +350,19 @@ export default async function AdminPage() {
                             Enviar recordatorio
                           </a>
                         </div>
-                        <p className="admin-stat whitespace-nowrap font-serif text-2xl italic">
+                        <p className="admin-stat shrink-0 whitespace-nowrap font-serif text-2xl italic">
                           {x.startsAt ? `${horaAR(x.startsAt)}` : "Sin hora"}
                           <span className="admin-muted ml-1 text-[13px] not-italic">hs</span>
                         </p>
                       </div>
                       <div className="mt-4 flex flex-wrap items-center gap-3">
-                        <form action={reprogramarTurno} className="flex flex-wrap items-center gap-2">
+                        <form action={reprogramarTurno} className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
                           <input type="hidden" name="id" value={x.id} />
                           <input
                             type="datetime-local"
                             name="fecha"
                             defaultValue={x.startsAt ? isoToArLocal(x.startsAt) : ""}
-                            className="admin-input rounded-full px-3 py-2 text-[13px]"
+                            className="admin-input w-full rounded-full px-3 py-2.5 text-[13px] sm:w-auto"
                           />
                           <SubmitButton
                             pendingText="Reprogramando…"
@@ -371,7 +371,7 @@ export default async function AdminPage() {
                             Reprogramar
                           </SubmitButton>
                         </form>
-                        <form action={marcarNoAsistio} className="ml-auto">
+                        <form action={marcarNoAsistio} className="sm:ml-auto">
                           <input type="hidden" name="id" value={x.id} />
                           <SubmitButton
                             pendingText="Guardando…"

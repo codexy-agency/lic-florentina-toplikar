@@ -133,7 +133,8 @@ export function ProfesionalesEditor({
             className={`admin-card overflow-hidden p-0 transition-opacity ${m.activo ? "" : "opacity-70"}`}
           >
             {/* ── Cabecera tipo perfil (avatar editable + nombre/título en vivo) ── */}
-            <div className="flex items-start gap-4 border-b border-[var(--a-border)] p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start border-b border-[var(--a-border)] p-5">
+              <div className="flex items-start gap-4 min-w-0 flex-1">
               <label className="group/av relative h-16 w-16 shrink-0 cursor-pointer" title="Cambiar foto">
                 {m.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -177,14 +178,14 @@ export function ProfesionalesEditor({
                   onChange={(e) => patch(i, { nombre: e.target.value })}
                   placeholder="Nombre y apellido"
                   aria-label="Nombre y apellido"
-                  className="w-full rounded-md bg-transparent px-1.5 py-0.5 text-[17px] font-semibold tracking-tight text-espresso outline-none transition-colors placeholder:font-normal placeholder:text-espresso-soft/45 hover:bg-[var(--a-surface-2)] focus:bg-[var(--a-surface-2)]"
+                  className="w-full rounded-md bg-transparent px-1.5 py-1.5 text-[17px] font-semibold tracking-tight text-espresso outline-none transition-colors placeholder:font-normal placeholder:text-espresso-soft/45 hover:bg-[var(--a-surface-2)] focus:bg-[var(--a-surface-2)]"
                 />
                 <input
                   value={m.titulo ?? ""}
                   onChange={(e) => patch(i, { titulo: e.target.value })}
                   placeholder="Psicóloga clínica · MP 0000"
                   aria-label="Título o matrícula"
-                  className="mt-0.5 w-full rounded-md bg-transparent px-1.5 py-0.5 text-[13.5px] text-espresso-soft outline-none transition-colors placeholder:text-espresso-soft/45 hover:bg-[var(--a-surface-2)] focus:bg-[var(--a-surface-2)]"
+                  className="mt-0.5 w-full rounded-md bg-transparent px-1.5 py-1.5 text-[13.5px] text-espresso-soft outline-none transition-colors placeholder:text-espresso-soft/45 hover:bg-[var(--a-surface-2)] focus:bg-[var(--a-surface-2)]"
                 />
                 {activos > 0 && (
                   <span className="admin-faint mt-1 ml-1.5 inline-block text-[12px]">
@@ -192,8 +193,9 @@ export function ProfesionalesEditor({
                   </span>
                 )}
               </div>
+              </div>
 
-              <div className="flex shrink-0 flex-col items-end gap-2.5">
+              <div className="flex shrink-0 items-center gap-3 sm:flex-col sm:items-end sm:gap-2.5">
                 <button
                   type="button"
                   role="switch"
@@ -215,7 +217,7 @@ export function ProfesionalesEditor({
                 </button>
                 <button
                   onClick={() => del(i)}
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-espresso-soft transition-colors hover:bg-[var(--a-danger)]/12 hover:text-[var(--a-danger)]"
+                  className="flex h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-full text-espresso-soft transition-colors hover:bg-[var(--a-danger)]/12 hover:text-[var(--a-danger)]"
                   aria-label="Eliminar profesional"
                   title="Eliminar"
                 >
@@ -235,7 +237,7 @@ export function ProfesionalesEditor({
                   onChange={(e) => patch(i, { bio: e.target.value })}
                   placeholder="Enfoque y especialidad (ej. Terapia Cognitivo Conductual y ACT). Aparece en la reserva."
                   aria-label="Bio o especialidad"
-                  rows={2}
+                  rows={3}
                   className="admin-input w-full resize-none px-3 py-2 text-[14px] leading-relaxed text-espresso"
                 />
               </label>
@@ -274,7 +276,7 @@ export function ProfesionalesEditor({
                           <button
                             key={svc.id}
                             onClick={() => toggleSvc(i, svc.id)}
-                            className={`rounded-full border px-3 py-1.5 text-[13px] transition-colors ${
+                            className={`inline-flex items-center rounded-full border px-3.5 py-2 min-h-[40px] text-[13px] transition-colors ${
                               on
                                 ? "admin-chip-accent border-transparent font-medium"
                                 : "admin-chip hover:border-[var(--a-border-strong)]"

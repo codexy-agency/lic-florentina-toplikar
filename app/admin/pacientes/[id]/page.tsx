@@ -94,7 +94,7 @@ export default async function PacienteDetalle({
               paciente desde {fmtFecha(paciente.creadoEn)}
             </p>
           </div>
-          <div className="ml-auto">
+          <div className="w-full sm:ml-auto sm:w-auto sm:flex sm:justify-end">
             <WhatsAppButton
               phone={paciente.contacto}
               nombre={paciente.nombre}

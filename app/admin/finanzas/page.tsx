@@ -31,7 +31,7 @@ export default async function FinanzasPage() {
   return (
     <AdminShell>
       <section>
-        <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-col items-stretch gap-3 md:flex-row md:flex-wrap md:items-end md:justify-between md:gap-4">
           <div>
             <h1 className="font-serif text-[26px] tracking-tight text-espresso md:text-[30px]">Finanzas</h1>
             <p className="admin-muted mt-1 text-[14px]">
@@ -39,9 +39,11 @@ export default async function FinanzasPage() {
               sobre turnos confirmados y realizados.
             </p>
           </div>
-          {/* Cargar un ingreso a mano (plata del consultorio) */}
-          <details className="group relative">
-            <summary className="admin-btn inline-flex cursor-pointer list-none items-center gap-2 rounded-full px-5 py-2.5 text-[14px] font-medium [&::-webkit-details-marker]:hidden">
+          {/* Cargar un ingreso a mano (plata del consultorio).
+              Mobile: bloque estático full-width (evita overflow horizontal).
+              sm+: dropdown flotante anclado a la derecha. */}
+          <details className="group relative w-full sm:w-auto">
+            <summary className="admin-btn inline-flex w-full cursor-pointer list-none items-center justify-center gap-2 rounded-full px-5 py-2.5 text-[14px] font-medium [&::-webkit-details-marker]:hidden sm:w-auto">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                 <path d="M12 5v14M5 12h14" />
               </svg>
@@ -49,13 +51,13 @@ export default async function FinanzasPage() {
             </summary>
             <form
               action={agregarMovimiento}
-              className="admin-card absolute right-0 top-full z-20 mt-2 w-[min(92vw,420px)] space-y-3 rounded-2xl p-4 text-left"
+              className="admin-card mt-3 w-full space-y-3 rounded-2xl p-4 text-left sm:absolute sm:right-0 sm:top-full sm:mt-2 sm:w-[min(92vw,420px)] sm:z-20"
             >
               <label className="block">
                 <span className="admin-label mb-1 block text-[12px] font-medium">Concepto</span>
                 <input name="concepto" required maxLength={120} placeholder="Ej: Sesión en consultorio — Ana" className="admin-input w-full px-3 py-2 text-[14px]" />
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="block">
                   <span className="admin-label mb-1 block text-[12px] font-medium">Monto</span>
                   <span className="flex items-center gap-1.5">
@@ -108,7 +110,7 @@ export default async function FinanzasPage() {
                 aria-label={`Evolución mensual. ${f.porMes
                   .map((m) => `${m.label}: facturado ${money(m.facturado)}, cobrado ${money(m.cobrado)}`)
                   .join("; ")}`}
-                className="mt-5 flex items-end gap-3"
+                className="mt-5 flex items-end gap-1.5 md:gap-3"
                 style={{ height: "150px" }}
               >
                 {f.porMes.map((m) => (
@@ -223,7 +225,7 @@ export default async function FinanzasPage() {
                       {m.manual || m.pagado ? <path d="M20 6 9 17l-5-5" /> : <><circle cx="12" cy="12" r="9" /><path d="M12 8v4l2.5 1.5" /></>}
                     </svg>
                   </span>
-                  <div className="min-w-[150px] flex-1">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-espresso">{m.nombre}</p>
                       {m.manual && (
@@ -238,21 +240,21 @@ export default async function FinanzasPage() {
                         : `${m.serviceName || "—"}${m.staffName ? ` · ${m.staffName}` : ""}${m.fecha ? ` · ${fechaHoraAR(m.fecha)} hs` : ""}`}
                     </p>
                   </div>
-                  <span className="text-[1.05rem] font-bold tabular-nums text-[var(--a-text)]">
+                  <span className="ml-auto text-[1.05rem] font-bold tabular-nums text-[var(--a-text)]">
                     {money(m.monto)}
                   </span>
                   {m.manual ? (
-                    <form action={quitarMovimiento}>
+                    <form action={quitarMovimiento} className="w-full sm:w-auto">
                       <input type="hidden" name="id" value={m.id} />
                       <button
                         aria-label={`Quitar ingreso ${m.nombre}`}
-                        className="admin-btn-ghost rounded-full px-3.5 py-2 text-[12px] font-medium"
+                        className="admin-btn-ghost w-full rounded-full px-3.5 py-2 text-[12px] font-medium sm:w-auto"
                       >
                         Quitar
                       </button>
                     </form>
                   ) : m.pagado ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-[#25D366]/12 px-3 py-1.5 text-[12px] font-semibold text-[#1c7a45]">
                         {METODO_LABEL[m.metodoPago || ""] || "Cobrado"}
                       </span>
@@ -260,7 +262,7 @@ export default async function FinanzasPage() {
                         <input type="hidden" name="id" value={m.id} />
                         <button
                           aria-label={`Deshacer pago de ${m.nombre}`}
-                          className="admin-faint rounded-full px-2.5 py-2 text-[12px] transition-colors hover:text-[var(--a-danger)]"
+                          className="admin-faint inline-flex items-center rounded-full px-3 py-2.5 text-[12px] transition-colors hover:text-[var(--a-danger)]"
                         >
                           Deshacer
                         </button>
@@ -269,13 +271,13 @@ export default async function FinanzasPage() {
                   ) : (
                     <form
                       action={registrarPago}
-                      className="flex w-full flex-wrap items-center gap-2 sm:w-auto"
+                      className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center"
                     >
                       <input type="hidden" name="id" value={m.id} />
                       <select
                         name="metodo"
                         aria-label={`Método de pago para ${m.nombre}`}
-                        className="admin-input flex-1 px-2.5 py-2 text-[13px] sm:flex-none"
+                        className="admin-input w-full px-2.5 py-2.5 text-[13px] sm:w-auto sm:flex-none"
                         defaultValue="efectivo"
                       >
                         {METODOS.map((x) => (
@@ -286,7 +288,7 @@ export default async function FinanzasPage() {
                       </select>
                       <button
                         aria-label={`Registrar pago de ${m.nombre}`}
-                        className="admin-btn rounded-full px-4 py-2.5 text-[13px] font-medium"
+                        className="admin-btn w-full rounded-full px-4 py-2.5 text-[13px] font-medium sm:w-auto"
                       >
                         Registrar pago
                       </button>

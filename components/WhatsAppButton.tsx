@@ -92,7 +92,7 @@ export function WhatsAppButton({
     if (variant === "icon") {
       return (
         <span
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--a-surface-2)] text-espresso-soft/40"
+          className="flex h-10 w-10 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-[var(--a-surface-2)] text-espresso-soft/40"
           title="El contacto no es un número de WhatsApp"
           aria-label="Sin WhatsApp"
         >
@@ -117,7 +117,7 @@ export function WhatsAppButton({
         aria-expanded={open}
         className={
           variant === "icon"
-            ? "flex h-9 w-9 items-center justify-center rounded-full bg-[#25D366]/12 text-[#1c7a45] transition-colors hover:bg-[#25D366]/22"
+            ? "flex h-10 w-10 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-[#25D366]/12 text-[#1c7a45] transition-colors hover:bg-[#25D366]/22"
             : "inline-flex items-center gap-2 rounded-full bg-[#25D366]/12 px-4 py-2.5 text-[13px] font-semibold text-[#1c7a45] transition-colors hover:bg-[#25D366]/22"
         }
         aria-label={`Escribir a ${first} por WhatsApp`}
@@ -135,7 +135,7 @@ export function WhatsAppButton({
       {open && (
         <div
           role="menu"
-          className={`absolute z-30 mt-2 w-72 overflow-hidden rounded-2xl border border-[var(--a-border)] bg-[var(--a-surface)] shadow-[0_18px_50px_-18px_rgba(58,49,55,0.45)] ${align === "right" ? "right-0" : "left-0"}`}
+          className={`absolute z-30 mt-2 w-[calc(100vw-2rem)] max-w-[18rem] overflow-hidden rounded-2xl border border-[var(--a-border)] bg-[var(--a-surface)] shadow-[0_18px_50px_-18px_rgba(58,49,55,0.45)] sm:w-72 ${align === "right" ? "right-0" : "left-0"}`}
         >
           <div className="border-b border-[var(--a-border)] px-4 py-2.5">
             <p className="text-[12px] font-semibold text-espresso">Enviar a {first}</p>
