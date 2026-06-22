@@ -1,8 +1,8 @@
 import { getFinanzas } from "@/lib/store";
-import { fechaHoraAR } from "@/lib/scheduling/slots";
+import { fechaHoraAR, isoToArLocal } from "@/lib/scheduling/slots";
 import { AdminShell } from "@/components/AdminShell";
 import { requireAdmin } from "@/lib/session";
-import { registrarPago, quitarPago } from "./actions";
+import { registrarPago, quitarPago, agregarMovimiento, quitarMovimiento } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -19,10 +19,11 @@ export default async function FinanzasPage() {
   await requireAdmin();
   const f = await getFinanzas();
   const maxMes = Math.max(1, ...f.porMes.map((m) => m.facturado));
+  const ahoraLocal = isoToArLocal(new Date().toISOString());
 
   const KPIS = [
-    { l: "Cobrado", v: money(f.cobrado), sub: `${f.cantCobrados} turnos`, accent: true },
-    { l: "Por cobrar", v: money(f.porCobrar), sub: `${f.cantTurnos - f.cantCobrados} pendientes` },
+    { l: "Cobrado", v: money(f.cobrado), sub: "ingresos recibidos", accent: true },
+    { l: "Por cobrar", v: money(f.porCobrar), sub: `${f.cantTurnos - f.cantCobrados} turnos pendientes` },
     { l: "Facturado", v: money(f.facturado), sub: `${f.cantTurnos} turnos` },
     { l: "Ticket promedio", v: money(f.ticketProm), sub: "por turno" },
   ];
@@ -34,10 +35,44 @@ export default async function FinanzasPage() {
           <div>
             <h1 className="font-serif text-[26px] tracking-tight text-espresso md:text-[30px]">Finanzas</h1>
             <p className="admin-muted mt-1 text-[14px]">
-              Cuentas por servicio y por profesional. Se calculan sobre los turnos
-              confirmados y realizados.
+              Ingresos por turnos y cargados a mano (consultorio). Se calculan
+              sobre turnos confirmados y realizados.
             </p>
           </div>
+          {/* Cargar un ingreso a mano (plata del consultorio) */}
+          <details className="group relative">
+            <summary className="admin-btn inline-flex cursor-pointer list-none items-center gap-2 rounded-full px-5 py-2.5 text-[14px] font-medium [&::-webkit-details-marker]:hidden">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              Agregar ingreso
+            </summary>
+            <form
+              action={agregarMovimiento}
+              className="admin-card absolute right-0 top-full z-20 mt-2 w-[min(92vw,420px)] space-y-3 rounded-2xl p-4 text-left"
+            >
+              <label className="block">
+                <span className="admin-label mb-1 block text-[12px] font-medium">Concepto</span>
+                <input name="concepto" required maxLength={120} placeholder="Ej: Sesión en consultorio — Ana" className="admin-input w-full px-3 py-2 text-[14px]" />
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="admin-label mb-1 block text-[12px] font-medium">Monto</span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="admin-muted text-[14px]">$</span>
+                    <input name="monto" type="number" required min={1} placeholder="0" className="admin-input w-full px-3 py-2 text-[14px]" />
+                  </span>
+                </label>
+                <label className="block">
+                  <span className="admin-label mb-1 block text-[12px] font-medium">Fecha</span>
+                  <input name="fecha" type="datetime-local" defaultValue={ahoraLocal} className="admin-input w-full px-2.5 py-2 text-[13px]" />
+                </label>
+              </div>
+              <button className="admin-btn w-full rounded-full px-5 py-2.5 text-[14px] font-medium">
+                Registrar ingreso
+              </button>
+            </form>
+          </details>
         </div>
 
         {/* KPIs */}
@@ -46,14 +81,14 @@ export default async function FinanzasPage() {
             <div
               key={k.l}
               className={`admin-card rounded-2xl p-4 md:p-5 ${
-                k.accent ? "border-[var(--a-accent)]" : ""
+                k.accent ? "ring-1 ring-[var(--a-accent)]/45" : ""
               }`}
             >
               <p className="admin-kicker text-[11px]">{k.l}</p>
-              <p className="admin-stat mt-1.5 font-serif text-2xl font-light tabular-nums md:text-[28px]">
+              <p className="mt-2 text-[1.55rem] font-bold tabular-nums leading-none text-[var(--a-text)] md:text-[1.9rem]">
                 {k.v}
               </p>
-              <p className="admin-faint mt-0.5 text-[12px]">{k.sub}</p>
+              <p className="admin-faint mt-1.5 text-[12px]">{k.sub}</p>
             </div>
           ))}
         </div>
@@ -165,37 +200,67 @@ export default async function FinanzasPage() {
         <div className="mt-4">
           <h3 className="font-serif text-lg tracking-tight text-espresso">Movimientos</h3>
           {f.movimientos.length === 0 ? (
-            <p className="admin-empty admin-muted mt-3 rounded-2xl p-8 text-center text-[14px]">
-              Acá vas a ver cada turno con su cobro. Aparecen al confirmar turnos.
+            <p className="admin-empty admin-muted mt-4 rounded-2xl p-8 text-center text-[14px]">
+              Acá vas a ver cada turno con su cobro y los ingresos que cargues a
+              mano. Aparecen al confirmar turnos o registrar un ingreso.
             </p>
           ) : (
-            <ul className="mt-3 space-y-2.5">
+            <ul className="mt-4 space-y-2.5">
               {f.movimientos.map((m) => (
                 <li
                   key={m.id}
                   className="admin-card flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl p-4"
                 >
-                  <div className="min-w-[160px] flex-1">
-                    <p className="font-medium text-espresso">{m.nombre}</p>
+                  <span
+                    aria-hidden
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                      m.manual || m.pagado
+                        ? "bg-[#25D366]/12 text-[#1c7a45]"
+                        : "bg-[var(--a-surface-2)] text-[var(--a-text-3)]"
+                    }`}
+                  >
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      {m.manual || m.pagado ? <path d="M20 6 9 17l-5-5" /> : <><circle cx="12" cy="12" r="9" /><path d="M12 8v4l2.5 1.5" /></>}
+                    </svg>
+                  </span>
+                  <div className="min-w-[150px] flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-espresso">{m.nombre}</p>
+                      {m.manual && (
+                        <span className="admin-chip-accent rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em]">
+                          Manual
+                        </span>
+                      )}
+                    </div>
                     <p className="admin-muted text-[13px]">
-                      {m.serviceName || "—"}
-                      {m.staffName ? ` · ${m.staffName}` : ""}
-                      {m.fecha ? ` · ${fechaHoraAR(m.fecha)} hs` : ""}
+                      {m.manual
+                        ? `Ingreso del consultorio${m.fecha ? ` · ${fechaHoraAR(m.fecha)} hs` : ""}`
+                        : `${m.serviceName || "—"}${m.staffName ? ` · ${m.staffName}` : ""}${m.fecha ? ` · ${fechaHoraAR(m.fecha)} hs` : ""}`}
                     </p>
                   </div>
-                  <span className="admin-stat font-serif text-lg tabular-nums">
+                  <span className="text-[1.05rem] font-bold tabular-nums text-[var(--a-text)]">
                     {money(m.monto)}
                   </span>
-                  {m.pagado ? (
+                  {m.manual ? (
+                    <form action={quitarMovimiento}>
+                      <input type="hidden" name="id" value={m.id} />
+                      <button
+                        aria-label={`Quitar ingreso ${m.nombre}`}
+                        className="admin-btn-ghost rounded-full px-3.5 py-2 text-[12px] font-medium"
+                      >
+                        Quitar
+                      </button>
+                    </form>
+                  ) : m.pagado ? (
                     <div className="flex items-center gap-2">
-                      <span className="admin-chip inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium">
-                        ✓ {METODO_LABEL[m.metodoPago || ""] || "Pagado"}
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#25D366]/12 px-3 py-1.5 text-[12px] font-semibold text-[#1c7a45]">
+                        {METODO_LABEL[m.metodoPago || ""] || "Cobrado"}
                       </span>
                       <form action={quitarPago}>
                         <input type="hidden" name="id" value={m.id} />
                         <button
                           aria-label={`Deshacer pago de ${m.nombre}`}
-                          className="admin-danger rounded-full px-2.5 py-2 text-[12px]"
+                          className="admin-faint rounded-full px-2.5 py-2 text-[12px] transition-colors hover:text-[var(--a-danger)]"
                         >
                           Deshacer
                         </button>
@@ -221,7 +286,7 @@ export default async function FinanzasPage() {
                       </select>
                       <button
                         aria-label={`Registrar pago de ${m.nombre}`}
-                        className="rounded-full bg-espresso px-4 py-2.5 text-[13px] font-medium text-cream transition-colors hover:bg-espresso/90"
+                        className="admin-btn rounded-full px-4 py-2.5 text-[13px] font-medium"
                       >
                         Registrar pago
                       </button>

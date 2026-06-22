@@ -76,6 +76,16 @@ interface Scheduling {
   exceptions: DateException[];
 }
 
+/** Ingreso cargado a mano (plata que cobra en el consultorio, fuera del sistema
+ *  de reservas). Cuenta como ya cobrado. */
+export interface MovimientoManual {
+  id: string;
+  concepto: string;
+  monto: number;
+  fecha: string; // ISO
+  creadoEn: string;
+}
+
 interface DB {
   solicitudes: Solicitud[];
   pacientes: Paciente[];
@@ -83,6 +93,7 @@ interface DB {
   services: Service[];
   staff: Staff[];
   scheduling: Scheduling;
+  movimientosManuales: MovimientoManual[];
 }
 
 const DB_PATH = path.join(process.cwd(), "data", "db.json");
@@ -95,6 +106,7 @@ function emptyDB(): DB {
     services: [],
     staff: [],
     scheduling: { config: DEFAULT_CONFIG, rules: [], exceptions: [] },
+    movimientosManuales: [],
   };
 }
 
@@ -123,6 +135,7 @@ function normalize(raw: Partial<DB> & { scheduling?: Partial<Scheduling> }): DB 
       rules: raw.scheduling?.rules ?? [],
       exceptions: raw.scheduling?.exceptions ?? [],
     },
+    movimientosManuales: raw.movimientosManuales ?? [],
   };
 }
 
@@ -619,6 +632,31 @@ export interface Movimiento {
   pagado: boolean;
   metodoPago?: string;
   estado: Estado;
+  manual?: boolean; // ingreso cargado a mano (consultorio)
+}
+
+export async function addMovimientoManual(input: {
+  concepto: string;
+  monto: number;
+  fecha?: string;
+}): Promise<MovimientoManual> {
+  return mutate((db) => {
+    const m: MovimientoManual = {
+      id: randomUUID(),
+      concepto: input.concepto,
+      monto: input.monto,
+      fecha: input.fecha || new Date().toISOString(),
+      creadoEn: new Date().toISOString(),
+    };
+    db.movimientosManuales.unshift(m);
+    return m;
+  });
+}
+
+export async function removeMovimientoManual(id: string): Promise<void> {
+  await mutate((db) => {
+    db.movimientosManuales = db.movimientosManuales.filter((m) => m.id !== id);
+  });
 }
 
 export interface FinanzasResumen {
@@ -697,8 +735,23 @@ export async function getFinanzas(): Promise<FinanzasResumen> {
     }
   }
 
-  const movimientos: Movimiento[] = turnos
-    .map((t) => ({
+  // Ingresos cargados a mano (consultorio): cuentan como cobrado y facturado,
+  // pero NO entran al ticket promedio por turno (no son turnos).
+  const facturadoTurnos = facturado;
+  for (const m of db.movimientosManuales) {
+    facturado += m.monto;
+    cobrado += m.monto;
+    const key = (m.fecha || "").slice(0, 7);
+    if (key) {
+      const mm = mes.get(key) || { facturado: 0, cobrado: 0 };
+      mm.facturado += m.monto;
+      mm.cobrado += m.monto;
+      mes.set(key, mm);
+    }
+  }
+
+  const movimientos: Movimiento[] = [
+    ...turnos.map((t) => ({
       id: t.id,
       nombre: t.nombre,
       serviceName: t.serviceName,
@@ -708,8 +761,18 @@ export async function getFinanzas(): Promise<FinanzasResumen> {
       pagado: !!t.pagado,
       metodoPago: t.metodoPago,
       estado: t.estado,
-    }))
-    .sort((a, b) => ((a.fecha || "") < (b.fecha || "") ? 1 : -1));
+    })),
+    ...db.movimientosManuales.map((m) => ({
+      id: m.id,
+      nombre: m.concepto,
+      fecha: m.fecha,
+      monto: m.monto,
+      pagado: true,
+      metodoPago: "manual",
+      estado: "realizado" as Estado,
+      manual: true,
+    })),
+  ].sort((a, b) => ((a.fecha || "") < (b.fecha || "") ? 1 : -1));
 
   const porMes = [...mes.entries()]
     .sort((a, b) => (a[0] < b[0] ? -1 : 1))
@@ -730,7 +793,7 @@ export async function getFinanzas(): Promise<FinanzasResumen> {
     porCobrar: facturado - cobrado,
     cantTurnos: turnos.length,
     cantCobrados,
-    ticketProm: turnos.length ? Math.round(facturado / turnos.length) : 0,
+    ticketProm: turnos.length ? Math.round(facturadoTurnos / turnos.length) : 0,
     porServicio: [...svc.entries()]
       .map(([nombre, v]) => ({ nombre, ...v }))
       .sort((a, b) => b.monto - a.monto),
