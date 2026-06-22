@@ -9,6 +9,7 @@ import { VineConnectorH, VineConnectorV } from "@/components/Botanical";
 import { MobileCTA } from "@/components/MobileCTA";
 import { TurnoForm } from "@/components/TurnoForm";
 import { BookingCTA } from "@/components/BookingCTA";
+import { Arrow, ArrowUpRight } from "@/components/Arrow";
 import { CopyAlias } from "@/components/CopyAlias";
 
 const SERVICES = [
@@ -155,9 +156,7 @@ export default async function Home() {
                 className="group inline-flex items-center justify-center gap-2 rounded-full border border-cream/35 bg-cream/5 px-6 py-3 text-[15px] font-medium text-cream backdrop-blur-sm transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-cream/60 hover:bg-cream/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cream/70"
               >
                 Consultar por WhatsApp
-                <span className="transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5">
-                  →
-                </span>
+                <Arrow className="h-[18px] w-[18px] transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5" />
               </a>
             </div>
 
@@ -595,7 +594,7 @@ export default async function Home() {
                     className="group inline-flex items-center gap-1.5 text-[14px] font-medium text-sage-deep underline-offset-4 transition-colors hover:text-espresso hover:underline"
                   >
                     ¿Preferís verlo en pantalla completa?
-                    <span className="transition-transform duration-300 group-hover:translate-x-0.5">→</span>
+                    <Arrow className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
                   </Link>
                 </div>
               </Reveal>
@@ -650,7 +649,7 @@ export default async function Home() {
                   className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-espresso px-5 py-3 text-[14px] font-medium text-cream transition-all duration-300 hover:-translate-y-px hover:shadow-card-hover"
                 >
                   Pagar con Mercado Pago
-                  <span aria-hidden>↗</span>
+                  <ArrowUpRight className="h-[15px] w-[15px]" />
                 </a>
               </div>
             </div>
@@ -748,9 +747,7 @@ export default async function Home() {
                   className="group inline-flex items-center justify-center gap-2 rounded-full border border-cream/35 bg-cream/5 px-6 py-3 text-[15px] font-medium text-cream backdrop-blur-sm transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-cream/60 hover:bg-cream/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cream/70"
                 >
                   Consultar por WhatsApp
-                  <span className="transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5">
-                    →
-                  </span>
+                  <Arrow className="h-[18px] w-[18px] transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5" />
                 </a>
               </div>
               <p className="mt-6 text-[12px] uppercase tracking-[0.18em] text-cream/70">
@@ -849,9 +846,7 @@ export default async function Home() {
                       className="group inline-flex items-center gap-1.5 whitespace-nowrap text-espresso transition-colors duration-300 hover:text-sage-deep focus-visible:outline-none"
                     >
                       <span>@psicoterapia.pauli</span>
-                      <span className="transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
-                        ↗
-                      </span>
+                      <ArrowUpRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                     </a>
                   </li>
                 </ul>

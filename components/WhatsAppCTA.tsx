@@ -1,6 +1,7 @@
 "use client";
 
 import { WHATSAPP_URL } from "./Reveal";
+import { ArrowUpRight } from "./Arrow";
 
 export function WhatsAppCTA({
   label = "Agendar consulta",
@@ -30,9 +31,7 @@ export function WhatsAppCTA({
       <span
         className={`relative flex h-9 w-9 items-center justify-center rounded-full transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5 group-hover:-translate-y-px group-hover:scale-105 ${iconBg}`}
       >
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M7 17 17 7M9 7h8v8" />
-        </svg>
+        <ArrowUpRight className="h-[17px] w-[17px]" />
       </span>
     </a>
   );

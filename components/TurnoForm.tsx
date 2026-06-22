@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { horaAR } from "@/lib/scheduling/slots";
+import { Arrow, ArrowLeft } from "./Arrow";
 import type { DaySlots, Slot, Modalidad, Service, Staff } from "@/lib/scheduling/types";
 
 /**
@@ -270,9 +271,10 @@ export function TurnoForm() {
         {step > 1 && (
           <button
             onClick={back}
-            className="mb-4 inline-flex items-center gap-1.5 text-[13px] font-medium text-espresso-soft transition-colors hover:text-espresso"
+            className="group mb-4 inline-flex items-center gap-1.5 text-[13px] font-medium text-espresso-soft transition-colors hover:text-espresso"
           >
-            ← Volver
+            <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
+            Volver
           </button>
         )}
 
@@ -289,30 +291,45 @@ export function TurnoForm() {
             {step === 1 && (
               <div className="space-y-3">
                 <H>Elegí el servicio</H>
-                {services.map((s) => (
+                {services.map((s, i) => (
                   <button
                     key={s.id}
                     onClick={() => pickService(s)}
-                    className="group flex w-full items-center justify-between gap-4 rounded-2xl border border-[var(--color-line)] bg-white px-5 py-4 text-left shadow-[0_1px_2px_rgba(58,49,55,0.05)] transition-all duration-300 hover:border-sage/50 hover:bg-sage/[0.05]"
+                    className="group relative flex w-full items-center justify-between gap-4 rounded-2xl border border-[var(--color-line)] bg-white px-5 py-4 text-left shadow-[0_1px_2px_rgba(58,49,55,0.05)] transition-all duration-300 hover:-translate-y-0.5 hover:border-sage-deep/40 hover:shadow-card-hover"
                   >
-                    <span>
-                      <span className="block font-medium text-espresso">{s.nombre}</span>
+                    <span className="min-w-0">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="font-medium text-espresso">{s.nombre}</span>
+                        {i === 0 && (
+                          <span className="rounded-full bg-sage/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-sage-deep">
+                            Más elegida
+                          </span>
+                        )}
+                      </span>
                       {s.descripcion && (
                         <span className="mt-0.5 block text-[13px] text-espresso-soft">
                           {s.descripcion}
                         </span>
                       )}
-                      <span className="mt-1 block text-[13px] text-sage-deep">
-                        {s.durationMin} min{precio(s.priceARS) ? ` · ${precio(s.priceARS)}` : ""}
+                      <span className="mt-1.5 inline-flex items-center gap-2 text-[13px]">
+                        <span className="font-semibold text-espresso">
+                          {precio(s.priceARS) ?? "A coordinar"}
+                        </span>
+                        <span className="text-espresso-soft/60">·</span>
+                        <span className="text-espresso-soft">{s.durationMin} min</span>
                       </span>
                     </span>
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--color-line)] text-espresso-soft transition-all duration-300 group-hover:translate-x-0.5 group-hover:border-sage-deep group-hover:bg-sage-deep group-hover:text-cream">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M5 12h14M13 6l6 6-6 6" />
-                      </svg>
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cream-deep/60 text-espresso transition-all duration-300 group-hover:translate-x-0.5 group-hover:bg-sage-deep group-hover:text-cream">
+                      <Arrow className="h-[18px] w-[18px]" />
                     </span>
                   </button>
                 ))}
+                <p className="flex items-center justify-center gap-2 pt-2 text-center text-[13px] text-espresso-soft">
+                  <svg className="h-4 w-4 shrink-0 text-sage-deep" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="4" y="11" width="16" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" />
+                  </svg>
+                  Sin pago online · Te confirmo personalmente en menos de 24 h.
+                </p>
               </div>
             )}
 
@@ -339,10 +356,8 @@ export function TurnoForm() {
                         <span className="block text-[13px] text-espresso-soft">{m.titulo}</span>
                       )}
                     </span>
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--color-line)] text-espresso-soft transition-all duration-300 group-hover:translate-x-0.5 group-hover:border-sage-deep group-hover:bg-sage-deep group-hover:text-cream">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M5 12h14M13 6l6 6-6 6" />
-                      </svg>
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cream-deep/60 text-espresso transition-all duration-300 group-hover:translate-x-0.5 group-hover:bg-sage-deep group-hover:text-cream">
+                      <Arrow className="h-[18px] w-[18px]" />
                     </span>
                   </button>
                 ))}

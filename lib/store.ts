@@ -19,6 +19,7 @@ import {
   assertBackendConfigOk,
   PROFESSIONAL_ID,
 } from "./supabase";
+import { endFromStart } from "./scheduling/slots";
 
 export type { Service, Staff } from "./scheduling/types";
 
@@ -302,8 +303,10 @@ export async function getPacienteTurnos(contacto: string): Promise<Solicitud[]> 
   const db = await read();
   return db.solicitudes
     .filter((s) => s.contacto.trim().toLowerCase() === key)
-    .sort((a, b) =>
-      (a.startsAt || a.creadoEn) < (b.startsAt || b.creadoEn) ? 1 : -1
+    .sort(
+      (a, b) =>
+        new Date(b.startsAt || b.creadoEn).getTime() -
+        new Date(a.startsAt || a.creadoEn).getTime()
     );
 }
 
@@ -318,9 +321,15 @@ export async function updatePacienteFicha(id: string, notas: string): Promise<vo
 
 export async function listNotas(patientId: string): Promise<NotaClinica[]> {
   const db = await read();
+  // Orden por instante real (admite mezcla de formatos ISO) y desempate estable
+  // por creadoEn, para notas con la misma fecha (más nueva primero).
   return db.notasClinicas
     .filter((n) => n.patientId === patientId)
-    .sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
+    .sort(
+      (a, b) =>
+        new Date(b.fecha).getTime() - new Date(a.fecha).getTime() ||
+        new Date(b.creadoEn).getTime() - new Date(a.creadoEn).getTime()
+    );
 }
 
 export async function addNota(
@@ -452,9 +461,42 @@ export async function setEstado(
   return mutate((db) => {
     const s = db.solicitudes.find((x) => x.id === solicitudId);
     if (!s) return null;
+
+    // Fin del turno: lo recalculamos según la duración REAL del servicio (no la
+    // global), corrigiendo el endsAt que venía calculado con slotDurationMin.
+    let ns = s.startsAt;
+    let ne = s.endsAt;
+    if (startsAt) {
+      ns = startsAt;
+      const svc = s.serviceId ? db.services.find((x) => x.id === s.serviceId) : undefined;
+      const dur = svc?.durationMin ?? db.scheduling.config.slotDurationMin;
+      ne = endFromStart(startsAt, dur);
+    } else if (endsAt) {
+      ne = endsAt;
+    }
+
+    // Anti doble-booking: confirmar/reprogramar NO puede pisar otro turno YA
+    // confirmado de la misma profesional (mismo criterio que la reserva pública).
+    if (estado === "confirmado" && ns && ne) {
+      const sMs = new Date(ns).getTime();
+      const eMs = new Date(ne).getTime();
+      const choca = db.solicitudes.some((x) => {
+        if (x.id === s.id) return false;
+        if (x.estado !== "confirmado") return false;
+        if (!mismoStaff(x.staffId, s.staffId)) return false;
+        if (!x.startsAt || !x.endsAt) return false;
+        const bs = new Date(x.startsAt).getTime();
+        const be = new Date(x.endsAt).getTime();
+        return sMs < be && bs < eMs;
+      });
+      if (choca) {
+        throw new Error("Ese horario se superpone con otro turno confirmado. Elegí otro.");
+      }
+    }
+
     s.estado = estado;
-    if (startsAt) s.startsAt = startsAt;
-    if (endsAt) s.endsAt = endsAt;
+    s.startsAt = ns;
+    s.endsAt = ne;
     // Si se rechaza un turno que estaba cobrado, se anula el pago (no queda
     // plata "cobrada" sobre un turno que no va a suceder).
     if (estado === "rechazado" && s.pagado) {

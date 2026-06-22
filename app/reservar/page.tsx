@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { TurnoForm } from "@/components/TurnoForm";
 import { WHATSAPP_URL } from "@/components/Reveal";
+import { Arrow, ArrowLeft } from "@/components/Arrow";
 
 export const metadata: Metadata = {
   title: "Reservá tu turno",
@@ -53,7 +54,7 @@ export default function ReservarPage() {
       <header className="border-b border-[var(--color-line)] bg-cream-deep/30">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4 md:px-8">
           <Link href="/" className="group inline-flex items-center gap-2 font-serif text-[17px] tracking-tight text-espresso">
-            <span className="transition-transform duration-300 group-hover:-translate-x-0.5">←</span>
+            <ArrowLeft className="h-4 w-4 transition-transform duration-300 group-hover:-translate-x-0.5" />
             Paulina<span className="italic text-sage-deep"> Pilotti</span>
           </Link>
           <a
@@ -62,7 +63,7 @@ export default function ReservarPage() {
             rel="noopener noreferrer"
             className="text-[13px] font-medium text-sage-deep underline-offset-4 transition-colors hover:text-espresso hover:underline"
           >
-            ¿Dudas? Escribime →
+            <span className="inline-flex items-center gap-1.5">¿Dudas? Escribime <Arrow className="h-4 w-4" /></span>
           </a>
         </div>
       </header>
