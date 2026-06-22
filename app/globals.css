@@ -311,16 +311,19 @@ details.faq > .faq-body > div {
    coherencia entre secciones.
    ===================================================================== */
 .admin-shell {
-  background: #F4F1EC; /* crema cálida muy suave — neutro, no gris frío ni rosa */
+  /* Fondo del ÁREA DE TRABAJO: greige cálido más profundo que antes, para que
+     las tarjetas blancas FLOTEN con claridad y el ojo separe zonas sin esfuerzo
+     (antes #F4F1EC quedaba casi blanco y todo se aplanaba → fatiga). */
+  background: #E9E3DB;
   min-height: 100dvh;
 
   --a-text: #2B2729;          /* texto principal (≈13:1) */
   --a-text-2: #555055;        /* texto secundario legible (≈7.4:1, cumple AA) */
   --a-text-3: #837B82;        /* terciario — solo metadatos no críticos */
-  --a-border: #E4DEDA;        /* borde neutro cálido (estructura) */
-  --a-border-strong: #D2CAC6; /* borde de inputs, un poco más marcado */
+  --a-border: #E2DBD3;        /* borde neutro cálido (estructura) */
+  --a-border-strong: #CFC7BE; /* borde de inputs, un poco más marcado */
   --a-surface: #ffffff;       /* tarjetas */
-  --a-surface-2: #F5F1EE;     /* sub-superficie cálida */
+  --a-surface-2: #F4EFE9;     /* sub-superficie cálida */
   --a-accent: #8A4A66;        /* VINO — único acento (≈5.3:1) */
   --a-accent-ink: #6F3A52;    /* vino más oscuro para texto sobre claro (≈7:1) */
   --a-accent-soft: #F1E7EC;   /* fondo tenue del acento (chips/pestaña hover) */
@@ -330,20 +333,33 @@ details.faq > .faq-body > div {
   color: var(--a-text);
 }
 
-/* Tarjeta blanca elevada — el patrón base del panel */
+/* Tarjeta blanca elevada — el patrón base del panel. Sombra en dos capas
+   (hairline + ambiente difuso) para una profundidad nítida tipo dashboard. */
 .admin-card {
   background: var(--a-surface);
   border: 1px solid var(--a-border);
   border-radius: 1rem;
   box-shadow:
-    0 1px 2px rgba(43, 39, 41, 0.04),
-    0 14px 30px -22px rgba(43, 39, 41, 0.18);
+    0 1px 1px rgba(43, 39, 41, 0.04),
+    0 2px 4px -2px rgba(43, 39, 41, 0.05),
+    0 12px 28px -18px rgba(43, 39, 41, 0.16);
+  transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
+}
+
+/* Tarjeta clickeable (paciente, etc.): se eleva y toma el acento al pasar. */
+.admin-card-link:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--a-accent) 32%, var(--a-border));
+  box-shadow:
+    0 1px 1px rgba(43, 39, 41, 0.04),
+    0 18px 40px -22px rgba(43, 39, 41, 0.28);
 }
 
 /* Superficie interna suave (inputs agrupados, sub-bloques) */
 .admin-soft {
   background: var(--a-surface-2);
   border: 1px solid var(--a-border);
+  border-radius: 0.85rem;
 }
 
 /* Caja de estado vacío — punteada pero visible */
@@ -374,8 +390,9 @@ details.faq > .faq-body > div {
 .admin-kicker { /* etiqueta chica en mayúscula — acento vino, el "toque" de marca */
   color: var(--a-accent-ink);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   font-weight: 600;
+  font-size: 0.72rem;
 }
 .admin-label { color: var(--a-text-2); } /* labels de campos — gris legible */
 .admin-muted { color: var(--a-text-2); } /* texto secundario legible */
@@ -394,19 +411,31 @@ details.faq > .faq-body > div {
 }
 
 /* ---- Acciones ---- */
-.admin-btn { /* acción primaria — vino sólido */
+.admin-btn { /* acción primaria — vino sólido, tacto premium (se eleva al pasar) */
   background: var(--a-accent);
   color: #fff;
-  transition: filter 0.2s, transform 0.2s;
+  box-shadow: 0 8px 20px -10px rgba(138, 74, 102, 0.55);
+  transition: filter 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
-.admin-btn:hover { filter: brightness(1.08); }
+.admin-btn:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px -10px rgba(138, 74, 102, 0.6);
+}
+.admin-btn:active { transform: translateY(0); }
 .admin-btn-ghost { /* acción secundaria — contorno neutro */
   background: var(--a-surface);
   border: 1px solid var(--a-border-strong);
   color: var(--a-text-2);
-  transition: color 0.2s, border-color 0.2s;
+  box-shadow: 0 1px 2px rgba(43, 39, 41, 0.04);
+  transition: color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
-.admin-btn-ghost:hover { color: var(--a-text); border-color: var(--a-text-3); }
+.admin-btn-ghost:hover {
+  color: var(--a-text);
+  border-color: var(--a-text-3);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px -10px rgba(43, 39, 41, 0.25);
+}
 .admin-danger { color: var(--a-danger); }          /* "×", "Eliminar" — rojo apagado */
 .admin-danger:hover { color: #8f3a32; }
 .admin-tab-active { background: var(--a-accent); color: #fff; } /* pestaña activa */

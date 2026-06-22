@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { Arrow } from "./Arrow";
 import type { Paciente } from "@/lib/store";
 
 export function PacientesList({ pacientes }: { pacientes: Paciente[] }) {
@@ -34,7 +35,7 @@ export function PacientesList({ pacientes }: { pacientes: Paciente[] }) {
             <li key={p.id}>
               <Link
                 href={`/admin/pacientes/${p.id}`}
-                className="admin-card group flex items-center gap-3 rounded-2xl p-4 transition-transform duration-200 hover:-translate-y-0.5"
+                className="admin-card admin-card-link group flex items-center gap-3 rounded-2xl p-4"
               >
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--a-border)] bg-[var(--a-accent-soft)] font-medium text-[var(--a-accent-ink)]">
                   {(p.nombre.trim()[0] || "?").toUpperCase()}
@@ -44,7 +45,7 @@ export function PacientesList({ pacientes }: { pacientes: Paciente[] }) {
                   <span className="admin-muted block truncate text-[13px]">{p.contacto}</span>
                 </span>
                 <span className="admin-faint transition-transform duration-200 group-hover:translate-x-0.5">
-                  →
+                  <Arrow className="h-4 w-4" strokeWidth={2.25} />
                 </span>
               </Link>
             </li>
