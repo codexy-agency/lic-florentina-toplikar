@@ -525,55 +525,41 @@ export default async function Home() {
                   </span>
                   Agenda abierta
                 </span>
-                <h2 className="mt-5 text-balance font-serif text-4xl font-light leading-tight tracking-tight md:text-5xl">
-                  Pedí tu turno en un minuto
+                <h2 className="mt-5 text-balance font-serif text-4xl font-light leading-[1.05] tracking-tight md:text-[3.25rem]">
+                  Reservá tu turno
+                  <span className="block italic text-sage-deep">en un minuto</span>
                 </h2>
-                <p className="mt-6 max-w-md leading-relaxed text-espresso-soft md:text-lg">
-                  Elegí la modalidad y reservá <strong className="font-medium text-espresso">en el momento</strong> uno
-                  de los horarios libres. Sin esperas: el calendario de al lado
-                  está activo.
+                <p className="mt-6 max-w-md text-[17px] leading-relaxed text-espresso-soft">
+                  Elegí un horario libre y te lo confirmo personalmente. Sin
+                  llamados ni esperas: el calendario de acá al lado está activo.
                 </p>
-                {/* Cómo funciona — pasos conectados, con sentido */}
-                <div className="mt-9">
+                {/* Beneficios claros — por qué reservar acá (el "cómo" lo muestra el widget) */}
+                <ul className="mt-8 space-y-4">
                   {[
                     {
-                      t: "Elegís servicio y horario",
-                      d: "Online o presencial en Viedma, el día que mejor te quede.",
-                      icon: (
-                        <path d="M3 4h18v18H3zM3 10h18M16 2v4M8 2v4" />
-                      ),
+                      t: "Online a todo el país o presencial en Viedma",
+                      icon: <><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></>,
                     },
                     {
-                      t: "Queda reservado al instante",
-                      d: "Sin idas y vueltas: el horario se toma en el momento.",
-                      icon: <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />,
+                      t: "Confirmación personal en menos de 24 horas",
+                      icon: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
                     },
                     {
-                      t: "Te confirmo en persona",
-                      d: "Te escribo por WhatsApp o mail en menos de 24 horas.",
-                      icon: (
-                        <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z" />
-                      ),
+                      t: "Sin pago online: reservás sin tarjeta",
+                      icon: <><rect x="4" y="11" width="16" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></>,
                     },
-                  ].map((s, i, arr) => (
-                    <div key={s.t} className="flex gap-4">
-                      <div className="flex flex-col items-center">
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-sage-deep shadow-[0_6px_18px_-10px_rgba(156,84,117,0.5)] ring-1 ring-sage/25">
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                            {s.icon}
-                          </svg>
-                        </span>
-                        {i < arr.length - 1 && (
-                          <span className="my-1 w-px flex-1 bg-gradient-to-b from-sage/40 to-sage/5" />
-                        )}
-                      </div>
-                      <div className="pb-6">
-                        <p className="font-medium text-espresso">{s.t}</p>
-                        <p className="mt-1 text-[14px] leading-relaxed text-espresso-soft">{s.d}</p>
-                      </div>
-                    </div>
+                  ].map((b) => (
+                    <li key={b.t} className="flex items-center gap-3.5">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-sage-deep shadow-[0_6px_18px_-12px_rgba(156,84,117,0.5)] ring-1 ring-sage/20">
+                        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                          {b.icon}
+                        </svg>
+                      </span>
+                      <span className="text-[15px] font-medium text-espresso">{b.t}</span>
+                    </li>
                   ))}
-                </div>
+                </ul>
+                <div className="mt-8" />
 
                 {/* Nota cálida — la persona detrás */}
                 <div className="flex items-start gap-3 rounded-2xl border border-sage/20 bg-white/55 p-4 backdrop-blur-sm">
