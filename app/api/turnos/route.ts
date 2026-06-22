@@ -85,16 +85,22 @@ export async function POST(req: Request) {
     }
 
     // Servicio/profesional autoritativos desde el servidor (no del cliente).
-    const services = await listServices(); // catálogo completo (precio aunque esté inactivo)
+    const services = await listServices();
     const svc = serviceId ? services.find((s) => s.id === serviceId) : undefined;
-    if (serviceId && !svc) {
-      return NextResponse.json({ ok: false, error: "Servicio inválido." }, { status: 400 });
+    // Para reservar, el servicio debe existir Y estar ACTIVO (un servicio dado de
+    // baja no se puede reservar aunque alguien conozca su id).
+    if (serviceId && (!svc || !svc.activo)) {
+      return NextResponse.json({ ok: false, error: "Servicio no disponible." }, { status: 400 });
     }
     const stf = staffId
       ? (await listStaff()).find((s) => s.id === staffId)
       : undefined;
-    if (staffId && !stf) {
-      return NextResponse.json({ ok: false, error: "Profesional inválido." }, { status: 400 });
+    if (staffId && (!stf || !stf.activo)) {
+      return NextResponse.json({ ok: false, error: "Profesional no disponible." }, { status: 400 });
+    }
+    // Coherencia: si vienen ambos, la profesional debe ofrecer ese servicio.
+    if (svc && stf && !stf.serviceIds.includes(svc.id)) {
+      return NextResponse.json({ ok: false, error: "Esa profesional no ofrece ese servicio." }, { status: 400 });
     }
     const serviceName = svc?.nombre;
     const precio = svc?.priceARS;

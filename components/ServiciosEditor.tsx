@@ -34,6 +34,17 @@ export function ServiciosEditor({ initial }: { initial: Service[] }) {
     setRows((r) => r.filter((_, idx) => idx !== i));
   }
   async function guardar() {
+    // Guardrail: si no queda ningún servicio activo, el reservador del sitio
+    // queda sin nada para reservar. Confirmamos antes de aplicar.
+    const activos = rows.filter((r) => r.nombre.trim() && r.activo).length;
+    if (
+      activos === 0 &&
+      !window.confirm(
+        "No va a quedar ningún servicio activo: los pacientes no van a poder reservar turnos. ¿Guardar igual?"
+      )
+    ) {
+      return;
+    }
     setEstado("guardando");
     try {
       await guardarServicios(rows);
@@ -77,8 +88,10 @@ export function ServiciosEditor({ initial }: { initial: Service[] }) {
               <span className="flex items-center gap-2">
                 <input
                   type="number"
-                  value={s.durationMin}
-                  onChange={(e) => patch(i, { durationMin: Number(e.target.value) })}
+                  value={Number.isFinite(s.durationMin) ? s.durationMin : ""}
+                  onChange={(e) =>
+                    patch(i, { durationMin: e.target.value === "" ? NaN : Number(e.target.value) })
+                  }
                   className={`${inp} w-20`}
                 />
                 <span className="admin-muted text-[13px]">min</span>

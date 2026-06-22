@@ -517,6 +517,13 @@ export async function listServices(soloActivos = false): Promise<Service[]> {
 export async function saveServices(services: Service[]): Promise<void> {
   await mutate((db) => {
     db.services = services;
+    // Integridad referencial: al borrar un servicio, sacamos su id de cada
+    // staff.serviceIds para no acumular referencias muertas.
+    const ids = new Set(services.map((s) => s.id));
+    db.staff = db.staff.map((st) => ({
+      ...st,
+      serviceIds: st.serviceIds.filter((id) => ids.has(id)),
+    }));
   });
 }
 
@@ -538,9 +545,15 @@ export async function getBookingConfig(): Promise<{
   staff: Staff[];
 }> {
   const db = await read();
+  const staff = db.staff.filter((s) => s.activo);
   return {
-    services: db.services.filter((s) => s.activo),
-    staff: db.staff.filter((s) => s.activo),
+    // Solo servicios activos Y que tenga al menos una profesional activa que los
+    // ofrezca: si no, el wizard mostraría un servicio que al elegirlo no tiene
+    // con quién agendarse (callejón sin salida en el paso "Profesional").
+    services: db.services.filter(
+      (s) => s.activo && staff.some((st) => st.serviceIds.includes(s.id))
+    ),
+    staff,
   };
 }
 

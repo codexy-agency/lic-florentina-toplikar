@@ -320,6 +320,12 @@ export function TurnoForm() {
             {step === 2 && service && (
               <div className="space-y-3">
                 <H>Elegí con quién</H>
+                {eligibles(service.id).length === 0 && (
+                  <P>
+                    Este servicio no tiene profesional disponible por ahora.
+                    Escribinos por WhatsApp y lo coordinamos.
+                  </P>
+                )}
                 {eligibles(service.id).map((m) => (
                   <button
                     key={m.id}

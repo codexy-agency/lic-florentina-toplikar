@@ -46,27 +46,34 @@ export function DisponibilidadEditor({
     initialExceptions.filter((e) => e.type === "block_day").map((e) => e.date)
   );
   const [nuevaFecha, setNuevaFecha] = useState("");
-  const [estado, setEstado] = useState<"idle" | "guardando" | "ok">("idle");
+  const [estado, setEstado] = useState<"idle" | "guardando" | "ok" | "error">("idle");
+  // Hay cambios staged que todavía NO se guardaron. Clave: bloquear/agregar franja
+  // sólo cambia el form; recién se aplica al Guardar. Lo dejamos MUY visible.
+  const [dirty, setDirty] = useState(false);
 
   function addFranja(day: number) {
+    setDirty(true);
     setByDay((p) => ({
       ...p,
       [day]: [...p[day], { startTime: "09:00", endTime: "13:00", modalidad: "online" }],
     }));
   }
   function setFranja(day: number, idx: number, patch: Partial<Franja>) {
+    setDirty(true);
     setByDay((p) => ({
       ...p,
       [day]: p[day].map((f, i) => (i === idx ? { ...f, ...patch } : f)),
     }));
   }
   function delFranja(day: number, idx: number) {
+    setDirty(true);
     setByDay((p) => ({ ...p, [day]: p[day].filter((_, i) => i !== idx) }));
   }
   function franjaInvalida(f: Franja) {
     return f.endTime <= f.startTime;
   }
   function copiarLunesATodos() {
+    setDirty(true);
     const base = byDay[1];
     setByDay((p) => {
       const n = { ...p };
@@ -74,15 +81,35 @@ export function DisponibilidadEditor({
       return n;
     });
   }
+  function addBloqueo() {
+    if (nuevaFecha && !blocked.includes(nuevaFecha)) {
+      setDirty(true);
+      setBlocked((b) => [...b, nuevaFecha].sort());
+      setNuevaFecha("");
+    }
+  }
+  function quitarBloqueo(d: string) {
+    setDirty(true);
+    setBlocked((b) => b.filter((x) => x !== d));
+  }
+
+  // No dejamos guardar si hay alguna franja con fin <= inicio.
+  const hayInvalidas = DIAS.some((d) => byDay[d.i].some(franjaInvalida));
 
   async function guardar() {
+    if (hayInvalidas) return;
     setEstado("guardando");
     const rules = DIAS.flatMap((d) =>
       byDay[d.i].map((f) => ({ weekday: d.i, ...f }))
     );
-    await guardarDisponibilidad({ config, rules, blockedDates: blocked });
-    setEstado("ok");
-    setTimeout(() => setEstado("idle"), 2200);
+    try {
+      await guardarDisponibilidad({ config, rules, blockedDates: blocked });
+      setDirty(false);
+      setEstado("ok");
+      setTimeout(() => setEstado("idle"), 2600);
+    } catch {
+      setEstado("error");
+    }
   }
 
   const num =
@@ -109,9 +136,10 @@ export function DisponibilidadEditor({
               <input
                 type="number"
                 value={config[x.k as keyof SchedulingConfig]}
-                onChange={(e) =>
-                  setConfig((c) => ({ ...c, [x.k]: Number(e.target.value) }))
-                }
+                onChange={(e) => {
+                  setDirty(true);
+                  setConfig((c) => ({ ...c, [x.k]: Number(e.target.value) }));
+                }}
                 className={num + " w-full"}
               />
             </label>
@@ -228,12 +256,7 @@ export function DisponibilidadEditor({
             className={time}
           />
           <button
-            onClick={() => {
-              if (nuevaFecha && !blocked.includes(nuevaFecha)) {
-                setBlocked((b) => [...b, nuevaFecha].sort());
-                setNuevaFecha("");
-              }
-            }}
+            onClick={addBloqueo}
             className="rounded-full bg-espresso px-4 py-2 text-[13px] font-medium text-cream"
           >
             Bloquear
@@ -247,7 +270,7 @@ export function DisponibilidadEditor({
             >
               {d}
               <button
-                onClick={() => setBlocked((b) => b.filter((x) => x !== d))}
+                onClick={() => quitarBloqueo(d)}
                 className="admin-danger transition-colors"
                 aria-label="Quitar"
               >
@@ -256,20 +279,44 @@ export function DisponibilidadEditor({
             </span>
           ))}
         </div>
+        <p className="admin-faint mt-2 text-[12px]">
+          El bloqueo se aplica recién cuando tocás <strong>Guardar disponibilidad</strong>.
+        </p>
       </section>
 
       {/* Guardar */}
-      <div className="sticky bottom-0 z-10 -mx-1 flex items-center gap-4 rounded-2xl border-t border-[var(--a-border)] bg-[var(--a-surface-2)]/85 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-[var(--a-surface-2)]/70">
+      <div
+        className={`sticky bottom-0 z-10 -mx-1 flex flex-wrap items-center gap-3 rounded-2xl border px-4 py-3 backdrop-blur transition-colors ${
+          dirty
+            ? "border-[var(--a-accent)] bg-[var(--a-accent-soft)]/90"
+            : "border-[var(--a-border)] bg-[var(--a-surface-2)]/85"
+        }`}
+      >
         <button
           onClick={guardar}
-          disabled={estado === "guardando"}
+          disabled={estado === "guardando" || hayInvalidas}
           className="rounded-full bg-espresso px-7 py-3.5 text-[15px] font-medium text-cream shadow-float transition-all duration-300 hover:-translate-y-px disabled:opacity-60"
         >
           {estado === "guardando" ? "Guardando…" : "Guardar disponibilidad"}
         </button>
-        {estado === "ok" && (
-          <span className="text-[14px] font-medium text-[var(--a-accent-ink)]">✓ Guardado</span>
-        )}
+        {hayInvalidas ? (
+          <span className="admin-danger text-[14px] font-medium">
+            Revisá las franjas marcadas (el fin debe ser posterior al inicio).
+          </span>
+        ) : estado === "error" ? (
+          <span className="admin-danger text-[14px] font-medium">
+            No se pudo guardar. Reintentá.
+          </span>
+        ) : estado === "ok" ? (
+          <span className="text-[14px] font-medium text-[var(--a-accent-ink)]">
+            ✓ Guardado y aplicado
+          </span>
+        ) : dirty ? (
+          <span className="inline-flex items-center gap-2 text-[14px] font-medium text-[var(--a-accent-ink)]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--a-accent)]" />
+            Tenés cambios sin guardar — guardá para aplicarlos
+          </span>
+        ) : null}
       </div>
     </div>
   );
