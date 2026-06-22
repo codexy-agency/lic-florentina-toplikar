@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Arrow } from "./Arrow";
+import { WhatsAppButton } from "./WhatsAppButton";
 import type { Paciente } from "@/lib/store";
 
 export function PacientesList({ pacientes }: { pacientes: Paciente[] }) {
@@ -32,10 +32,10 @@ export function PacientesList({ pacientes }: { pacientes: Paciente[] }) {
       ) : (
         <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {lista.map((p) => (
-            <li key={p.id}>
+            <li key={p.id} className="relative">
               <Link
                 href={`/admin/pacientes/${p.id}`}
-                className="admin-card admin-card-link group flex items-center gap-3 rounded-2xl p-4"
+                className="admin-card admin-card-link group flex items-center gap-3 rounded-2xl p-4 pr-16"
               >
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--a-border)] bg-[var(--a-accent-soft)] font-medium text-[var(--a-accent-ink)]">
                   {(p.nombre.trim()[0] || "?").toUpperCase()}
@@ -44,10 +44,16 @@ export function PacientesList({ pacientes }: { pacientes: Paciente[] }) {
                   <span className="block truncate font-medium text-espresso">{p.nombre}</span>
                   <span className="admin-muted block truncate text-[13px]">{p.contacto}</span>
                 </span>
-                <span className="admin-faint transition-transform duration-200 group-hover:translate-x-0.5">
-                  <Arrow className="h-4 w-4" strokeWidth={2.25} />
-                </span>
               </Link>
+              {/* Ícono WhatsApp — hermano del Link (no anidado) para derivar al toque */}
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <WhatsAppButton
+                  phone={p.contacto}
+                  nombre={p.nombre}
+                  variant="icon"
+                  align="right"
+                />
+              </div>
             </li>
           ))}
         </ul>

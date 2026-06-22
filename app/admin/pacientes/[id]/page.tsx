@@ -7,6 +7,8 @@ import {
 } from "@/lib/store";
 import { fechaHoraAR, isoToArLocal } from "@/lib/scheduling/slots";
 import { AdminShell } from "@/components/AdminShell";
+import { ArrowLeft } from "@/components/Arrow";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { agregarNota, borrarNota, guardarFicha } from "../actions";
 import { requireAdmin } from "@/lib/session";
 
@@ -52,14 +54,29 @@ export default async function PacienteDetalle({
   ]);
   const ahoraLocal = isoToArLocal(new Date().toISOString());
 
+  // Próximo turno (para la plantilla de recordatorio de WhatsApp).
+  const ahoraMs = Date.now();
+  const prox = turnos
+    .filter(
+      (t) =>
+        t.startsAt &&
+        (t.estado === "confirmado" || t.estado === "pendiente") &&
+        new Date(t.startsAt).getTime() >= ahoraMs
+    )
+    .sort((a, b) => new Date(a.startsAt!).getTime() - new Date(b.startsAt!).getTime())[0];
+  const proximo = prox?.startsAt
+    ? { cuando: `${fechaHoraAR(prox.startsAt)} hs`, servicio: prox.serviceName }
+    : null;
+
   return (
     <AdminShell>
       <div>
         <Link
           href="/admin/pacientes"
-          className="admin-muted inline-flex items-center gap-1.5 text-[13px] font-medium transition-colors hover:text-[var(--a-text)]"
+          className="admin-muted group inline-flex items-center gap-1.5 text-[13px] font-medium transition-colors hover:text-[var(--a-text)]"
         >
-          ← Pacientes
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+          Pacientes
         </Link>
 
         {/* Cabecera del paciente */}
@@ -77,35 +94,32 @@ export default async function PacienteDetalle({
               paciente desde {fmtFecha(paciente.creadoEn)}
             </p>
           </div>
-          <a
-            href={`https://wa.me/${paciente.contacto.replace(/[^0-9]/g, "")}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="admin-btn-ghost ml-auto hidden rounded-full px-4 py-2 text-[13px] font-medium sm:inline-flex sm:items-center"
-          >
-            WhatsApp →
-          </a>
+          <div className="ml-auto">
+            <WhatsAppButton
+              phone={paciente.contacto}
+              nombre={paciente.nombre}
+              proximo={proximo}
+              align="right"
+            />
+          </div>
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-3 lg:items-start">
           {/* Historia clínica */}
           <div className="lg:col-span-2">
-            <div className="flex items-end justify-between gap-4">
-              <div>
-                <h2 className="admin-kicker text-[12px]">Historia</h2>
-                <p className="font-serif text-[19px] tracking-tight text-espresso">
-                  Historia clínica
-                </p>
-              </div>
-              {notas.length > 0 ? (
-                <span className="admin-muted text-[13px]">
-                  {notas.length} {notas.length === 1 ? "nota" : "notas"}
+            <div className="flex h-9 items-center justify-between gap-3 border-b border-[var(--a-border)] pb-3">
+              <h2 className="text-[18px] font-semibold tracking-tight text-espresso">
+                Historia clínica
+              </h2>
+              {notas.length > 0 && (
+                <span className="admin-chip rounded-full px-2.5 py-0.5 text-[12px] font-semibold tabular-nums">
+                  {notas.length}
                 </span>
-              ) : null}
+              )}
             </div>
 
             {/* Nueva nota */}
-            <form action={agregarNota} className="admin-card mt-4 rounded-2xl p-5">
+            <form action={agregarNota} className="admin-card mt-5 rounded-2xl p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h3 className="admin-kicker text-[12px]">Nueva nota</h3>
                 <div className="flex items-center gap-2">
@@ -122,15 +136,21 @@ export default async function PacienteDetalle({
                 </div>
               </div>
               <input type="hidden" name="patientId" value={id} />
+              <input
+                name="titulo"
+                maxLength={80}
+                placeholder="Título — ej: Primera consulta, Sesión 3…"
+                className="admin-input mt-3 w-full px-4 py-2.5 text-[15px] font-medium"
+              />
               <textarea
                 name="contenido"
                 required
                 rows={4}
                 placeholder="Evolución de la sesión, observaciones, objetivos trabajados…"
-                className="admin-input mt-3 w-full resize-y px-4 py-3 text-[15px] leading-relaxed"
+                className="admin-input mt-2.5 w-full resize-y px-4 py-3 text-[15px] leading-relaxed"
               />
               <div className="mt-3 flex justify-end">
-                <button className="admin-btn rounded-full px-5 py-2.5 text-[14px] font-medium transition-transform hover:-translate-y-px">
+                <button className="admin-btn rounded-full px-5 py-2.5 text-[14px] font-medium">
                   Agregar nota
                 </button>
               </div>
@@ -162,7 +182,12 @@ export default async function PacienteDetalle({
                         </button>
                       </form>
                     </div>
-                    <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed text-espresso">
+                    {n.titulo && (
+                      <p className="mt-3 text-[16px] font-semibold tracking-tight text-espresso">
+                        {n.titulo}
+                      </p>
+                    )}
+                    <p className={`${n.titulo ? "mt-1.5" : "mt-3"} whitespace-pre-wrap text-[15px] leading-relaxed text-espresso`}>
                       {n.contenido}
                     </p>
                   </li>
@@ -172,7 +197,12 @@ export default async function PacienteDetalle({
           </div>
 
           {/* Lateral: ficha + turnos */}
-          <aside className="space-y-6">
+          <aside className="space-y-5">
+            <div className="flex h-9 items-center border-b border-[var(--a-border)] pb-3">
+              <h2 className="text-[18px] font-semibold tracking-tight text-espresso">
+                Resumen
+              </h2>
+            </div>
             {/* Ficha */}
             <div className="admin-card rounded-2xl p-5">
               <h3 className="admin-kicker text-[12px]">Ficha</h3>

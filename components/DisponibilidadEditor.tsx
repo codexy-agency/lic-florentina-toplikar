@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { guardarDisponibilidad } from "@/app/admin/disponibilidad/actions";
+import { guardarDisponibilidad, setBloqueos } from "@/app/admin/disponibilidad/actions";
 import type {
   AvailabilityRule,
   SchedulingConfig,
@@ -20,6 +20,17 @@ const DIAS = [
 ];
 
 type Franja = { startTime: string; endTime: string; modalidad: Modalidad };
+
+// Formatea YYYY-MM-DD como "lun 23 jun" sin desfase de zona horaria.
+function fmtFecha(iso: string) {
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return iso;
+  return new Date(y, m - 1, d).toLocaleDateString("es-AR", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+}
 
 export function DisponibilidadEditor({
   initialConfig,
@@ -43,13 +54,16 @@ export function DisponibilidadEditor({
     return m;
   });
   const [blocked, setBlocked] = useState<string[]>(
-    initialExceptions.filter((e) => e.type === "block_day").map((e) => e.date)
+    initialExceptions.filter((e) => e.type === "block_day").map((e) => e.date).sort()
   );
   const [nuevaFecha, setNuevaFecha] = useState("");
   const [estado, setEstado] = useState<"idle" | "guardando" | "ok" | "error">("idle");
-  // Hay cambios staged que todavía NO se guardaron. Clave: bloquear/agregar franja
-  // sólo cambia el form; recién se aplica al Guardar. Lo dejamos MUY visible.
+  // Cambios staged de HORARIOS/AJUSTES que todavía no se guardaron (los bloqueos
+  // ya NO entran acá: se aplican al instante).
   const [dirty, setDirty] = useState(false);
+  // Estado del bloqueo inmediato.
+  const [blockBusy, setBlockBusy] = useState(false);
+  const [blockErr, setBlockErr] = useState<string | null>(null);
 
   function addFranja(day: number) {
     setDirty(true);
@@ -81,20 +95,36 @@ export function DisponibilidadEditor({
       return n;
     });
   }
-  function addBloqueo() {
-    if (nuevaFecha && !blocked.includes(nuevaFecha)) {
-      setDirty(true);
-      setBlocked((b) => [...b, nuevaFecha].sort());
-      setNuevaFecha("");
+
+  // ─── Bloqueos: se persisten AL INSTANTE (optimista + reconcilia con el server) ───
+  async function persistBloqueos(next: string[], prev: string[]) {
+    setBlocked(next);
+    setBlockBusy(true);
+    setBlockErr(null);
+    try {
+      await setBloqueos(next);
+    } catch {
+      setBlocked(prev);
+      setBlockErr("No se pudo aplicar. Reintentá.");
+    } finally {
+      setBlockBusy(false);
     }
   }
+  function addBloqueo() {
+    if (!nuevaFecha || blocked.includes(nuevaFecha)) return;
+    const prev = blocked;
+    const next = [...blocked, nuevaFecha].sort();
+    setNuevaFecha("");
+    persistBloqueos(next, prev);
+  }
   function quitarBloqueo(d: string) {
-    setDirty(true);
-    setBlocked((b) => b.filter((x) => x !== d));
+    const prev = blocked;
+    persistBloqueos(blocked.filter((x) => x !== d), prev);
   }
 
   // No dejamos guardar si hay alguna franja con fin <= inicio.
   const hayInvalidas = DIAS.some((d) => byDay[d.i].some(franjaInvalida));
+  const diasActivos = DIAS.filter((d) => byDay[d.i].length > 0).length;
 
   async function guardar() {
     if (hayInvalidas) return;
@@ -112,74 +142,56 @@ export function DisponibilidadEditor({
     }
   }
 
-  const num =
-    "w-20 admin-input px-3 py-2 text-[14px] text-espresso";
-  const time =
-    "admin-input px-3 py-2 text-[14px] text-espresso";
+  const time = "admin-input px-3 py-2 text-[14px] text-espresso";
 
   return (
-    <div className="space-y-10">
-      {/* Ajustes */}
-      <section>
-        <h2 className="font-serif text-xl tracking-tight text-espresso">Ajustes</h2>
-        <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            { k: "slotDurationMin", l: "Duración de la sesión (min)" },
-            { k: "slotIntervalMin", l: "Cada cuánto un turno (min)" },
-            { k: "minNoticeHours", l: "Anticipación mínima (hs)" },
-            { k: "bookingWindowDays", l: "Reservar hasta (días)" },
-          ].map((x) => (
-            <label key={x.k} className="block">
-              <span className="admin-kicker mb-1.5 block text-[12px]">
-                {x.l}
-              </span>
-              <input
-                type="number"
-                value={config[x.k as keyof SchedulingConfig]}
-                onChange={(e) => {
-                  setDirty(true);
-                  setConfig((c) => ({ ...c, [x.k]: Number(e.target.value) }));
-                }}
-                className={num + " w-full"}
-              />
-            </label>
-          ))}
-        </div>
-        <p className="admin-muted mt-3 text-[13px] leading-relaxed">
-          Los turnos arrancan <strong>cada {config.slotIntervalMin} min</strong> (en
-          horarios redondos) y cada uno dura {config.slotDurationMin} min.
-          {config.slotIntervalMin > config.slotDurationMin
-            ? ` Quedan ${config.slotIntervalMin - config.slotDurationMin} min de aire entre turnos.`
-            : " Sin descanso entre turnos (uno pegado al otro)."}
-        </p>
-      </section>
-
-      {/* Horario semanal */}
-      <section>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-serif text-xl tracking-tight text-espresso">
-            Horario semanal
-          </h2>
+    <div className="space-y-6">
+      {/* ───────────── Horario semanal ───────────── */}
+      <section className="admin-card p-5 md:p-6">
+        <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[var(--a-border)] pb-4">
+          <div>
+            <span className="admin-kicker text-[12px]">Tu semana</span>
+            <h2 className="mt-1 text-[18px] font-semibold tracking-tight text-espresso">
+              Horario semanal
+            </h2>
+            <p className="admin-muted mt-1 text-[13px]">
+              {diasActivos > 0
+                ? `Atendés ${diasActivos} ${diasActivos === 1 ? "día" : "días"} por semana. El sitio publica los horarios libres solo.`
+                : "Agregá franjas a los días que atendés."}
+            </p>
+          </div>
           <button
             onClick={copiarLunesATodos}
             className="admin-btn-ghost rounded-full px-4 py-2 text-[13px]"
           >
-            Copiar lunes a días hábiles
+            Copiar lunes a hábiles
           </button>
         </div>
-        <div className="mt-5 space-y-3">
-          {DIAS.map((d) => (
-            <div
-              key={d.i}
-              className="rounded-2xl admin-card p-4"
-            >
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="w-24 font-medium text-espresso">{d.n}</span>
-                <div className="flex-1 space-y-2">
-                  {byDay[d.i].length === 0 && (
-                    <span className="admin-muted text-[14px]">No atiende</span>
+
+        <div className="mt-1">
+          {DIAS.map((d) => {
+            const franjas = byDay[d.i];
+            const atiende = franjas.length > 0;
+            return (
+              <div
+                key={d.i}
+                className="grid gap-x-4 gap-y-2 border-b border-[var(--a-border)] py-3.5 last:border-0 sm:grid-cols-[8rem_1fr_auto] sm:items-start"
+              >
+                <span
+                  className={`flex items-center gap-2 pt-1.5 font-medium ${atiende ? "text-espresso" : "text-espresso-soft/70"}`}
+                >
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${atiende ? "bg-[var(--a-accent)]" : "bg-[var(--a-border)]"}`}
+                  />
+                  {d.n}
+                </span>
+                <div className="min-w-0 space-y-2">
+                  {!atiende && (
+                    <span className="inline-block py-1.5 text-[13.5px] text-espresso-soft/70">
+                      No atiende
+                    </span>
                   )}
-                  {byDay[d.i].map((f, idx) => {
+                  {franjas.map((f, idx) => {
                     const invalida = franjaInvalida(f);
                     return (
                       <div key={idx} className="flex flex-wrap items-center gap-2">
@@ -187,19 +199,15 @@ export function DisponibilidadEditor({
                           type="time"
                           value={f.startTime}
                           onChange={(e) => setFranja(d.i, idx, { startTime: e.target.value })}
-                          className={
-                            invalida ? time + " border-[var(--a-danger)]" : time
-                          }
+                          className={invalida ? time + " border-[var(--a-danger)]" : time}
                           aria-invalid={invalida}
                         />
-                        <span className="admin-muted">a</span>
+                        <span className="admin-muted text-[13px]">a</span>
                         <input
                           type="time"
                           value={f.endTime}
                           onChange={(e) => setFranja(d.i, idx, { endTime: e.target.value })}
-                          className={
-                            invalida ? time + " border-[var(--a-danger)]" : time
-                          }
+                          className={invalida ? time + " border-[var(--a-danger)]" : time}
                           aria-invalid={invalida}
                         />
                         <select
@@ -214,7 +222,7 @@ export function DisponibilidadEditor({
                         </select>
                         <button
                           onClick={() => delFranja(d.i, idx)}
-                          className="admin-danger text-[13px] transition-colors"
+                          className="admin-danger flex h-8 w-8 items-center justify-center rounded-full text-[14px] transition-colors hover:bg-[var(--a-danger)]/10"
                           aria-label="Eliminar franja"
                         >
                           ✕
@@ -230,24 +238,35 @@ export function DisponibilidadEditor({
                 </div>
                 <button
                   onClick={() => addFranja(d.i)}
-                  className="admin-btn-ghost rounded-full px-3 py-1.5 text-[13px] font-medium"
+                  className="admin-btn-ghost justify-self-start rounded-full px-3.5 py-1.5 text-[13px] font-medium sm:justify-self-end"
                 >
                   + Franja
                 </button>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
-      {/* Bloqueos */}
-      <section>
-        <h2 className="font-serif text-xl tracking-tight text-espresso">
-          Días que no atiende
-        </h2>
-        <p className="admin-muted mt-1 text-[14px]">
-          Feriados, vacaciones o días puntuales que querés bloquear.
-        </p>
+      {/* ───────────── Días que no atiende (inmediato) ───────────── */}
+      <section className="admin-card p-5 md:p-6">
+        <div className="border-b border-[var(--a-border)] pb-4">
+          <div className="flex items-center gap-2">
+            <span className="admin-kicker text-[12px]">Excepciones</span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--a-accent-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--a-accent-ink)]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--a-accent)]" />
+              Se aplica al instante
+            </span>
+          </div>
+          <h2 className="mt-1 text-[18px] font-semibold tracking-tight text-espresso">
+            Días que no atiende
+          </h2>
+          <p className="admin-muted mt-1 text-[13px]">
+            Feriados, vacaciones o días puntuales. Al bloquear un día,
+            desaparece de la agenda online <strong>en el momento</strong>.
+          </p>
+        </div>
+
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <input
             type="date"
@@ -257,34 +276,102 @@ export function DisponibilidadEditor({
           />
           <button
             onClick={addBloqueo}
-            className="rounded-full bg-espresso px-4 py-2 text-[13px] font-medium text-cream"
+            disabled={!nuevaFecha || blockBusy}
+            className="rounded-full bg-espresso px-4 py-2 text-[13px] font-medium text-cream transition-all hover:-translate-y-px disabled:opacity-50"
           >
-            Bloquear
+            Bloquear día
           </button>
-        </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {blocked.map((d) => (
-            <span
-              key={d}
-              className="admin-soft inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[13px] text-espresso"
-            >
-              {d}
-              <button
-                onClick={() => quitarBloqueo(d)}
-                className="admin-danger transition-colors"
-                aria-label="Quitar"
-              >
-                ✕
-              </button>
+          {blockBusy && (
+            <span className="admin-muted inline-flex items-center gap-1.5 text-[13px]">
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--a-border)] border-t-[var(--a-accent)]" />
+              Guardando…
             </span>
-          ))}
+          )}
+          {blockErr && <span className="admin-danger text-[13px] font-medium">{blockErr}</span>}
         </div>
-        <p className="admin-faint mt-2 text-[12px]">
-          El bloqueo se aplica recién cuando tocás <strong>Guardar disponibilidad</strong>.
-        </p>
+
+        {blocked.length > 0 ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {blocked.map((d) => (
+              <span
+                key={d}
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--a-border)] bg-[var(--a-surface-2)] py-1.5 pl-3 pr-1.5 text-[13px] font-medium text-espresso"
+              >
+                <span className="capitalize">{fmtFecha(d)}</span>
+                <button
+                  onClick={() => quitarBloqueo(d)}
+                  disabled={blockBusy}
+                  className="flex h-6 w-6 items-center justify-center rounded-full text-espresso-soft transition-colors hover:bg-[var(--a-danger)]/12 hover:text-[var(--a-danger)] disabled:opacity-50"
+                  aria-label={`Quitar bloqueo del ${fmtFecha(d)}`}
+                >
+                  ✕
+                </button>
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="admin-faint mt-4 text-[13px]">
+            No hay días bloqueados. Atendés según tu horario semanal.
+          </p>
+        )}
       </section>
 
-      {/* Guardar */}
+      {/* ───────────── Ajustes avanzados (colapsado) ───────────── */}
+      <details className="admin-card group overflow-hidden">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5 md:p-6 [&::-webkit-details-marker]:hidden">
+          <div>
+            <h2 className="text-[18px] font-semibold tracking-tight text-espresso">
+              Ajustes avanzados
+            </h2>
+            <p className="admin-muted mt-1 text-[13px]">
+              Duración, intervalo y ventana de reserva. Cambialo solo si lo necesitás.
+            </p>
+          </div>
+          <svg
+            className="h-5 w-5 shrink-0 text-espresso-soft transition-transform duration-300 group-open:rotate-180"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </summary>
+        <div className="border-t border-[var(--a-border)] p-5 md:p-6">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { k: "slotDurationMin", l: "Duración de la sesión (min)" },
+              { k: "slotIntervalMin", l: "Cada cuánto un turno (min)" },
+              { k: "minNoticeHours", l: "Anticipación mínima (hs)" },
+              { k: "bookingWindowDays", l: "Reservar hasta (días)" },
+            ].map((x) => (
+              <label key={x.k} className="block">
+                <span className="admin-kicker mb-1.5 block text-[12px]">{x.l}</span>
+                <input
+                  type="number"
+                  value={config[x.k as keyof SchedulingConfig]}
+                  onChange={(e) => {
+                    setDirty(true);
+                    setConfig((c) => ({ ...c, [x.k]: Number(e.target.value) }));
+                  }}
+                  className="admin-input w-full px-3 py-2 text-[14px] text-espresso"
+                />
+              </label>
+            ))}
+          </div>
+          <p className="admin-muted mt-3 text-[13px] leading-relaxed">
+            Los turnos arrancan <strong>cada {config.slotIntervalMin} min</strong> (en
+            horarios redondos) y cada uno dura {config.slotDurationMin} min.
+            {config.slotIntervalMin > config.slotDurationMin
+              ? ` Quedan ${config.slotIntervalMin - config.slotDurationMin} min de aire entre turnos.`
+              : " Sin descanso entre turnos (uno pegado al otro)."}
+          </p>
+        </div>
+      </details>
+
+      {/* ───────────── Guardar (horarios + ajustes) ───────────── */}
       <div
         className={`sticky bottom-0 z-10 -mx-1 flex flex-wrap items-center gap-3 rounded-2xl border px-4 py-3 backdrop-blur transition-colors ${
           dirty
@@ -294,10 +381,10 @@ export function DisponibilidadEditor({
       >
         <button
           onClick={guardar}
-          disabled={estado === "guardando" || hayInvalidas}
+          disabled={estado === "guardando" || hayInvalidas || !dirty}
           className="rounded-full bg-espresso px-7 py-3.5 text-[15px] font-medium text-cream shadow-float transition-all duration-300 hover:-translate-y-px disabled:opacity-60"
         >
-          {estado === "guardando" ? "Guardando…" : "Guardar disponibilidad"}
+          {estado === "guardando" ? "Guardando…" : "Guardar horarios"}
         </button>
         {hayInvalidas ? (
           <span className="admin-danger text-[14px] font-medium">
@@ -309,14 +396,18 @@ export function DisponibilidadEditor({
           </span>
         ) : estado === "ok" ? (
           <span className="text-[14px] font-medium text-[var(--a-accent-ink)]">
-            ✓ Guardado y aplicado
+            ✓ Horarios guardados
           </span>
         ) : dirty ? (
           <span className="inline-flex items-center gap-2 text-[14px] font-medium text-[var(--a-accent-ink)]">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--a-accent)]" />
-            Tenés cambios sin guardar — guardá para aplicarlos
+            Tenés cambios de horario sin guardar
           </span>
-        ) : null}
+        ) : (
+          <span className="admin-muted text-[13px]">
+            Los días bloqueados se guardan solos. Acá guardás cambios de horario.
+          </span>
+        )}
       </div>
     </div>
   );

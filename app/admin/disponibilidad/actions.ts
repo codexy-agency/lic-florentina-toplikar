@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { saveDisponibilidad } from "@/lib/store";
+import { saveDisponibilidad, getScheduling, setExceptions } from "@/lib/store";
 import { verifyToken, SESSION_COOKIE } from "@/lib/auth";
 import { randomUUID } from "crypto";
 import type {
@@ -52,6 +52,37 @@ export async function guardarDisponibilidad(payload: Payload) {
   } catch (e) {
     console.error("[disponibilidad] guardar:", e);
     throw new Error("No se pudo guardar la disponibilidad. Reintentá.");
+  }
+  revalidatePath("/admin/disponibilidad");
+  revalidatePath("/admin");
+}
+
+/**
+ * Bloqueo de días que se aplica AL INSTANTE (no espera al "Guardar disponibilidad").
+ * Reemplaza la lista de bloqueos (block_day) preservando otras excepciones.
+ * Resuelve la confusión de "lo bloqueé pero sigue apareciendo el horario".
+ */
+export async function setBloqueos(dates: string[]) {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (!(await verifyToken(token))) throw new Error("No autorizado");
+
+  const limpias = [
+    ...new Set((dates || []).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d))),
+  ].sort();
+
+  const { exceptions } = await getScheduling();
+  const otras = exceptions.filter((e) => e.type !== "block_day");
+  const bloqueos: DateException[] = limpias.map((d) => ({
+    id: randomUUID(),
+    date: d,
+    type: "block_day" as const,
+  }));
+
+  try {
+    await setExceptions([...otras, ...bloqueos]);
+  } catch (e) {
+    console.error("[disponibilidad] setBloqueos:", e);
+    throw new Error("No se pudo actualizar los días bloqueados.");
   }
   revalidatePath("/admin/disponibilidad");
   revalidatePath("/admin");

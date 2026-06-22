@@ -37,6 +37,15 @@ function resizeToDataUrl(file: File, size = 256): Promise<string> {
   });
 }
 
+function CameraIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14.5 4h-5L8 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-4l-1.5-2Z" />
+      <circle cx="12" cy="13" r="3.2" />
+    </svg>
+  );
+}
+
 export function ProfesionalesEditor({
   initial,
   services,
@@ -106,145 +115,188 @@ export function ProfesionalesEditor({
     }
   }
 
-  const inp =
-    "admin-input px-3 py-2 text-[14px] text-espresso";
+  const color = (m: Staff) => m.color || "#7c8a6f";
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {services.length === 0 && (
         <p className="rounded-2xl admin-empty p-5 text-center text-[14px] admin-muted">
           Primero cargá algún servicio para poder asignárselo a cada profesional.
         </p>
       )}
 
-      {rows.map((m, i) => (
-        <div key={m.id} className="rounded-2xl admin-card p-4">
-          <div className="flex flex-wrap items-center gap-3">
-            {m.imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={m.imageUrl}
-                alt={m.nombre}
-                className="h-11 w-11 shrink-0 rounded-full object-cover ring-1 ring-[var(--a-border-strong)]"
-              />
-            ) : (
-              <span
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[14px] font-medium"
-                style={{ backgroundColor: `${m.color || "#7c8a6f"}22`, color: m.color || "#7c8a6f" }}
-              >
-                {(m.nombre.trim()[0] || "?").toUpperCase()}
-              </span>
-            )}
-            <input
-              value={m.nombre}
-              onChange={(e) => patch(i, { nombre: e.target.value })}
-              placeholder="Nombre y apellido"
-              aria-label="Nombre y apellido"
-              className={`${inp} min-w-[180px] flex-1 font-medium`}
-            />
-            <input
-              value={m.titulo ?? ""}
-              onChange={(e) => patch(i, { titulo: e.target.value })}
-              placeholder="Título · matrícula"
-              aria-label="Título o matrícula"
-              className={`${inp} min-w-[180px] flex-1`}
-            />
-            <label className="flex items-center gap-2 text-[13px] admin-muted">
-              <input
-                type="checkbox"
-                checked={m.activo}
-                onChange={(e) => patch(i, { activo: e.target.checked })}
-                className="h-4 w-4 accent-[var(--a-accent)]"
-              />
-              Activo
-            </label>
-            <button
-              onClick={() => del(i)}
-              className="admin-danger text-[13px] transition-colors"
-            >
-              Eliminar
-            </button>
-          </div>
+      {rows.map((m, i) => {
+        const activos = services.filter((s) => m.serviceIds.includes(s.id)).length;
+        return (
+          <div
+            key={m.id}
+            className={`admin-card overflow-hidden p-0 transition-opacity ${m.activo ? "" : "opacity-70"}`}
+          >
+            {/* ── Cabecera tipo perfil (avatar editable + nombre/título en vivo) ── */}
+            <div className="flex items-start gap-4 border-b border-[var(--a-border)] p-5">
+              <label className="group/av relative h-16 w-16 shrink-0 cursor-pointer" title="Cambiar foto">
+                {m.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={m.imageUrl}
+                    alt={m.nombre || "Profesional"}
+                    className="h-16 w-16 rounded-full object-cover ring-2 ring-[var(--a-border-strong)]"
+                  />
+                ) : (
+                  <span
+                    className="flex h-16 w-16 items-center justify-center rounded-full text-[22px] font-serif"
+                    style={{ backgroundColor: `${color(m)}22`, color: color(m) }}
+                  >
+                    {(m.nombre.trim()[0] || "?").toUpperCase()}
+                  </span>
+                )}
+                {/* Overlay al pasar el mouse */}
+                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-espresso/0 opacity-0 transition-all duration-200 group-hover/av:bg-espresso/45 group-hover/av:opacity-100">
+                  <CameraIcon className="h-5 w-5 text-cream" />
+                </span>
+                {/* Badge cámara (señal de editable) */}
+                <span className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-espresso text-cream ring-2 ring-[var(--a-surface)]">
+                  <CameraIcon className="h-3.5 w-3.5" />
+                </span>
+                {subiendo === m.id && (
+                  <span className="absolute inset-0 flex items-center justify-center rounded-full bg-espresso/55">
+                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-cream/40 border-t-cream" />
+                  </span>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => onFile(i, m.id, e.target.files?.[0])}
+                />
+              </label>
 
-          <input
-            value={m.bio ?? ""}
-            onChange={(e) => patch(i, { bio: e.target.value })}
-            placeholder="Bio / especialidad (opcional)"
-            aria-label="Bio o especialidad"
-            className={`${inp} mt-3 w-full`}
-          />
+              <div className="min-w-0 flex-1">
+                <input
+                  value={m.nombre}
+                  onChange={(e) => patch(i, { nombre: e.target.value })}
+                  placeholder="Nombre y apellido"
+                  aria-label="Nombre y apellido"
+                  className="w-full rounded-md bg-transparent px-1.5 py-0.5 text-[17px] font-semibold tracking-tight text-espresso outline-none transition-colors placeholder:font-normal placeholder:text-espresso-soft/45 hover:bg-[var(--a-surface-2)] focus:bg-[var(--a-surface-2)]"
+                />
+                <input
+                  value={m.titulo ?? ""}
+                  onChange={(e) => patch(i, { titulo: e.target.value })}
+                  placeholder="Psicóloga clínica · MP 0000"
+                  aria-label="Título o matrícula"
+                  className="mt-0.5 w-full rounded-md bg-transparent px-1.5 py-0.5 text-[13.5px] text-espresso-soft outline-none transition-colors placeholder:text-espresso-soft/45 hover:bg-[var(--a-surface-2)] focus:bg-[var(--a-surface-2)]"
+                />
+                {activos > 0 && (
+                  <span className="admin-faint mt-1 ml-1.5 inline-block text-[12px]">
+                    {activos} {activos === 1 ? "servicio" : "servicios"} asignados
+                  </span>
+                )}
+              </div>
 
-          {/* Foto de perfil — subida desde el dispositivo (se redimensiona acá) */}
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className="admin-kicker text-[12px]">Foto</span>
-            <label className="admin-btn-ghost cursor-pointer rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors">
-              {subiendo === m.id ? "Procesando…" : m.imageUrl ? "Cambiar foto" : "Subir foto"}
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => onFile(i, m.id, e.target.files?.[0])}
-              />
-            </label>
-            {m.imageUrl && (
-              <button
-                type="button"
-                onClick={() => patch(i, { imageUrl: "" })}
-                className="admin-danger px-2 py-1.5 text-[13px] transition-colors"
-              >
-                Quitar
-              </button>
-            )}
-            <span className="admin-faint text-[12px]">JPG o PNG — se recorta cuadrada y se achica sola.</span>
-          </div>
-
-          {/* Color */}
-          <div className="mt-3 flex items-center gap-2">
-            <span className="admin-kicker text-[12px]">Color</span>
-            {COLORES.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => patch(i, { color: c })}
-                aria-label={`Color del avatar`}
-                aria-pressed={m.color === c}
-                className={`h-7 w-7 rounded-full border-2 transition-transform ${
-                  m.color === c ? "scale-110 border-espresso" : "border-transparent"
-                }`}
-                style={{ backgroundColor: c }}
-              />
-            ))}
-          </div>
-
-          {/* Servicios que ofrece */}
-          {services.length > 0 && (
-            <div className="mt-3">
-              <span className="admin-kicker mb-2 block text-[12px]">
-                Servicios que ofrece
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {services.map((svc) => {
-                  const on = m.serviceIds.includes(svc.id);
-                  return (
-                    <button
-                      key={svc.id}
-                      onClick={() => toggleSvc(i, svc.id)}
-                      className={`rounded-full border px-3 py-1.5 text-[13px] transition-colors ${
-                        on
-                          ? "admin-chip-accent border-transparent font-medium"
-                          : "admin-chip hover:border-[var(--a-border-strong)]"
-                      }`}
-                    >
-                      {on ? "✓ " : ""}
-                      {svc.nombre}
-                    </button>
-                  );
-                })}
+              <div className="flex shrink-0 flex-col items-end gap-2.5">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={m.activo}
+                  onClick={() => patch(i, { activo: !m.activo })}
+                  className="group/sw inline-flex items-center gap-2"
+                  title={m.activo ? "Visible para reservar" : "Oculto"}
+                >
+                  <span className={`text-[12px] font-medium ${m.activo ? "text-[var(--a-accent-ink)]" : "admin-muted"}`}>
+                    {m.activo ? "Activa" : "Oculta"}
+                  </span>
+                  <span
+                    className={`relative h-6 w-11 rounded-full transition-colors duration-200 ${m.activo ? "bg-[var(--a-accent)]" : "bg-[var(--a-border-strong)]"}`}
+                  >
+                    <span
+                      className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ${m.activo ? "translate-x-[22px]" : "translate-x-0.5"}`}
+                    />
+                  </span>
+                </button>
+                <button
+                  onClick={() => del(i)}
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-espresso-soft transition-colors hover:bg-[var(--a-danger)]/12 hover:text-[var(--a-danger)]"
+                  aria-label="Eliminar profesional"
+                  title="Eliminar"
+                >
+                  <svg className="h-[17px] w-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" />
+                  </svg>
+                </button>
               </div>
             </div>
-          )}
-        </div>
-      ))}
+
+            {/* ── Cuerpo: campos agrupados ── */}
+            <div className="space-y-5 p-5">
+              <label className="block">
+                <span className="admin-kicker mb-1.5 block text-[12px]">Presentación</span>
+                <textarea
+                  value={m.bio ?? ""}
+                  onChange={(e) => patch(i, { bio: e.target.value })}
+                  placeholder="Enfoque y especialidad (ej. Terapia Cognitivo Conductual y ACT). Aparece en la reserva."
+                  aria-label="Bio o especialidad"
+                  rows={2}
+                  className="admin-input w-full resize-none px-3 py-2 text-[14px] leading-relaxed text-espresso"
+                />
+              </label>
+
+              <div className="grid gap-5 sm:grid-cols-[auto_1fr]">
+                {/* Color del avatar */}
+                <div>
+                  <span className="admin-kicker mb-2 block text-[12px]">Color</span>
+                  <div className="flex items-center gap-2">
+                    {COLORES.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => patch(i, { color: c })}
+                        aria-label="Color del avatar"
+                        aria-pressed={m.color === c}
+                        className={`h-7 w-7 rounded-full border-2 transition-transform hover:scale-110 ${
+                          m.color === c ? "scale-110 border-espresso" : "border-transparent"
+                        }`}
+                        style={{ backgroundColor: c }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Servicios que ofrece */}
+                {services.length > 0 && (
+                  <div className="min-w-0">
+                    <span className="admin-kicker mb-2 block text-[12px]">
+                      Servicios que ofrece
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {services.map((svc) => {
+                        const on = m.serviceIds.includes(svc.id);
+                        return (
+                          <button
+                            key={svc.id}
+                            onClick={() => toggleSvc(i, svc.id)}
+                            className={`rounded-full border px-3 py-1.5 text-[13px] transition-colors ${
+                              on
+                                ? "admin-chip-accent border-transparent font-medium"
+                                : "admin-chip hover:border-[var(--a-border-strong)]"
+                            }`}
+                          >
+                            {on ? "✓ " : ""}
+                            {svc.nombre}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <p className="admin-faint text-[12px]">
+                La foto se recorta cuadrada y se achica sola (JPG o PNG).
+              </p>
+            </div>
+          </div>
+        );
+      })}
 
       <div className="flex flex-wrap items-center gap-4">
         <button
