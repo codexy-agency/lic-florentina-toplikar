@@ -33,24 +33,24 @@ function serviceVisual(nombre: string, i: number): { color: string; icon: ReactN
   const n = nombre.toLowerCase();
   const color = SVC_ACCENTS[i % SVC_ACCENTS.length];
   let icon: ReactNode;
-  if (/pareja|v[ií]nculo|amor|dos/.test(n)) {
-    // Corazón → vínculo / pareja
-    icon = <path d="M12 20s-6.5-4-9-8.2C1.4 8.9 3 5.8 6.1 5.8c1.8 0 3 1 3.9 2.1.9-1.1 2.1-2.1 3.9-2.1 3.1 0 4.7 3.1 3.1 6C18.5 16 12 20 12 20z" />;
-  } else if (/padre|madre|famil|crianza|hij|ni[ñn]ez|infan/.test(n)) {
-    // Dos adultos → familia / orientación a padres
-    icon = <><circle cx="8" cy="8" r="2.4" /><circle cx="16" cy="8" r="2.4" /><path d="M3.5 19a4.5 4.5 0 0 1 9 0M11.5 19a4.5 4.5 0 0 1 9 0" /></>;
-  } else if (/primera|inicial|conocer|consulta/.test(n)) {
-    // Sol → primer encuentro / bienvenida
-    icon = <><circle cx="12" cy="12" r="3.6" /><path d="M12 3.5v2M12 18.5v2M4.5 12h2M17.5 12h2M6.3 6.3l1.4 1.4M16.3 16.3l1.4 1.4M17.7 6.3l-1.4 1.4M7.7 16.3l-1.4 1.4" /></>;
-  } else if (/adolesc|joven|juvenil/.test(n)) {
+  if (/pareja|v[ií]nculo|amor/.test(n)) {
+    // Dos personas juntas → pareja / vínculo
+    icon = <><circle cx="8.5" cy="8" r="2.6" /><circle cx="15.5" cy="8" r="2.6" /><path d="M4 20c0-2.8 2-4.6 4.5-4.6S13 17.2 13 20M11 20c0-2.8 2-4.6 4.5-4.6S20 17.2 20 20" /></>;
+  } else if (/padre|madre|famil|crianza|hij|ni[ñn]|infan/.test(n)) {
+    // Adulto + niño → orientación a padres / familia
+    icon = <><circle cx="8" cy="7" r="2.7" /><path d="M3.5 20c0-3 2-5 4.5-5s4.5 2 4.5 5" /><circle cx="16.5" cy="10.5" r="1.9" /><path d="M13.4 20c0-2.1 1.4-3.6 3.1-3.6s3.1 1.5 3.1 3.6" /></>;
+  } else if (/primera|inicial|conocer|consulta|evalua|admis/.test(n)) {
+    // Burbuja de conversación → primer encuentro / nos conocemos
+    icon = <><path d="M20.5 13.5a2 2 0 0 1-2 2H8l-4 3.5V6a2 2 0 0 1 2-2h12.5a2 2 0 0 1 2 2Z" /><path d="M8 8.7h8.5M8 11.6h5" /></>;
+  } else if (/adolesc|joven|juvenil|teen/.test(n)) {
     // Persona joven
     icon = <><circle cx="12" cy="7.5" r="3" /><path d="M6 20a6 6 0 0 1 12 0" /></>;
-  } else if (/individual|sesi[oó]n|terap|adult/.test(n)) {
+  } else if (/individual|sesi[oó]n|terap|adult|psico/.test(n)) {
     // Persona → sesión individual
     icon = <><circle cx="12" cy="8" r="3.2" /><path d="M5.5 20a6.5 6.5 0 0 1 13 0" /></>;
   } else {
-    // Hoja → genérico / bienestar
-    icon = <><path d="M11 20.5C6 19.5 3.5 15.5 3.5 11 3.5 7 6.5 3.5 11 3c.3 4.5-.5 9.5-0 17.5z" /><path d="M7 16.5C9 13 11 9.5 11 3.5" /></>;
+    // Corazón con latido → cuidado / bienestar (genérico)
+    icon = <><path d="M12 20s-6.4-4-8.9-8.1C1.4 9 3 5.9 6.1 5.9c1.8 0 3 1 3.9 2.1.9-1.1 2.1-2.1 3.9-2.1 2.4 0 3.9 1.9 3.7 4.1" /><path d="M13.5 14.5h2.3l1.3 2.4 2.1-5 1.3 2.6H23" /></>;
   }
   return { color, icon };
 }

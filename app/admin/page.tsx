@@ -285,7 +285,7 @@ export default async function AdminPage({
             hoy={hoyAR}
             services={services}
             staff={staff}
-            pacientes={pacientes.map((p) => ({ id: p.id, nombre: p.nombre, contacto: p.contacto }))}
+            pacientes={pacientes.map((p) => ({ id: p.id, nombre: p.nombre, contacto: p.contacto, proximoTurno: p.proximoTurno }))}
           />
         </div>
       ) : (

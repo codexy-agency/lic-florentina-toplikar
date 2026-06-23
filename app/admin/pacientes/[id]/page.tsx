@@ -5,10 +5,11 @@ import {
   getPacienteTurnos,
   listNotas,
 } from "@/lib/store";
-import { fechaHoraAR, isoToArLocal } from "@/lib/scheduling/slots";
+import { fechaHoraAR } from "@/lib/scheduling/slots";
 import { AdminShell } from "@/components/AdminShell";
 import { ArrowLeft } from "@/components/Arrow";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
+import { FechaNotaAuto } from "@/components/FechaNotaAuto";
 import { agregarNota, borrarNota, guardarFicha, editarPaciente } from "../actions";
 import { requireAdmin } from "@/lib/session";
 
@@ -52,7 +53,6 @@ export default async function PacienteDetalle({
     getPacienteTurnos(paciente.contacto),
     listNotas(id),
   ]);
-  const ahoraLocal = isoToArLocal(new Date().toISOString());
 
   // Próximo turno (para la plantilla de recordatorio de WhatsApp).
   const ahoraMs = Date.now();
@@ -161,13 +161,7 @@ export default async function PacienteDetalle({
                   <label className="admin-muted text-[12px] font-medium" htmlFor="nota-fecha">
                     Fecha
                   </label>
-                  <input
-                    id="nota-fecha"
-                    type="datetime-local"
-                    name="fecha"
-                    defaultValue={ahoraLocal}
-                    className="admin-input px-3 py-2 text-[13px]"
-                  />
+                  <FechaNotaAuto name="fecha" />
                 </div>
               </div>
               <input type="hidden" name="patientId" value={id} />

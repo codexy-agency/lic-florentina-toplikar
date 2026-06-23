@@ -108,6 +108,10 @@ export function AgendaCalendario({
     () => Array.from({ length: Math.max(1, horaMax - horaMin) }, (_, i) => horaMin + i),
     [horaMin, horaMax]
   );
+  const semanaDias = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(cursor), i)),
+    [cursor]
+  );
 
   function navegar(dir: -1 | 1) {
     if (vista === "dia") setCursor((c) => addDays(c, dir));
@@ -174,17 +178,27 @@ export function AgendaCalendario({
 
       {vista === "mes" ? (
         <MesView cursor={cursor} hoy={hoy} porDia={porDia} bloqSet={bloqSet} onDia={(d) => { setCursor(d); setVista("dia"); }} />
+      ) : vista === "dia" ? (
+        <GrillaTiempo dias={[cursor]} hours={hours} horaMin={horaMin} hoy={hoy} porDia={porDia} bloqSet={bloqSet} compacto={false} onSlot={(f) => setNuevo(f)} />
       ) : (
-        <GrillaTiempo
-          dias={vista === "dia" ? [cursor] : Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(cursor), i))}
-          hours={hours}
-          horaMin={horaMin}
-          hoy={hoy}
-          porDia={porDia}
-          bloqSet={bloqSet}
-          compacto={vista === "semana"}
-          onSlot={(f) => setNuevo(f)}
-        />
+        <>
+          {/* Semana: en mobile, lista por día (la grilla de 7 columnas no se lee
+              en un teléfono); en desktop, la grilla de tiempo. */}
+          <div className="md:hidden">
+            <SemanaLista
+              dias={semanaDias}
+              porDia={porDia}
+              bloqSet={bloqSet}
+              hoy={hoy}
+              horaMin={horaMin}
+              onSlot={(f) => setNuevo(f)}
+              onDia={(d) => { setCursor(d); setVista("dia"); }}
+            />
+          </div>
+          <div className="hidden md:block">
+            <GrillaTiempo dias={semanaDias} hours={hours} horaMin={horaMin} hoy={hoy} porDia={porDia} bloqSet={bloqSet} compacto onSlot={(f) => setNuevo(f)} />
+          </div>
+        </>
       )}
 
       <NuevoTurnoModal
@@ -305,6 +319,94 @@ function GrillaTiempo({
           })}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ───────────── Vista semana en mobile: lista por día (agenda) ─────────────
+function SemanaLista({
+  dias,
+  porDia,
+  bloqSet,
+  hoy,
+  horaMin,
+  onSlot,
+  onDia,
+}: {
+  dias: string[];
+  porDia: Map<string, CalTurno[]>;
+  bloqSet: Set<string>;
+  hoy: string;
+  horaMin: number;
+  onSlot: (fecha: string) => void;
+  onDia: (ymd: string) => void;
+}) {
+  const dd = (n: number) => String(n).padStart(2, "0");
+  return (
+    <div className="divide-y divide-[var(--a-border)]">
+      {dias.map((d) => {
+        const items = porDia.get(d) || [];
+        const bloqueado = bloqSet.has(d);
+        const esHoy = d === hoy;
+        const w = weekdayOf(d);
+        return (
+          <div key={d} className={`px-3 py-3 ${esHoy ? "bg-[var(--a-accent-soft)]/35" : ""}`}>
+            <div className="flex items-center justify-between gap-2">
+              <button onClick={() => onDia(d)} className="flex min-w-0 items-center gap-2 text-left">
+                <span className={`flex h-7 min-w-7 items-center justify-center rounded-full px-1.5 text-[13px] font-semibold tabular-nums ${esHoy ? "bg-[var(--a-accent)] text-white" : "bg-[var(--a-surface-2)] text-espresso"}`}>
+                  {dayNum(d)}
+                </span>
+                <span className="text-[13.5px] font-semibold capitalize text-espresso">{DIAS_LARGO[w]}</span>
+                {items.length > 0 && (
+                  <span className="admin-faint text-[12px]">· {items.length} {items.length === 1 ? "turno" : "turnos"}</span>
+                )}
+                {bloqueado && <span className="text-[11.5px] font-medium text-[var(--a-text-3)]">· No atiende</span>}
+              </button>
+              {!bloqueado && (
+                <button
+                  onClick={() => onSlot(`${d}T${dd(Math.max(horaMin, 8))}:00`)}
+                  aria-label="Agendar turno"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--a-border)] text-espresso-soft transition-colors hover:bg-[var(--a-surface-2)] hover:text-espresso"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                </button>
+              )}
+            </div>
+
+            {items.length === 0 ? (
+              !bloqueado && <p className="admin-faint mt-1.5 pl-9 text-[12.5px]">Sin turnos</p>
+            ) : (
+              <ul className="mt-2.5 space-y-1.5">
+                {items.map((t) => {
+                  const c = estadoDe(t.estado);
+                  const inner = (
+                    <>
+                      <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${c.dot}`} />
+                      <span className="w-12 shrink-0 text-[13px] font-semibold tabular-nums text-espresso">{hmOf(t.startsAt)}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[14px] font-medium text-espresso">{t.nombre}</span>
+                        {t.serviceName && <span className="admin-muted block truncate text-[12px]">{t.serviceName}</span>}
+                      </span>
+                      <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${c.box}`}>{c.label}</span>
+                    </>
+                  );
+                  return t.pacienteId ? (
+                    <li key={t.id}>
+                      <Link href={`/admin/pacientes/${t.pacienteId}`} className="flex items-center gap-2.5 rounded-xl border border-[var(--a-border)] bg-[var(--a-surface)] px-3 py-2.5 transition-colors hover:bg-[var(--a-surface-2)]">
+                        {inner}
+                      </Link>
+                    </li>
+                  ) : (
+                    <li key={t.id} className="flex items-center gap-2.5 rounded-xl border border-[var(--a-border)] bg-[var(--a-surface)] px-3 py-2.5">
+                      {inner}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

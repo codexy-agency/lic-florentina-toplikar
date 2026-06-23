@@ -5,7 +5,12 @@ import { agendarTurnoManual, type ManualState } from "@/app/admin/actions";
 import { SubmitButton } from "./SubmitButton";
 import type { Service, Staff } from "@/lib/scheduling/types";
 
-export type PacienteMini = { id: string; nombre: string; contacto: string };
+export type PacienteMini = { id: string; nombre: string; contacto: string; proximoTurno?: string };
+
+function fmtCorto(iso: string) {
+  if (!iso || iso.length < 16) return "";
+  return `${iso.slice(8, 10)}/${iso.slice(5, 7)} ${iso.slice(11, 16)} hs`;
+}
 
 /**
  * Modal para crear un turno desde el panel (p. ej. tocando un hueco del
@@ -112,6 +117,14 @@ export function NuevoTurnoModal({
                 </select>
                 <input type="hidden" name="nombre" value={pac?.nombre || ""} />
                 <input type="hidden" name="contacto" value={pac?.contacto || ""} />
+                {pac?.proximoTurno && (
+                  <p className="mt-2 flex items-start gap-2 rounded-xl bg-[#F6EFDD] px-3 py-2 text-[12.5px] font-medium leading-snug text-[#7E5E18]">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0">
+                      <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" /><path d="M12 9v4M12 17h.01" />
+                    </svg>
+                    Ya tiene un turno el {fmtCorto(pac.proximoTurno)}. Revisá que no lo estés duplicando.
+                  </p>
+                )}
               </>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
