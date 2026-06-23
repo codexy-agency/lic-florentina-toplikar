@@ -88,6 +88,7 @@ export async function agendarTurnoManual(
     await auth();
     const nombre = String(formData.get("nombre") || "").trim().slice(0, 120);
     const contacto = String(formData.get("contacto") || "").trim().slice(0, 160);
+    const email = String(formData.get("email") || "").trim().slice(0, 160);
     const modalidad =
       String(formData.get("modalidad") || "online") === "presencial"
         ? "presencial"
@@ -114,6 +115,7 @@ export async function agendarTurnoManual(
     const turno = await crearTurnoManual({
       nombre,
       contacto,
+      email: email || undefined,
       modalidad,
       serviceId: svc?.id,
       serviceName: svc?.nombre,

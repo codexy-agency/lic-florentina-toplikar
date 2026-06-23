@@ -16,9 +16,10 @@ export async function crearPaciente(formData: FormData) {
   await auth();
   const nombre = String(formData.get("nombre") || "").trim().slice(0, 120);
   const contacto = String(formData.get("contacto") || "").trim().slice(0, 160);
+  const email = String(formData.get("email") || "").trim().slice(0, 160);
   const modalidad = String(formData.get("modalidad") || "online") === "presencial" ? "presencial" : "online";
   if (!nombre || !contacto) return;
-  const p = await addPaciente({ nombre, contacto, modalidad });
+  const p = await addPaciente({ nombre, contacto, email: email || undefined, modalidad });
   revalidatePath("/admin/pacientes");
   redirect(`/admin/pacientes/${p.id}`); // va directo a su historia
 }
@@ -48,9 +49,10 @@ export async function editarPaciente(formData: FormData) {
   const id = String(formData.get("id") || "");
   const nombre = String(formData.get("nombre") || "").trim().slice(0, 120);
   const contacto = String(formData.get("contacto") || "").trim().slice(0, 160);
+  const email = String(formData.get("email") || "").trim().slice(0, 160);
   const modalidad = String(formData.get("modalidad") || "online");
   if (!id || !nombre || !contacto) return;
-  await updatePacienteDatos(id, { nombre, contacto, modalidad });
+  await updatePacienteDatos(id, { nombre, contacto, email: email || undefined, modalidad });
   revalidatePath(`/admin/pacientes/${id}`);
   revalidatePath("/admin/pacientes");
 }

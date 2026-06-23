@@ -27,14 +27,18 @@ export default async function PacientesPage() {
             <span className="admin-faint transition-transform group-open:rotate-180">⌄</span>
           </summary>
           <form action={crearPaciente} className="border-t border-[var(--color-line)] p-4">
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <label className="block">
                 <span className="admin-kicker mb-1 block text-[12px]">Nombre</span>
                 <input name="nombre" required placeholder="Nombre y apellido" className={field} />
               </label>
               <label className="block">
-                <span className="admin-kicker mb-1 block text-[12px]">Contacto</span>
-                <input name="contacto" required placeholder="Email o WhatsApp" className={field} />
+                <span className="admin-kicker mb-1 block text-[12px]">WhatsApp / teléfono</span>
+                <input name="contacto" type="tel" required placeholder="+54 9 …" className={field} />
+              </label>
+              <label className="block">
+                <span className="admin-kicker mb-1 block text-[12px]">Email <span className="admin-faint normal-case">(opcional)</span></span>
+                <input name="email" type="email" placeholder="tucorreo@ejemplo.com" className={field} />
               </label>
               <label className="block">
                 <span className="admin-kicker mb-1 block text-[12px]">Modalidad</span>

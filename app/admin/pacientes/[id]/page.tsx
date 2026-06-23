@@ -90,6 +90,12 @@ export default async function PacienteDetalle({
             </h1>
             <p className="admin-muted mt-1 text-[14px]">
               {paciente.contacto}
+              {paciente.email && (
+                <>
+                  <span className="admin-faint mx-2">·</span>
+                  {paciente.email}
+                </>
+              )}
               <span className="admin-faint mx-2">·</span>
               paciente desde {fmtFecha(paciente.creadoEn)}
             </p>
@@ -115,15 +121,19 @@ export default async function PacienteDetalle({
               <path d="m6 9 6 6 6-6" />
             </svg>
           </summary>
-          <form action={editarPaciente} className="admin-card mt-3 grid gap-4 rounded-2xl p-5 sm:grid-cols-3">
+          <form action={editarPaciente} className="admin-card mt-3 grid gap-4 rounded-2xl p-5 sm:grid-cols-2">
             <input type="hidden" name="id" value={id} />
             <label className="block">
               <span className="admin-kicker mb-1.5 block text-[12px]">Nombre y apellido</span>
               <input name="nombre" defaultValue={paciente.nombre} required maxLength={120} className="admin-input w-full px-3 py-2 text-[14px]" />
             </label>
             <label className="block">
-              <span className="admin-kicker mb-1.5 block text-[12px]">WhatsApp o email</span>
-              <input name="contacto" defaultValue={paciente.contacto} required maxLength={160} className="admin-input w-full px-3 py-2 text-[14px]" placeholder="+54 9 … o mail" />
+              <span className="admin-kicker mb-1.5 block text-[12px]">WhatsApp / teléfono</span>
+              <input name="contacto" type="tel" defaultValue={paciente.contacto} required maxLength={160} className="admin-input w-full px-3 py-2 text-[14px]" placeholder="+54 9 …" />
+            </label>
+            <label className="block">
+              <span className="admin-kicker mb-1.5 block text-[12px]">Email</span>
+              <input name="email" type="email" defaultValue={paciente.email ?? ""} maxLength={160} className="admin-input w-full px-3 py-2 text-[14px]" placeholder="tucorreo@ejemplo.com" />
             </label>
             <label className="block">
               <span className="admin-kicker mb-1.5 block text-[12px]">Modalidad</span>
@@ -132,8 +142,8 @@ export default async function PacienteDetalle({
                 <option value="presencial">Presencial</option>
               </select>
             </label>
-            <div className="flex items-center justify-end gap-3 sm:col-span-3">
-              <span className="admin-faint mr-auto text-[12px]">El contacto se usa para el WhatsApp y para vincular sus turnos.</span>
+            <div className="flex items-center justify-end gap-3 sm:col-span-2">
+              <span className="admin-faint mr-auto text-[12px]">El WhatsApp/teléfono se usa para escribirle y para vincular sus turnos.</span>
               <button className="admin-btn rounded-full px-5 py-2.5 text-[14px] font-medium">Guardar datos</button>
             </div>
           </form>

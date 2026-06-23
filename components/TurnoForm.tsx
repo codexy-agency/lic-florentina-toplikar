@@ -183,6 +183,7 @@ export function TurnoForm() {
     const payload = {
       nombre: String(f.get("nombre") || "").trim(),
       contacto: String(f.get("contacto") || "").trim(),
+      email: String(f.get("email") || "").trim(),
       modalidad,
       serviceId: service.id,
       staffId: member.id,
@@ -556,11 +557,17 @@ export function TurnoForm() {
                   </label>
                   <label className="block">
                     <span className="mb-1.5 block text-[12px] font-medium uppercase tracking-[0.14em] text-sage-deep">
-                      Email o WhatsApp
+                      WhatsApp / teléfono
                     </span>
-                    <input name="contacto" required placeholder="Para confirmarte el turno" className={field} />
+                    <input name="contacto" type="tel" inputMode="tel" required placeholder="+54 9 …" className={field} />
                   </label>
                 </div>
+                <label className="mt-4 block">
+                  <span className="mb-1.5 block text-[12px] font-medium uppercase tracking-[0.14em] text-sage-deep">
+                    Email <span className="normal-case text-espresso-soft/60">(opcional)</span>
+                  </span>
+                  <input name="email" type="email" placeholder="tucorreo@ejemplo.com" className={field} />
+                </label>
                 <label className="mt-4 block">
                   <span className="mb-1.5 block text-[12px] font-medium uppercase tracking-[0.14em] text-sage-deep">
                     Motivo <span className="normal-case text-espresso-soft/60">(opcional)</span>

@@ -129,7 +129,8 @@ export function NuevoTurnoModal({
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
                 <input name="nombre" required maxLength={120} className={field} placeholder="Nombre y apellido" />
-                <input name="contacto" required maxLength={160} className={field} placeholder="WhatsApp o email" />
+                <input name="contacto" type="tel" required maxLength={160} className={field} placeholder="WhatsApp / teléfono" />
+                <input name="email" type="email" maxLength={160} className={`${field} sm:col-span-2`} placeholder="Email (opcional)" />
               </div>
             )}
           </div>

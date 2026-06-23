@@ -89,8 +89,12 @@ export function AgendarManualForm({
           <input name="nombre" required maxLength={120} className={field} placeholder="Nombre y apellido" />
         </label>
         <label className="block">
-          <span className={label}>WhatsApp o teléfono</span>
-          <input name="contacto" required maxLength={160} className={field} placeholder="+54 9 ..." />
+          <span className={label}>WhatsApp / teléfono</span>
+          <input name="contacto" type="tel" required maxLength={160} className={field} placeholder="+54 9 ..." />
+        </label>
+        <label className="block">
+          <span className={label}>Email <span className="admin-faint normal-case">(opcional)</span></span>
+          <input name="email" type="email" maxLength={160} className={field} placeholder="tucorreo@ejemplo.com" />
         </label>
         <label className="block">
           <span className={label}>Fecha y hora</span>

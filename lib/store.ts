@@ -33,7 +33,8 @@ export type Estado =
 export interface Solicitud {
   id: string;
   nombre: string;
-  contacto: string;
+  contacto: string; // identidad primaria (teléfono/WhatsApp preferido)
+  email?: string; // email separado (opcional)
   modalidad: string;
   serviceId?: string; // servicio elegido
   serviceName?: string; // snapshot del nombre (no depende de que el servicio siga existiendo)
@@ -54,7 +55,8 @@ export interface Solicitud {
 export interface Paciente {
   id: string;
   nombre: string;
-  contacto: string;
+  contacto: string; // identidad primaria (teléfono/WhatsApp preferido)
+  email?: string; // email separado (opcional)
   modalidad: string;
   notas: string; // ficha / resumen fijo
   creadoEn: string;
@@ -348,10 +350,38 @@ export async function getPacientesResumen(): Promise<PacienteResumen[]> {
     });
 }
 
+/** Registra al paciente (deduplicado por contacto) directamente dentro de un
+ *  mutate existente. Lo usan TODOS los flujos que generan un turno (reserva
+ *  pública, carga a mano, confirmación) para que el paciente exista en la base
+ *  desde el momento de la reserva, no recién al confirmar. */
+function registrarPacienteSiNuevo(
+  db: DB,
+  input: { nombre: string; contacto: string; modalidad?: string; email?: string }
+): void {
+  const key = contactoKey(input.contacto);
+  if (!key) return;
+  const existe = db.pacientes.find((p) => contactoKey(p.contacto) === key);
+  if (existe) {
+    // Completa el email si el paciente no lo tenía y ahora llegó.
+    if (input.email && !existe.email) existe.email = input.email;
+    return;
+  }
+  db.pacientes.unshift({
+    id: randomUUID(),
+    nombre: input.nombre,
+    contacto: input.contacto,
+    email: input.email || undefined,
+    modalidad: input.modalidad || "online",
+    notas: "",
+    creadoEn: new Date().toISOString(),
+  });
+}
+
 /** Crea un paciente a mano. Si ya existe ese contacto, devuelve el existente. */
 export async function addPaciente(input: {
   nombre: string;
   contacto: string;
+  email?: string;
   modalidad?: string;
   notas?: string;
 }): Promise<Paciente> {
@@ -363,6 +393,7 @@ export async function addPaciente(input: {
       id: randomUUID(),
       nombre: input.nombre,
       contacto: input.contacto,
+      email: input.email || undefined,
       modalidad: input.modalidad || "online",
       notas: input.notas || "",
       creadoEn: new Date().toISOString(),
@@ -395,13 +426,14 @@ export async function updatePacienteFicha(id: string, notas: string): Promise<vo
 /** Edita los datos de contacto del paciente (nombre, contacto, modalidad). */
 export async function updatePacienteDatos(
   id: string,
-  datos: { nombre: string; contacto: string; modalidad: string }
+  datos: { nombre: string; contacto: string; email?: string; modalidad: string }
 ): Promise<void> {
   await mutate((db) => {
     const p = db.pacientes.find((x) => x.id === id);
     if (!p) return;
     if (datos.nombre) p.nombre = datos.nombre;
     if (datos.contacto) p.contacto = datos.contacto;
+    p.email = datos.email?.trim() || undefined;
     p.modalidad = datos.modalidad === "presencial" ? "presencial" : "online";
   });
 }
@@ -458,6 +490,7 @@ export async function addSolicitud(
       creadoEn: new Date().toISOString(),
     };
     db.solicitudes.unshift(s);
+    registrarPacienteSiNuevo(db, s);
     return s;
   });
 }
@@ -489,6 +522,7 @@ export async function addSolicitudSiLibre(
       creadoEn: new Date().toISOString(),
     };
     db.solicitudes.unshift(sol);
+    registrarPacienteSiNuevo(db, sol);
     return sol;
   });
 }
@@ -498,6 +532,7 @@ export async function addSolicitudSiLibre(
 export async function crearTurnoManual(input: {
   nombre: string;
   contacto: string;
+  email?: string;
   modalidad: string;
   serviceId?: string;
   serviceName?: string;
@@ -528,17 +563,7 @@ export async function crearTurnoManual(input: {
       creadoEn: new Date().toISOString(),
     };
     db.solicitudes.unshift(sol);
-    const key = contactoKey(input.contacto);
-    if (!db.pacientes.find((p) => contactoKey(p.contacto) === key)) {
-      db.pacientes.unshift({
-        id: randomUUID(),
-        nombre: input.nombre,
-        contacto: input.contacto,
-        modalidad: input.modalidad,
-        notas: "",
-        creadoEn: new Date().toISOString(),
-      });
-    }
+    registrarPacienteSiNuevo(db, input);
     return sol;
   });
 }
@@ -595,20 +620,7 @@ export async function setEstado(
       s.metodoPago = undefined;
       s.fechaPago = undefined;
     }
-    if (estado === "confirmado") {
-      const key = contactoKey(s.contacto);
-      const existe = db.pacientes.find((p) => contactoKey(p.contacto) === key);
-      if (!existe) {
-        db.pacientes.unshift({
-          id: randomUUID(),
-          nombre: s.nombre,
-          contacto: s.contacto,
-          modalidad: s.modalidad,
-          notas: "",
-          creadoEn: new Date().toISOString(),
-        });
-      }
-    }
+    if (estado === "confirmado") registrarPacienteSiNuevo(db, s);
     return s;
   });
 }

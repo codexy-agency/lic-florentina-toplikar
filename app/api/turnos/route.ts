@@ -53,6 +53,7 @@ export async function POST(req: Request) {
     }
     const nombre = clean(body.nombre, 120);
     const contacto = clean(body.contacto, 160);
+    const email = clean(body.email, 160);
     const modalidad: Modalidad = body.modalidad === "presencial" ? "presencial" : "online";
     const startsAtIn = clean(body.startsAt, 40);
     const motivo = clean(body.motivo, MAX);
@@ -137,6 +138,7 @@ export async function POST(req: Request) {
     const base = {
       nombre,
       contacto,
+      email: email || undefined,
       modalidad,
       serviceId,
       serviceName,
