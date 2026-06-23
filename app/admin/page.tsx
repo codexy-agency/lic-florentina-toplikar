@@ -4,12 +4,14 @@ import {
   getPacientesResumen,
   listServices,
   listStaff,
+  getScheduling,
   stats,
 } from "@/lib/store";
 import { fechaHoraAR, horaAR, isoToArLocal } from "@/lib/scheduling/slots";
 import { AdminShell } from "@/components/AdminShell";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
+import { AgendaCalendario, type CalTurno } from "@/components/AgendaCalendario";
 import { SubmitButton } from "@/components/SubmitButton";
 import { AgendarManualForm } from "@/components/AgendarManualForm";
 import {
@@ -103,16 +105,62 @@ function waRecordatorio(x: {
 
 import { requireAdmin } from "@/lib/session";
 
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ vista?: string }>;
+}) {
   await requireAdmin();
-  const [solicitudes, pacientes, services, staff, s] = await Promise.all([
+  const vista = (await searchParams).vista === "calendario" ? "calendario" : "lista";
+  const [solicitudes, pacientes, services, staff, sched, s] = await Promise.all([
     listSolicitudes(),
     getPacientesResumen(),
     listServices(true),
     listStaff(true),
+    getScheduling(),
     stats(),
   ]);
   const pendientes = solicitudes.filter((x) => x.estado === "pendiente");
+
+  // ── Datos para el calendario ──
+  const ckey = (c: string) => {
+    const t = (c || "").trim().toLowerCase();
+    if (!t) return "";
+    if (t.includes("@")) return t;
+    const d = t.replace(/\D/g, "");
+    return d.length >= 8 ? d.slice(-10) : d || t;
+  };
+  const pacByContacto = new Map(pacientes.map((p) => [ckey(p.contacto), p.id]));
+  const ESTADOS_CAL = new Set(["pendiente", "confirmado", "realizado", "no_asistio"]);
+  const calTurnos: CalTurno[] = solicitudes
+    .filter((t) => t.startsAt && ESTADOS_CAL.has(t.estado))
+    .map((t) => ({
+      id: t.id,
+      nombre: t.nombre,
+      startsAt: t.startsAt!,
+      endsAt: t.endsAt,
+      serviceName: t.serviceName,
+      modalidad: t.modalidad,
+      estado: t.estado,
+      pacienteId: pacByContacto.get(ckey(t.contacto)),
+    }));
+  const bloqueos = sched.exceptions.filter((e) => e.type === "block_day").map((e) => e.date);
+  let horaMin = 24;
+  let horaMax = 0;
+  for (const r of sched.rules) {
+    const sh = Number(r.startTime.slice(0, 2));
+    const eh = Number(r.endTime.slice(0, 2));
+    const em = Number(r.endTime.slice(3, 5));
+    if (Number.isFinite(sh)) horaMin = Math.min(horaMin, sh);
+    if (Number.isFinite(eh)) horaMax = Math.max(horaMax, em > 0 ? eh + 1 : eh);
+  }
+  if (horaMin > horaMax) {
+    horaMin = 8;
+    horaMax = 21;
+  }
+  const hoyAR = new Date().toLocaleDateString("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+  });
   const agenda = solicitudes
     .filter((x) => x.estado === "confirmado")
     .sort((a, b) => (a.startsAt || "") < (b.startsAt || "") ? -1 : 1);
@@ -208,6 +256,37 @@ export default async function AdminPage() {
         ))}
       </div>
 
+      {/* Vista: Lista / Calendario */}
+      <div className="mt-8 inline-flex rounded-full border border-[var(--a-border)] bg-[var(--a-surface-2)] p-0.5">
+        {[
+          { k: "lista", l: "Lista" },
+          { k: "calendario", l: "Calendario" },
+        ].map((o) => (
+          <Link
+            key={o.k}
+            href={`/admin?vista=${o.k}`}
+            scroll={false}
+            className={`rounded-full px-4 py-1.5 text-[13px] font-medium transition-colors ${
+              vista === o.k ? "bg-[var(--a-accent)] text-white shadow-sm" : "text-espresso-soft hover:text-espresso"
+            }`}
+          >
+            {o.l}
+          </Link>
+        ))}
+      </div>
+
+      {vista === "calendario" ? (
+        <div className="mt-5">
+          <AgendaCalendario
+            turnos={calTurnos}
+            bloqueos={bloqueos}
+            horaMin={horaMin}
+            horaMax={horaMax}
+            hoy={hoyAR}
+          />
+        </div>
+      ) : (
+        <>
       {/* Bandeja de solicitudes */}
       <section className="mt-14">
         <div className="flex items-center gap-3 border-b border-[var(--a-border)] pb-3">
@@ -525,6 +604,8 @@ export default async function AdminPage() {
           </ul>
         )}
       </section>
+        </>
+      )}
 
       <p className="admin-faint mt-14 text-center text-[12px]">
         MVP · datos en archivo local. En producción: Supabase + facturación AFIP
