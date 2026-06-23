@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { addNota, removeNota, updatePacienteFicha, addPaciente } from "@/lib/store";
+import { addNota, removeNota, updatePacienteFicha, updatePacienteDatos, addPaciente } from "@/lib/store";
 import { verifyToken, SESSION_COOKIE } from "@/lib/auth";
 import { arLocalToIso } from "@/lib/scheduling/slots";
 
@@ -41,6 +41,18 @@ export async function borrarNota(formData: FormData) {
   const patientId = String(formData.get("patientId") || "");
   if (id) await removeNota(id);
   revalidatePath(`/admin/pacientes/${patientId}`);
+}
+
+export async function editarPaciente(formData: FormData) {
+  await auth();
+  const id = String(formData.get("id") || "");
+  const nombre = String(formData.get("nombre") || "").trim().slice(0, 120);
+  const contacto = String(formData.get("contacto") || "").trim().slice(0, 160);
+  const modalidad = String(formData.get("modalidad") || "online");
+  if (!id || !nombre || !contacto) return;
+  await updatePacienteDatos(id, { nombre, contacto, modalidad });
+  revalidatePath(`/admin/pacientes/${id}`);
+  revalidatePath("/admin/pacientes");
 }
 
 export async function guardarFicha(formData: FormData) {

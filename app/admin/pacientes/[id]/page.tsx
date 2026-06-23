@@ -9,7 +9,7 @@ import { fechaHoraAR, isoToArLocal } from "@/lib/scheduling/slots";
 import { AdminShell } from "@/components/AdminShell";
 import { ArrowLeft } from "@/components/Arrow";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
-import { agregarNota, borrarNota, guardarFicha } from "../actions";
+import { agregarNota, borrarNota, guardarFicha, editarPaciente } from "../actions";
 import { requireAdmin } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -103,6 +103,41 @@ export default async function PacienteDetalle({
             />
           </div>
         </div>
+
+        {/* Editar datos del paciente (nombre, contacto, modalidad) */}
+        <details className="group mt-4">
+          <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 text-[13px] font-medium text-[var(--a-accent-ink)] transition-colors hover:text-[var(--a-accent)] [&::-webkit-details-marker]:hidden">
+            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+            </svg>
+            Editar datos
+            <svg className="h-3.5 w-3.5 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </summary>
+          <form action={editarPaciente} className="admin-card mt-3 grid gap-4 rounded-2xl p-5 sm:grid-cols-3">
+            <input type="hidden" name="id" value={id} />
+            <label className="block">
+              <span className="admin-kicker mb-1.5 block text-[12px]">Nombre y apellido</span>
+              <input name="nombre" defaultValue={paciente.nombre} required maxLength={120} className="admin-input w-full px-3 py-2 text-[14px]" />
+            </label>
+            <label className="block">
+              <span className="admin-kicker mb-1.5 block text-[12px]">WhatsApp o email</span>
+              <input name="contacto" defaultValue={paciente.contacto} required maxLength={160} className="admin-input w-full px-3 py-2 text-[14px]" placeholder="+54 9 … o mail" />
+            </label>
+            <label className="block">
+              <span className="admin-kicker mb-1.5 block text-[12px]">Modalidad</span>
+              <select name="modalidad" defaultValue={paciente.modalidad} className="admin-input w-full px-3 py-2 text-[14px]">
+                <option value="online">Online</option>
+                <option value="presencial">Presencial</option>
+              </select>
+            </label>
+            <div className="flex items-center justify-end gap-3 sm:col-span-3">
+              <span className="admin-faint mr-auto text-[12px]">El contacto se usa para el WhatsApp y para vincular sus turnos.</span>
+              <button className="admin-btn rounded-full px-5 py-2.5 text-[14px] font-medium">Guardar datos</button>
+            </div>
+          </form>
+        </details>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-3 lg:items-start">
           {/* Historia clínica */}

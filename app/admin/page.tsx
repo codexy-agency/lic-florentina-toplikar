@@ -283,6 +283,9 @@ export default async function AdminPage({
             horaMin={horaMin}
             horaMax={horaMax}
             hoy={hoyAR}
+            services={services}
+            staff={staff}
+            pacientes={pacientes.map((p) => ({ id: p.id, nombre: p.nombre, contacto: p.contacto }))}
           />
         </div>
       ) : (

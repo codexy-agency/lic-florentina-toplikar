@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { NuevoTurnoModal, type PacienteMini } from "./NuevoTurnoModal";
+import type { Service, Staff } from "@/lib/scheduling/types";
 
 export type CalTurno = {
   id: string;
@@ -71,15 +73,24 @@ export function AgendaCalendario({
   horaMin,
   horaMax,
   hoy,
+  services,
+  staff,
+  pacientes,
 }: {
   turnos: CalTurno[];
   bloqueos: string[];
   horaMin: number;
   horaMax: number;
   hoy: string; // YYYY-MM-DD (AR)
+  services: Service[];
+  staff: Staff[];
+  pacientes: PacienteMini[];
 }) {
   const [vista, setVista] = useState<Vista>("semana");
   const [cursor, setCursor] = useState(hoy);
+  // Fecha "YYYY-MM-DDTHH:MM" del nuevo turno (null = modal cerrado).
+  const [nuevo, setNuevo] = useState<string | null>(null);
+  const dosDig = (n: number) => String(n).padStart(2, "0");
 
   const bloqSet = useMemo(() => new Set(bloqueos), [bloqueos]);
   const porDia = useMemo(() => {
@@ -136,18 +147,28 @@ export function AgendaCalendario({
           </button>
           <span className="ml-2 text-[15px] font-semibold capitalize tracking-tight text-espresso">{titulo}</span>
         </div>
-        <div className="inline-flex rounded-full border border-[var(--a-border)] bg-[var(--a-surface-2)] p-0.5">
-          {(["dia", "semana", "mes"] as Vista[]).map((v) => (
-            <button
-              key={v}
-              onClick={() => setVista(v)}
-              className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium capitalize transition-colors ${
-                vista === v ? "bg-[var(--a-accent)] text-white shadow-sm" : "text-espresso-soft hover:text-espresso"
-              }`}
-            >
-              {v === "dia" ? "Día" : v}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setNuevo(`${cursor}T${dosDig(Math.max(horaMin, 8))}:00`)}
+            className="inline-flex items-center gap-1.5 rounded-full bg-espresso px-3.5 py-1.5 text-[13px] font-medium text-cream transition-all hover:-translate-y-px"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+            Turno
+          </button>
+          <div className="inline-flex rounded-full border border-[var(--a-border)] bg-[var(--a-surface-2)] p-0.5">
+            {(["dia", "semana", "mes"] as Vista[]).map((v) => (
+              <button
+                key={v}
+                onClick={() => setVista(v)}
+                className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium capitalize transition-colors ${
+                  vista === v ? "bg-[var(--a-accent)] text-white shadow-sm" : "text-espresso-soft hover:text-espresso"
+                }`}
+              >
+                {v === "dia" ? "Día" : v}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -162,8 +183,18 @@ export function AgendaCalendario({
           porDia={porDia}
           bloqSet={bloqSet}
           compacto={vista === "semana"}
+          onSlot={(f) => setNuevo(f)}
         />
       )}
+
+      <NuevoTurnoModal
+        open={nuevo !== null}
+        fecha={nuevo || ""}
+        onClose={() => setNuevo(null)}
+        services={services}
+        staff={staff}
+        pacientes={pacientes}
+      />
     </div>
   );
 }
@@ -177,6 +208,7 @@ function GrillaTiempo({
   porDia,
   bloqSet,
   compacto,
+  onSlot,
 }: {
   dias: string[];
   hours: number[];
@@ -185,8 +217,10 @@ function GrillaTiempo({
   porDia: Map<string, CalTurno[]>;
   bloqSet: Set<string>;
   compacto: boolean;
+  onSlot: (fecha: string) => void;
 }) {
   const gridH = hours.length * HOUR_H;
+  const dd = (n: number) => String(n).padStart(2, "0");
   return (
     <div className="overflow-x-auto">
       <div className="flex min-w-fit">
@@ -217,7 +251,22 @@ function GrillaTiempo({
                   <span className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1 tabular-nums ${esHoy ? "bg-[var(--a-accent)] text-white" : "text-espresso"}`}>{dayNum(d)}</span>
                 </div>
                 {/* Cuerpo */}
-                <div className={`relative ${bloqueado ? "bg-[repeating-linear-gradient(45deg,var(--a-surface-2),var(--a-surface-2)_8px,transparent_8px,transparent_16px)]" : ""}`} style={{ height: gridH }}>
+                <div
+                  className={`group/col relative ${bloqueado ? "bg-[repeating-linear-gradient(45deg,var(--a-surface-2),var(--a-surface-2)_8px,transparent_8px,transparent_16px)]" : "cursor-pointer"}`}
+                  style={{ height: gridH }}
+                  onClick={
+                    bloqueado
+                      ? undefined
+                      : (e) => {
+                          if ((e.target as HTMLElement).closest("[data-turno]")) return;
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const y = e.clientY - rect.top;
+                          let mins = horaMin * 60 + Math.round((y / HOUR_H) * 2) * 30;
+                          mins = Math.max(horaMin * 60, mins);
+                          onSlot(`${d}T${dd(Math.floor(mins / 60))}:${dd(mins % 60)}`);
+                        }
+                  }
+                >
                   {/* Líneas de hora */}
                   {hours.map((h, i) => (
                     <div key={h} className="absolute inset-x-0 border-b border-[var(--a-border)]/60" style={{ top: i * HOUR_H, height: HOUR_H }} />
@@ -241,11 +290,11 @@ function GrillaTiempo({
                     );
                     const cls = `absolute left-1 right-1 overflow-hidden rounded-lg border px-2 py-1 text-[11px] ${c.box}`;
                     return t.pacienteId ? (
-                      <Link key={t.id} href={`/admin/pacientes/${t.pacienteId}`} className={`${cls} transition-shadow hover:shadow-md`} style={{ top, height: h }} title={`${hmOf(t.startsAt)} · ${t.nombre} · ${c.label}`}>
+                      <Link key={t.id} data-turno href={`/admin/pacientes/${t.pacienteId}`} className={`${cls} transition-shadow hover:shadow-md`} style={{ top, height: h }} title={`${hmOf(t.startsAt)} · ${t.nombre} · ${c.label}`}>
                         {inner}
                       </Link>
                     ) : (
-                      <div key={t.id} className={cls} style={{ top, height: h }} title={`${hmOf(t.startsAt)} · ${t.nombre} · ${c.label}`}>
+                      <div key={t.id} data-turno className={cls} style={{ top, height: h }} title={`${hmOf(t.startsAt)} · ${t.nombre} · ${c.label}`}>
                         {inner}
                       </div>
                     );

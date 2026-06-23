@@ -387,6 +387,20 @@ export async function updatePacienteFicha(id: string, notas: string): Promise<vo
   });
 }
 
+/** Edita los datos de contacto del paciente (nombre, contacto, modalidad). */
+export async function updatePacienteDatos(
+  id: string,
+  datos: { nombre: string; contacto: string; modalidad: string }
+): Promise<void> {
+  await mutate((db) => {
+    const p = db.pacientes.find((x) => x.id === id);
+    if (!p) return;
+    if (datos.nombre) p.nombre = datos.nombre;
+    if (datos.contacto) p.contacto = datos.contacto;
+    p.modalidad = datos.modalidad === "presencial" ? "presencial" : "online";
+  });
+}
+
 // ── Historia clínica (notas por paciente) ──
 
 export async function listNotas(patientId: string): Promise<NotaClinica[]> {
