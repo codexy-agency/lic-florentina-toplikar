@@ -17,7 +17,7 @@ export default async function PacientesPage() {
       <section>
         <AdminPageHeader
           title="Pacientes"
-          description={`${pacientes.length} ${pacientes.length === 1 ? "paciente" : "pacientes"}. Se crean solos al confirmar un turno, o agregalos a mano.`}
+          description={`${pacientes.length} ${pacientes.length === 1 ? "paciente" : "pacientes"}. Tocá "Ficha" para abrir la historia clínica; el ícono de WhatsApp es para escribirle.`}
         />
 
         {/* Nuevo paciente (a mano) */}

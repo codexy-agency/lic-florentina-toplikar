@@ -32,10 +32,15 @@ export function PacientesList({ pacientes }: { pacientes: Paciente[] }) {
       ) : (
         <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {lista.map((p) => (
-            <li key={p.id} className="relative">
+            <li
+              key={p.id}
+              className="admin-card admin-card-link group flex min-w-0 items-center gap-2 rounded-2xl p-3 pl-4"
+            >
+              {/* Abrir la ficha interna (historia clínica + datos) */}
               <Link
                 href={`/admin/pacientes/${p.id}`}
-                className="admin-card admin-card-link group flex items-center gap-3 rounded-2xl p-4 pr-16"
+                aria-label={`Abrir ficha de ${p.nombre}`}
+                className="flex min-w-0 flex-1 items-center gap-3"
               >
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--a-border)] bg-[var(--a-accent-soft)] font-medium text-[var(--a-accent-ink)]">
                   {(p.nombre.trim()[0] || "?").toUpperCase()}
@@ -45,15 +50,28 @@ export function PacientesList({ pacientes }: { pacientes: Paciente[] }) {
                   <span className="admin-muted block truncate text-[13px]">{p.contacto}</span>
                 </span>
               </Link>
-              {/* Ícono WhatsApp — hermano del Link (no anidado) para derivar al toque */}
-              <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                <WhatsAppButton
-                  phone={p.contacto}
-                  nombre={p.nombre}
-                  variant="icon"
-                  align="right"
-                />
-              </div>
+
+              {/* Acción secundaria: derivar por WhatsApp */}
+              <WhatsAppButton
+                phone={p.contacto}
+                nombre={p.nombre}
+                variant="icon"
+                align="right"
+              />
+
+              <span aria-hidden className="hidden h-7 w-px shrink-0 bg-[var(--a-border)] sm:block" />
+
+              {/* Acción principal explícita: abrir la vista interna */}
+              <Link
+                href={`/admin/pacientes/${p.id}`}
+                aria-label={`Ver ficha de ${p.nombre}`}
+                className="flex shrink-0 items-center gap-0.5 rounded-full px-2 py-2 text-[12.5px] font-medium text-[var(--a-accent-ink)] transition-colors hover:bg-[var(--a-accent-soft)]"
+              >
+                <span>Ficha</span>
+                <svg className="h-4 w-4 transition-transform group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m9 18 6-6-6-6" />
+                </svg>
+              </Link>
             </li>
           ))}
         </ul>
