@@ -609,11 +609,6 @@ export default async function AdminPage({
       </section>
         </>
       )}
-
-      <p className="admin-faint mt-14 text-center text-[12px]">
-        MVP · datos en archivo local. En producción: Supabase + facturación AFIP
-        + recordatorios automáticos.
-      </p>
     </AdminShell>
   );
 }
