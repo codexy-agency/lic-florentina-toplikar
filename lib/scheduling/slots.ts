@@ -91,11 +91,15 @@ export function getAvailableSlots({
     const key = dateKey(day.y, day.m, day.d);
 
     const dayExc = exceptions.filter((e) => e.date === key);
-    if (dayExc.some((e) => e.type === "block_day")) continue;
+    // block_day anula las franjas de la regla semanal, pero NO los "extra" que la
+    // profesional cargó a propósito para ese día (precedencia correcta).
+    const bloqueado = dayExc.some((e) => e.type === "block_day");
 
-    let franjas = rules
-      .filter((r) => r.weekday === day.weekday)
-      .map((r) => ({ desde: r.startTime, hasta: r.endTime, mod: r.modalidad }));
+    let franjas = bloqueado
+      ? []
+      : rules
+          .filter((r) => r.weekday === day.weekday)
+          .map((r) => ({ desde: r.startTime, hasta: r.endTime, mod: r.modalidad }));
     for (const ex of dayExc) {
       if (ex.type === "extra" && ex.startTime && ex.endTime) {
         franjas.push({ desde: ex.startTime, hasta: ex.endTime, mod: ex.modalidad ?? "online" });
@@ -112,7 +116,9 @@ export function getAvailableSlots({
         : slotMin;
     const step = interval * 60_000;
     const dur = slotMin * 60_000;
-    const slots: Slot[] = [];
+    // Map keyed por startsAt|modalidad: deduplica slots cuando dos franjas
+    // (reglas solapadas o un extra que pisa una regla) generan el mismo horario.
+    const byKey = new Map<string, Slot>();
 
     for (const f of franjas) {
       const fStart = arInstant(day.y, day.m, day.d, f.desde).getTime();
@@ -123,15 +129,13 @@ export function getAvailableSlots({
         if (busyRanges.some(([bs, be]) => overlaps(s, e, bs, be))) continue;
         const ws = arWall(new Date(s));
         const we = arWall(new Date(e));
-        slots.push({
-          startsAt: isoAR(ws.y, ws.m, ws.d, ws.hh, ws.mm),
-          endsAt: isoAR(we.y, we.m, we.d, we.hh, we.mm),
-          modalidad: f.mod,
-        });
+        const startsAt = isoAR(ws.y, ws.m, ws.d, ws.hh, ws.mm);
+        const endsAt = isoAR(we.y, we.m, we.d, we.hh, we.mm);
+        byKey.set(`${startsAt}|${f.mod}`, { startsAt, endsAt, modalidad: f.mod });
       }
     }
-    if (slots.length) {
-      slots.sort((a, b) => (a.startsAt < b.startsAt ? -1 : 1));
+    if (byKey.size) {
+      const slots = [...byKey.values()].sort((a, b) => (a.startsAt < b.startsAt ? -1 : 1));
       out.push({ date: key, label: `${DIAS[day.weekday]} ${day.d} ${MESES[day.m]}`, slots });
     }
   }

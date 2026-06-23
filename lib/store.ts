@@ -223,13 +223,18 @@ function mutate<T>(fn: (db: DB) => T | Promise<T>): Promise<T> {
   const next = queue.then(async () => {
     assertBackendConfigOk();
     if (supabaseConfigurado) {
-      for (let intento = 0; intento < 6; intento++) {
+      for (let intento = 0; intento < 10; intento++) {
+        if (intento > 0) {
+          // Backoff exponencial con jitter: evita el thundering-herd de reintentos
+          // compitiendo por el mismo rev cambiante bajo contención real.
+          await new Promise((r) => setTimeout(r, 25 * 2 ** Math.min(intento, 5) + Math.random() * 40));
+        }
         const { db, rev } = await sbRead();
         const result = await fn(db);
         if (await sbWrite(db, rev)) return result;
         // conflicto de rev → re-leer y re-aplicar contra el estado más fresco
       }
-      throw new Error("No se pudo guardar: conflicto de concurrencia (6 intentos).");
+      throw new Error("No se pudo guardar: conflicto de concurrencia (10 intentos).");
     }
     const db = await fileRead();
     const result = await fn(db);
@@ -351,8 +356,8 @@ export async function addPaciente(input: {
   notas?: string;
 }): Promise<Paciente> {
   return mutate((db) => {
-    const key = input.contacto.trim().toLowerCase();
-    const existe = db.pacientes.find((p) => p.contacto.trim().toLowerCase() === key);
+    const key = contactoKey(input.contacto);
+    const existe = db.pacientes.find((p) => contactoKey(p.contacto) === key);
     if (existe) return existe;
     const p: Paciente = {
       id: randomUUID(),
@@ -369,10 +374,10 @@ export async function addPaciente(input: {
 
 /** Turnos del paciente (match por contacto normalizado). */
 export async function getPacienteTurnos(contacto: string): Promise<Solicitud[]> {
-  const key = contacto.trim().toLowerCase();
+  const key = contactoKey(contacto);
   const db = await read();
   return db.solicitudes
-    .filter((s) => s.contacto.trim().toLowerCase() === key)
+    .filter((s) => contactoKey(s.contacto) === key)
     .sort(
       (a, b) =>
         new Date(b.startsAt || b.creadoEn).getTime() -
@@ -523,8 +528,8 @@ export async function crearTurnoManual(input: {
       creadoEn: new Date().toISOString(),
     };
     db.solicitudes.unshift(sol);
-    const key = input.contacto.trim().toLowerCase();
-    if (!db.pacientes.find((p) => p.contacto.trim().toLowerCase() === key)) {
+    const key = contactoKey(input.contacto);
+    if (!db.pacientes.find((p) => contactoKey(p.contacto) === key)) {
       db.pacientes.unshift({
         id: randomUUID(),
         nombre: input.nombre,
@@ -591,8 +596,8 @@ export async function setEstado(
       s.fechaPago = undefined;
     }
     if (estado === "confirmado") {
-      const key = s.contacto.trim().toLowerCase();
-      const existe = db.pacientes.find((p) => p.contacto.trim().toLowerCase() === key);
+      const key = contactoKey(s.contacto);
+      const existe = db.pacientes.find((p) => contactoKey(p.contacto) === key);
       if (!existe) {
         db.pacientes.unshift({
           id: randomUUID(),

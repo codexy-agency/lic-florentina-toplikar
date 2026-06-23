@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import {
   addSolicitud,
   addSolicitudSiLibre,
@@ -161,7 +161,15 @@ export async function POST(req: Request) {
       solicitud = await addSolicitud({ ...base, startsAt: undefined, endsAt: undefined });
     }
 
-    notificarTurno(solicitud).catch(() => {});
+    // after(): mantiene viva la ejecución para que la notificación a Telegram
+    // salga DESPUÉS de responder, en vez de cortarse al congelar la lambda.
+    after(async () => {
+      try {
+        await notificarTurno(solicitud);
+      } catch {
+        /* notificación best-effort */
+      }
+    });
     return NextResponse.json({ ok: true, id: solicitud.id });
   } catch (e) {
     console.error("[api/turnos]", e);

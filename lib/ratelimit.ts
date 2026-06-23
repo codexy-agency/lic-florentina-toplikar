@@ -45,11 +45,18 @@ export function rateLimit(key: string, limit: number, windowMs: number): RateRes
   return { ok: true, remaining: limit - b.count, retryAfter: 0 };
 }
 
-/** IP del cliente detrás del proxy de Vercel. x-forwarded-for puede traer varias
- *  (cliente, proxies); la primera es la real. Fallback a un valor fijo para no
- *  romper si falta (todos caen en el mismo bucket: degradación segura). */
+/** IP del cliente. IMPORTANTE: `x-forwarded-for` CRUDO es spoofeable (el cliente
+ *  puede anteponer su propio valor y rotar la clave del rate-limit en cada
+ *  request). Priorizamos `x-vercel-forwarded-for`, que lo setea la plataforma en
+ *  el edge y el cliente NO puede falsificar; después `x-real-ip`; y solo como
+ *  último recurso el XFF. Fallback a un valor fijo (degradación segura: todos
+ *  caen en el mismo bucket). */
 export function clientIp(req: Request): string {
+  const vercel = req.headers.get("x-vercel-forwarded-for");
+  if (vercel) return vercel.split(",")[0].trim();
+  const real = req.headers.get("x-real-ip");
+  if (real) return real.trim();
   const xff = req.headers.get("x-forwarded-for");
   if (xff) return xff.split(",")[0].trim();
-  return req.headers.get("x-real-ip")?.trim() || "desconocida";
+  return "desconocida";
 }
