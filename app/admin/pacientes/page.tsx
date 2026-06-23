@@ -1,4 +1,4 @@
-import { listPacientes } from "@/lib/store";
+import { getPacientesResumen } from "@/lib/store";
 import { AdminShell } from "@/components/AdminShell";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { PacientesList } from "@/components/PacientesList";
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function PacientesPage() {
   await requireAdmin();
-  const pacientes = await listPacientes();
+  const pacientes = await getPacientesResumen();
   const field =
     "admin-input w-full px-3 py-2.5 text-[14px] text-espresso";
   return (

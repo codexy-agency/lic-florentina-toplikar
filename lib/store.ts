@@ -287,6 +287,62 @@ export async function getPaciente(id: string): Promise<Paciente | null> {
   return db.pacientes.find((p) => p.id === id) ?? null;
 }
 
+export interface PacienteResumen extends Paciente {
+  deuda: number; // suma de turnos realizados sin pagar
+  turnosImpagos: number;
+  tienePendiente: boolean; // turno pendiente/confirmado a futuro
+  proximoTurno?: string; // ISO del próximo turno
+  totalTurnos: number;
+}
+
+/** Clave de contacto robusta: email tal cual; teléfono → últimos 10 dígitos
+ *  (tolera +54, espacios, guiones distintos entre el turno y la ficha). */
+function contactoKey(c: string): string {
+  const t = (c || "").trim().toLowerCase();
+  if (!t) return "";
+  if (t.includes("@")) return t;
+  const d = t.replace(/\D/g, "");
+  return d.length >= 8 ? d.slice(-10) : d || t;
+}
+
+/** Pacientes + estado de cuenta (deuda) y si tienen turno pendiente. */
+export async function getPacientesResumen(): Promise<PacienteResumen[]> {
+  const db = await read();
+  const now = Date.now();
+  const porContacto = new Map<string, Solicitud[]>();
+  for (const s of db.solicitudes) {
+    const k = contactoKey(s.contacto);
+    if (!k) continue;
+    const arr = porContacto.get(k);
+    if (arr) arr.push(s);
+    else porContacto.set(k, [s]);
+  }
+  return [...db.pacientes]
+    .sort((a, b) => (a.creadoEn < b.creadoEn ? 1 : a.creadoEn > b.creadoEn ? -1 : 0))
+    .map((p) => {
+      const turnos = porContacto.get(contactoKey(p.contacto)) || [];
+      let deuda = 0;
+      let turnosImpagos = 0;
+      let tienePendiente = false;
+      let proximoTurno: string | undefined;
+      for (const t of turnos) {
+        if (t.estado === "realizado" && !t.pagado) {
+          deuda += t.precio ?? 0;
+          turnosImpagos++;
+        }
+        if (
+          (t.estado === "pendiente" || t.estado === "confirmado") &&
+          t.startsAt &&
+          new Date(t.startsAt).getTime() >= now
+        ) {
+          tienePendiente = true;
+          if (!proximoTurno || t.startsAt < proximoTurno) proximoTurno = t.startsAt;
+        }
+      }
+      return { ...p, deuda, turnosImpagos, tienePendiente, proximoTurno, totalTurnos: turnos.length };
+    });
+}
+
 /** Crea un paciente a mano. Si ya existe ese contacto, devuelve el existente. */
 export async function addPaciente(input: {
   nombre: string;
