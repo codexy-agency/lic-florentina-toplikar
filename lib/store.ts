@@ -19,7 +19,7 @@ import {
   assertBackendConfigOk,
   PROFESSIONAL_ID,
 } from "./supabase";
-import { endFromStart } from "./scheduling/slots";
+import { endFromStart, nowIsoAR } from "./scheduling/slots";
 
 export type { Service, Staff } from "./scheduling/types";
 
@@ -86,6 +86,8 @@ export interface MovimientoManual {
   monto: number;
   fecha: string; // ISO
   creadoEn: string;
+  tipo?: "ingreso" | "egreso"; // ausente = ingreso (compat. con datos viejos)
+  categoria?: string; // p. ej. "alquiler", "supervisión" (solo egresos)
 }
 
 interface DB {
@@ -735,21 +737,29 @@ export interface Movimiento {
   pagado: boolean;
   metodoPago?: string;
   estado: Estado;
-  manual?: boolean; // ingreso cargado a mano (consultorio)
+  manual?: boolean; // cargado a mano (consultorio)
+  tipo?: "ingreso" | "egreso"; // egreso = gasto (resta del neto)
+  categoria?: string; // categoría del egreso
 }
 
 export async function addMovimientoManual(input: {
   concepto: string;
   monto: number;
   fecha?: string;
+  tipo?: "ingreso" | "egreso";
+  categoria?: string;
 }): Promise<MovimientoManual> {
   return mutate((db) => {
     const m: MovimientoManual = {
       id: randomUUID(),
       concepto: input.concepto,
       monto: input.monto,
-      fecha: input.fecha || new Date().toISOString(),
+      // Default en pared AR (no toISOString() UTC): así el filtro por período
+      // que slicea el string no manda el ingreso al mes equivocado.
+      fecha: input.fecha || nowIsoAR(),
       creadoEn: new Date().toISOString(),
+      tipo: input.tipo === "egreso" ? "egreso" : "ingreso",
+      categoria: input.categoria || undefined,
     };
     db.movimientosManuales.unshift(m);
     return m;
@@ -764,11 +774,17 @@ export async function removeMovimientoManual(id: string): Promise<void> {
 
 export interface FinanzasResumen {
   facturado: number; // total esperado (turnos confirmados/realizados)
-  cobrado: number; // total ya pagado
+  cobrado: number; // total ya pagado (turnos + ingresos manuales)
   porCobrar: number;
+  egresos: number; // gastos del período (ingresos manuales tipo egreso)
+  neto: number; // cobrado - egresos ("cuánto me queda")
   cantTurnos: number;
   cantCobrados: number;
   ticketProm: number;
+  // Variación % de cobrado/facturado vs mes anterior (solo cuando periodo="mes";
+  // null si no hay mes previo con datos).
+  deltaCobrado: number | null;
+  deltaFacturado: number | null;
   porServicio: { nombre: string; cantidad: number; monto: number; cobrado: number }[];
   porProfesional: { nombre: string; cantidad: number; monto: number; cobrado: number }[];
   porMes: { key: string; label: string; facturado: number; cobrado: number }[];
@@ -777,14 +793,13 @@ export interface FinanzasResumen {
   periodoLabel: string;
   // Desglose de lo COBRADO por método de pago.
   porMetodo: { metodo: string; label: string; monto: number }[];
-  // Cobranza pendiente: turnos realizados sin pagar (a quién reclamarle).
+  // Cobranza pendiente AGRUPADA por paciente (un solo WhatsApp por persona).
   cobranza: {
-    id: string;
+    contactoKey: string;
     nombre: string;
     contacto: string;
-    serviceName?: string;
-    fecha?: string;
-    monto: number;
+    total: number;
+    sesiones: { id: string; serviceName?: string; fecha?: string; monto: number }[];
   }[];
 }
 
@@ -855,10 +870,19 @@ export async function getFinanzas(periodo: string = "mes"): Promise<FinanzasResu
   let facturado = 0;
   let cobrado = 0;
   let cantCobrados = 0;
+  const ahoraMs = Date.now();
   const svc = new Map<string, { cantidad: number; monto: number; cobrado: number }>();
   const prof = new Map<string, { cantidad: number; monto: number; cobrado: number }>();
   const metodo = new Map<string, number>();
-  const cobranza: FinanzasResumen["cobranza"] = [];
+  // Filas de cobranza sin agrupar (luego se agrupan por paciente).
+  const cobranzaRaw: {
+    id: string;
+    nombre: string;
+    contacto: string;
+    serviceName?: string;
+    fecha?: string;
+    monto: number;
+  }[] = [];
 
   for (const t of turnos) {
     const monto = t.precio ?? 0;
@@ -868,16 +892,24 @@ export async function getFinanzas(periodo: string = "mes"): Promise<FinanzasResu
       cantCobrados++;
       const mp = t.metodoPago || "efectivo";
       metodo.set(mp, (metodo.get(mp) || 0) + monto);
-    } else if (t.estado === "realizado") {
-      // Sesión realizada y sin pagar → cobranza pendiente.
-      cobranza.push({
-        id: t.id,
-        nombre: t.nombre,
-        contacto: t.contacto,
-        serviceName: t.serviceName,
-        fecha: t.startsAt,
-        monto,
-      });
+    } else {
+      // Sin pagar y ya vencido → cobranza pendiente (a quién reclamarle).
+      // Incluye 'confirmado' con fecha pasada: caso común de "di la sesión y
+      // me olvidé de marcarla realizada", que antes inflaba "Por cobrar" sin
+      // aparecer en la lista.
+      const yaPaso =
+        t.estado === "realizado" ||
+        (!!t.startsAt && new Date(t.startsAt).getTime() < ahoraMs);
+      if (yaPaso) {
+        cobranzaRaw.push({
+          id: t.id,
+          nombre: t.nombre,
+          contacto: t.contacto,
+          serviceName: t.serviceName,
+          fecha: t.startsAt,
+          monto,
+        });
+      }
     }
     const sName = t.serviceName || "Sin servicio";
     const a = svc.get(sName) || { cantidad: 0, monto: 0, cobrado: 0 };
@@ -894,14 +926,21 @@ export async function getFinanzas(periodo: string = "mes"): Promise<FinanzasResu
     prof.set(pName, b);
   }
 
-  // Ingresos cargados a mano (consultorio): cuentan como cobrado y facturado,
-  // pero NO entran al ticket promedio por turno (no son turnos).
+  // Movimientos a mano del período. Los ingresos (consultorio) cuentan como
+  // cobrado y facturado, pero NO entran al ticket promedio (no son turnos).
+  // Los egresos (gastos) restan del neto y no tocan facturado/cobrado/método.
   const facturadoTurnos = facturado;
+  let egresos = 0;
   for (const m of manualesP) {
+    if (m.tipo === "egreso") {
+      egresos += m.monto;
+      continue;
+    }
     facturado += m.monto;
     cobrado += m.monto;
     metodo.set("manual", (metodo.get("manual") || 0) + m.monto);
   }
+  const neto = cobrado - egresos;
 
   // Evolución mensual: tendencia de los últimos 6 meses, SIN filtrar por período.
   const mes = new Map<string, { facturado: number; cobrado: number }>();
@@ -916,6 +955,7 @@ export async function getFinanzas(periodo: string = "mes"): Promise<FinanzasResu
     mes.set(key, m);
   }
   for (const m of db.movimientosManuales) {
+    if (m.tipo === "egreso") continue; // los gastos no van a la curva de ingresos
     const key = (m.fecha || "").slice(0, 7);
     if (!key) continue;
     const mm = mes.get(key) || { facturado: 0, cobrado: 0 };
@@ -936,6 +976,26 @@ export async function getFinanzas(periodo: string = "mes"): Promise<FinanzasResu
       };
     });
 
+  // Variación vs mes anterior (solo en la vista "Este mes"): da contexto a los
+  // KPIs. Se lee del mapa `mes` que ya tiene todos los meses sin filtrar.
+  let deltaCobrado: number | null = null;
+  let deltaFacturado: number | null = null;
+  if (periodo === "mes") {
+    const hoyAR = new Date().toLocaleDateString("en-CA", {
+      timeZone: "America/Argentina/Buenos_Aires",
+    });
+    const curKey = hoyAR.slice(0, 7);
+    const [cy, cm] = curKey.split("-").map(Number);
+    const prevKey =
+      cm === 1 ? `${cy - 1}-12` : `${cy}-${String(cm - 1).padStart(2, "0")}`;
+    const cur = mes.get(curKey);
+    const prev = mes.get(prevKey);
+    const pct = (a?: number, b?: number) =>
+      b && b > 0 && a != null ? Math.round(((a - b) / b) * 100) : null;
+    deltaCobrado = pct(cur?.cobrado, prev?.cobrado);
+    deltaFacturado = pct(cur?.facturado, prev?.facturado);
+  }
+
   const movimientos: Movimiento[] = [
     ...turnos.map((t) => ({
       id: t.id,
@@ -947,30 +1007,58 @@ export async function getFinanzas(periodo: string = "mes"): Promise<FinanzasResu
       pagado: !!t.pagado,
       metodoPago: t.metodoPago,
       estado: t.estado,
+      tipo: "ingreso" as const,
     })),
-    ...manualesP.map((m) => ({
-      id: m.id,
-      nombre: m.concepto,
-      fecha: m.fecha,
-      monto: m.monto,
-      pagado: true,
-      metodoPago: "manual",
-      estado: "realizado" as Estado,
-      manual: true,
-    })),
+    ...manualesP.map((m) => {
+      const esEgreso = m.tipo === "egreso";
+      return {
+        id: m.id,
+        nombre: m.concepto,
+        fecha: m.fecha,
+        monto: m.monto,
+        pagado: true,
+        metodoPago: esEgreso ? undefined : "manual",
+        estado: "realizado" as Estado,
+        manual: true,
+        tipo: esEgreso ? ("egreso" as const) : ("ingreso" as const),
+        categoria: m.categoria,
+      };
+    }),
   ].sort((a, b) => ((a.fecha || "") < (b.fecha || "") ? 1 : -1));
 
   const porMetodo = [...metodo.entries()]
     .map(([m, monto]) => ({ metodo: m, label: METODO_PAGO_LABEL[m] || m, monto }))
     .sort((a, b) => b.monto - a.monto);
 
+  // Cobranza agrupada por paciente: un solo total y un solo WhatsApp por persona.
+  const cobranzaMap = new Map<string, FinanzasResumen["cobranza"][number]>();
+  for (const c of cobranzaRaw) {
+    const k = contactoKey(c.contacto) || c.id;
+    const g =
+      cobranzaMap.get(k) ||
+      { contactoKey: k, nombre: c.nombre, contacto: c.contacto, total: 0, sesiones: [] };
+    g.total += c.monto;
+    g.sesiones.push({ id: c.id, serviceName: c.serviceName, fecha: c.fecha, monto: c.monto });
+    cobranzaMap.set(k, g);
+  }
+  const cobranza = [...cobranzaMap.values()]
+    .map((g) => ({
+      ...g,
+      sesiones: g.sesiones.sort((a, b) => ((a.fecha || "") < (b.fecha || "") ? 1 : -1)),
+    }))
+    .sort((a, b) => b.total - a.total);
+
   return {
     facturado,
     cobrado,
     porCobrar: facturado - cobrado,
+    egresos,
+    neto,
     cantTurnos: turnos.length,
     cantCobrados,
     ticketProm: turnos.length ? Math.round(facturadoTurnos / turnos.length) : 0,
+    deltaCobrado,
+    deltaFacturado,
     porServicio: [...svc.entries()]
       .map(([nombre, v]) => ({ nombre, ...v }))
       .sort((a, b) => b.monto - a.monto),
@@ -982,7 +1070,7 @@ export async function getFinanzas(periodo: string = "mes"): Promise<FinanzasResu
     periodo,
     periodoLabel: PERIODO_LABEL[periodo] || PERIODO_LABEL.mes,
     porMetodo,
-    cobranza: cobranza.sort((a, b) => ((a.fecha || "") < (b.fecha || "") ? 1 : -1)),
+    cobranza,
   };
 }
 

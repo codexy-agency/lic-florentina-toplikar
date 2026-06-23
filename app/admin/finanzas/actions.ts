@@ -16,9 +16,11 @@ export async function agregarMovimiento(formData: FormData) {
   const concepto = String(formData.get("concepto") || "").trim().slice(0, 120);
   const monto = Math.round(Number(formData.get("monto")));
   const fechaLocal = String(formData.get("fecha") || "").trim();
+  const tipo = String(formData.get("tipo") || "") === "egreso" ? "egreso" : "ingreso";
+  const categoria = String(formData.get("categoria") || "").trim().slice(0, 40) || undefined;
   if (!concepto || !Number.isFinite(monto) || monto <= 0) return;
   const fecha = fechaLocal ? arLocalToIso(fechaLocal) || undefined : undefined;
-  await addMovimientoManual({ concepto, monto, fecha });
+  await addMovimientoManual({ concepto, monto, fecha, tipo, categoria });
   revalidatePath("/admin/finanzas");
 }
 

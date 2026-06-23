@@ -68,6 +68,11 @@ export default async function PacienteDetalle({
     ? { cuando: `${fechaHoraAR(prox.startsAt)} hs`, servicio: prox.serviceName }
     : null;
 
+  // Estado de cuenta: deuda = sesiones realizadas sin pagar.
+  const impagos = turnos.filter((t) => t.estado === "realizado" && !t.pagado);
+  const deuda = impagos.reduce((n, t) => n + (t.precio ?? 0), 0);
+  const money = (n: number) => "$" + (n || 0).toLocaleString("es-AR");
+
   return (
     <AdminShell>
       <div>
@@ -99,6 +104,15 @@ export default async function PacienteDetalle({
               <span className="admin-faint mx-2">·</span>
               paciente desde {fmtFecha(paciente.creadoEn)}
             </p>
+            {deuda > 0 && (
+              <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[var(--a-danger-soft)] px-3 py-1 text-[13px] font-semibold text-[var(--a-danger)]">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="6" width="20" height="13" rx="2" /><path d="M2 10h20M6 15h2" />
+                </svg>
+                Debe {money(deuda)}
+                <span className="font-medium opacity-80">· {impagos.length} {impagos.length === 1 ? "sesión" : "sesiones"} sin pagar</span>
+              </span>
+            )}
           </div>
           <div className="w-full sm:ml-auto sm:w-auto sm:flex sm:justify-end">
             <WhatsAppButton
@@ -268,6 +282,12 @@ export default async function PacienteDetalle({
                   {turnos.length}
                 </span>
               </div>
+              {deuda > 0 && (
+                <p className="mt-2.5 flex items-center justify-between gap-2 rounded-xl bg-[var(--a-danger-soft)] px-3 py-2 text-[13px] font-semibold text-[var(--a-danger)]">
+                  <span>Deuda</span>
+                  <span className="tabular-nums">{money(deuda)}</span>
+                </p>
+              )}
               {turnos.length === 0 ? (
                 <p className="admin-muted mt-3 text-[14px]">Sin turnos aún.</p>
               ) : (

@@ -173,3 +173,11 @@ export function isoToArLocal(iso: string): string {
   const w = arWall(new Date(iso));
   return `${w.y}-${pad(w.m + 1)}-${pad(w.d)}T${pad(w.hh)}:${pad(w.mm)}`;
 }
+
+/** Ahora mismo como ISO de pared AR ("…-03:00"). Para defaults de fecha:
+ *  evita que toISOString() (UTC 'Z') tire un ingreso de la noche al día/mes
+ *  siguiente cuando luego se slicea el string asumiendo hora AR. */
+export function nowIsoAR(): string {
+  const w = arWall(new Date());
+  return isoAR(w.y, w.m, w.d, w.hh, w.mm);
+}

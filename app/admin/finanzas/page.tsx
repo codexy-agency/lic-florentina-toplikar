@@ -9,7 +9,10 @@ import { registrarPago, quitarPago, agregarMovimiento, quitarMovimiento } from "
 
 export const dynamic = "force-dynamic";
 
-const money = (n?: number) => "$" + (n ?? 0).toLocaleString("es-AR");
+const money = (n?: number) => {
+  const v = n ?? 0;
+  return (v < 0 ? "−$" : "$") + Math.abs(v).toLocaleString("es-AR");
+};
 const METODOS = ["efectivo", "transferencia", "mercadopago", "tarjeta"];
 const METODO_LABEL: Record<string, string> = {
   efectivo: "Efectivo",
@@ -23,6 +26,40 @@ const PERIODOS = [
   { k: "anio", l: "Este año" },
   { k: "todo", l: "Histórico" },
 ];
+const CATEGORIAS_GASTO = [
+  "Alquiler",
+  "Supervisión",
+  "Impuestos / monotributo",
+  "Matrícula",
+  "Materiales",
+  "Otros",
+];
+
+type Kpi = {
+  l: string;
+  v: string;
+  sub: string;
+  accent?: boolean;
+  hero?: boolean;
+  danger?: boolean;
+  delta?: number | null;
+};
+
+/** Variación % respecto al mes anterior (▲ verde / ▼ rojo). */
+function Delta({ d }: { d: number | null | undefined }) {
+  if (d == null) return null;
+  const up = d >= 0;
+  return (
+    <span
+      className={`mt-1.5 flex items-center gap-1 text-[11px] font-semibold ${
+        up ? "text-[#1c7a45]" : "text-[var(--a-danger)]"
+      }`}
+    >
+      {up ? "▲" : "▼"} {Math.abs(d)}%
+      <span className="admin-faint font-normal">vs mes pasado</span>
+    </span>
+  );
+}
 
 export default async function FinanzasPage({
   searchParams,
@@ -37,10 +74,15 @@ export default async function FinanzasPage({
   const maxMetodo = Math.max(1, ...f.porMetodo.map((m) => m.monto));
   const ahoraLocal = isoToArLocal(new Date().toISOString());
 
-  const KPIS = [
-    { l: "Cobrado", v: money(f.cobrado), sub: "ingresos recibidos", accent: true },
-    { l: "Por cobrar", v: money(f.porCobrar), sub: `${f.cantTurnos - f.cantCobrados} turnos sin cobrar` },
-    { l: "Facturado", v: money(f.facturado), sub: `${f.cantTurnos} turnos` },
+  const sinCobrar = f.cantTurnos - f.cantCobrados;
+  const KPIS: Kpi[] = [
+    { l: "Cobrado", v: money(f.cobrado), sub: "ingresos recibidos", accent: true, delta: f.deltaCobrado },
+    { l: "Gastos", v: f.egresos ? "−" + money(f.egresos) : money(0), sub: "egresos del período", danger: f.egresos > 0 },
+    { l: "Neto", v: money(f.neto), sub: "cobrado − gastos", hero: true, danger: f.neto < 0 },
+    { l: "Por cobrar", v: money(f.porCobrar), sub: `${sinCobrar} ${sinCobrar === 1 ? "turno" : "turnos"} sin cobrar` },
+  ];
+  const KPIS2: Kpi[] = [
+    { l: "Facturado", v: money(f.facturado), sub: `${f.cantTurnos} turnos`, delta: f.deltaFacturado },
     { l: "Ticket promedio", v: money(f.ticketProm), sub: "por turno" },
   ];
 
@@ -51,42 +93,100 @@ export default async function FinanzasPage({
           title="Finanzas"
           description="Ingresos por turnos y cargados a mano (consultorio). Se calculan sobre turnos confirmados y realizados."
         >
-          {/* Cargar un ingreso a mano (plata del consultorio).
-              Mobile: bloque estático full-width (evita overflow horizontal).
-              sm+: dropdown flotante anclado a la derecha. */}
-          <details className="group relative w-full sm:w-auto">
-            <summary className="admin-btn inline-flex w-full cursor-pointer list-none items-center justify-center gap-2 rounded-full px-5 py-2.5 text-[14px] font-medium [&::-webkit-details-marker]:hidden sm:w-auto">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-              Agregar ingreso
-            </summary>
-            <form
-              action={agregarMovimiento}
-              className="admin-card mt-3 w-full space-y-3 rounded-2xl p-4 text-left sm:absolute sm:right-0 sm:top-full sm:mt-2 sm:w-[min(92vw,420px)] sm:z-20"
-            >
-              <label className="block">
-                <span className="admin-label mb-1 block text-[12px] font-medium">Concepto</span>
-                <input name="concepto" required maxLength={120} placeholder="Ej: Sesión en consultorio — Ana" className="admin-input w-full px-3 py-2 text-[14px]" />
-              </label>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {/* Acciones: cargar ingreso, cargar gasto y exportar para la contadora.
+              Mobile: bloques estáticos full-width (evita overflow horizontal).
+              sm+: dropdowns flotantes anclados a la derecha. */}
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+            {/* Agregar ingreso (plata del consultorio) */}
+            <details className="group relative w-full sm:w-auto">
+              <summary className="admin-btn inline-flex w-full cursor-pointer list-none items-center justify-center gap-2 rounded-full px-5 py-2.5 text-[14px] font-medium [&::-webkit-details-marker]:hidden sm:w-auto">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                Agregar ingreso
+              </summary>
+              <form
+                action={agregarMovimiento}
+                className="admin-card mt-3 w-full space-y-3 rounded-2xl p-4 text-left sm:absolute sm:right-0 sm:top-full sm:mt-2 sm:w-[min(92vw,420px)] sm:z-20"
+              >
                 <label className="block">
-                  <span className="admin-label mb-1 block text-[12px] font-medium">Monto</span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="admin-muted text-[14px]">$</span>
-                    <input name="monto" type="number" required min={1} placeholder="0" className="admin-input w-full px-3 py-2 text-[14px]" />
-                  </span>
+                  <span className="admin-label mb-1 block text-[12px] font-medium">Concepto</span>
+                  <input name="concepto" required maxLength={120} placeholder="Ej: Sesión en consultorio — Ana" className="admin-input w-full px-3 py-2 text-[14px]" />
                 </label>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="admin-label mb-1 block text-[12px] font-medium">Monto</span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="admin-muted text-[14px]">$</span>
+                      <input name="monto" type="number" required min={1} placeholder="0" className="admin-input w-full px-3 py-2 text-[14px]" />
+                    </span>
+                  </label>
+                  <label className="block">
+                    <span className="admin-label mb-1 block text-[12px] font-medium">Fecha</span>
+                    <input name="fecha" type="datetime-local" defaultValue={ahoraLocal} className="admin-input w-full px-2.5 py-2 text-[13px]" />
+                  </label>
+                </div>
+                <button className="admin-btn w-full rounded-full px-5 py-2.5 text-[14px] font-medium">
+                  Registrar ingreso
+                </button>
+              </form>
+            </details>
+
+            {/* Agregar gasto (egreso del consultorio) */}
+            <details className="group relative w-full sm:w-auto">
+              <summary className="admin-btn-ghost inline-flex w-full cursor-pointer list-none items-center justify-center gap-2 rounded-full px-5 py-2.5 text-[14px] font-medium [&::-webkit-details-marker]:hidden sm:w-auto">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                  <path d="M5 12h14" />
+                </svg>
+                Agregar gasto
+              </summary>
+              <form
+                action={agregarMovimiento}
+                className="admin-card mt-3 w-full space-y-3 rounded-2xl p-4 text-left sm:absolute sm:right-0 sm:top-full sm:mt-2 sm:w-[min(92vw,420px)] sm:z-20"
+              >
+                <input type="hidden" name="tipo" value="egreso" />
+                <label className="block">
+                  <span className="admin-label mb-1 block text-[12px] font-medium">Concepto</span>
+                  <input name="concepto" required maxLength={120} placeholder="Ej: Alquiler del consultorio" className="admin-input w-full px-3 py-2 text-[14px]" />
+                </label>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="admin-label mb-1 block text-[12px] font-medium">Monto</span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="admin-muted text-[14px]">$</span>
+                      <input name="monto" type="number" required min={1} placeholder="0" className="admin-input w-full px-3 py-2 text-[14px]" />
+                    </span>
+                  </label>
+                  <label className="block">
+                    <span className="admin-label mb-1 block text-[12px] font-medium">Categoría</span>
+                    <select name="categoria" defaultValue={CATEGORIAS_GASTO[0]} className="admin-input w-full px-2.5 py-2 text-[13px]">
+                      {CATEGORIAS_GASTO.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
                 <label className="block">
                   <span className="admin-label mb-1 block text-[12px] font-medium">Fecha</span>
                   <input name="fecha" type="datetime-local" defaultValue={ahoraLocal} className="admin-input w-full px-2.5 py-2 text-[13px]" />
                 </label>
-              </div>
-              <button className="admin-btn w-full rounded-full px-5 py-2.5 text-[14px] font-medium">
-                Registrar ingreso
-              </button>
-            </form>
-          </details>
+                <button className="admin-btn-ghost w-full rounded-full px-5 py-2.5 text-[14px] font-medium">
+                  Registrar gasto
+                </button>
+              </form>
+            </details>
+
+            {/* Exportar a CSV para la contadora (navegación normal → descarga) */}
+            <a
+              href={`/admin/finanzas/export?periodo=${periodo}`}
+              className="admin-chip inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-2.5 text-[14px] font-medium hover:border-[var(--a-border-strong)] sm:w-auto"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+              </svg>
+              Exportar
+            </a>
+          </div>
         </AdminPageHeader>
 
         {/* Selector de período */}
@@ -109,25 +209,55 @@ export default async function FinanzasPage({
           })}
         </div>
 
-        {/* KPIs */}
+        {/* KPIs principales: cobrado / gastos / neto / por cobrar */}
         <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
           {KPIS.map((k) => (
             <div
               key={k.l}
               className={`admin-card rounded-2xl p-4 md:p-5 ${
-                k.accent ? "ring-1 ring-[var(--a-accent)]/45" : ""
+                k.hero
+                  ? "bg-[var(--a-accent)]/[0.05] ring-1 ring-[var(--a-accent)]/55"
+                  : k.accent
+                  ? "ring-1 ring-[var(--a-accent)]/40"
+                  : ""
               }`}
             >
               <p className="admin-kicker text-[11px]">{k.l}</p>
-              <p className="mt-2 text-[1.55rem] font-bold tabular-nums leading-none text-[var(--a-text)] md:text-[1.9rem]">
+              <p
+                className={`mt-2 text-[1.55rem] font-bold tabular-nums leading-none md:text-[1.9rem] ${
+                  k.danger ? "text-[var(--a-danger)]" : "text-[var(--a-text)]"
+                }`}
+              >
                 {k.v}
               </p>
-              <p className="admin-faint mt-1.5 text-[12px]">{k.sub}</p>
+              {k.delta != null ? (
+                <Delta d={k.delta} />
+              ) : (
+                <p className="admin-faint mt-1.5 text-[12px]">{k.sub}</p>
+              )}
             </div>
           ))}
         </div>
 
-        {/* Cobranza pendiente — sesiones realizadas sin pagar (a quién reclamarle) */}
+        {/* KPIs de contexto: facturado / ticket */}
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:max-w-md md:gap-4">
+          {KPIS2.map((k) => (
+            <div key={k.l} className="admin-soft rounded-2xl p-4">
+              <p className="admin-kicker text-[11px]">{k.l}</p>
+              <p className="mt-1.5 text-[1.25rem] font-bold tabular-nums leading-none text-[var(--a-text)]">
+                {k.v}
+              </p>
+              {k.delta != null ? (
+                <Delta d={k.delta} />
+              ) : (
+                <p className="admin-faint mt-1 text-[12px]">{k.sub}</p>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Cobranza pendiente — sesiones vencidas sin pagar, agrupadas por
+            paciente (un solo total y un solo WhatsApp por persona). */}
         {f.cobranza.length > 0 && (
           <section className="mt-8">
             <div className="flex flex-wrap items-center gap-3 border-b border-[var(--a-border)] pb-3">
@@ -135,38 +265,67 @@ export default async function FinanzasPage({
                 Cobranza pendiente
               </h3>
               <span className="rounded-full bg-[var(--a-danger-soft)] px-2.5 py-0.5 text-[12px] font-semibold tabular-nums text-[var(--a-danger)]">
-                {f.cobranza.length}
+                {f.cobranza.length} {f.cobranza.length === 1 ? "paciente" : "pacientes"}
               </span>
               <span className="admin-muted ml-auto text-[13px]">
-                {money(f.cobranza.reduce((n, c) => n + c.monto, 0))} sin cobrar
+                {money(f.cobranza.reduce((n, c) => n + c.total, 0))} sin cobrar
               </span>
             </div>
             <ul className="mt-4 space-y-2.5">
               {f.cobranza.map((c) => (
-                <li
-                  key={c.id}
-                  className="admin-card flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl p-4"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-espresso">{c.nombre}</p>
-                    <p className="admin-muted text-[13px]">
-                      {c.serviceName || "—"}
-                      {c.fecha ? ` · ${fechaHoraAR(c.fecha)} hs` : ""}
-                    </p>
-                  </div>
-                  <span className="text-[1.05rem] font-bold tabular-nums text-[var(--a-text)]">
-                    {money(c.monto)}
-                  </span>
-                  <div className="flex w-full items-center gap-2 sm:w-auto">
+                <li key={c.contactoKey} className="admin-card rounded-2xl p-4">
+                  {/* Cabecera del paciente: total + WhatsApp único */}
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-espresso">{c.nombre}</p>
+                      <p className="admin-muted text-[13px]">
+                        {c.sesiones.length}{" "}
+                        {c.sesiones.length === 1 ? "sesión" : "sesiones"} sin pagar
+                      </p>
+                    </div>
+                    <span className="text-[1.15rem] font-bold tabular-nums text-[var(--a-danger)]">
+                      {money(c.total)}
+                    </span>
                     <WhatsAppButton phone={c.contacto} nombre={c.nombre} align="right" />
-                    <form action={registrarPago} className="flex-1 sm:flex-none">
-                      <input type="hidden" name="id" value={c.id} />
-                      <input type="hidden" name="metodo" value="efectivo" />
-                      <button className="admin-btn-ghost w-full rounded-full px-4 py-2 text-[13px] font-medium sm:w-auto">
-                        Marcar pagado
-                      </button>
-                    </form>
                   </div>
+                  {/* Detalle de cada sesión: marcar pagado con método */}
+                  <ul className="mt-3 space-y-2 border-t border-[var(--a-border)] pt-3">
+                    {c.sesiones.map((s) => (
+                      <li
+                        key={s.id}
+                        className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px]"
+                      >
+                        <span className="min-w-0 flex-1 admin-muted">
+                          {s.serviceName || "—"}
+                          {s.fecha ? ` · ${fechaHoraAR(s.fecha)} hs` : ""}
+                        </span>
+                        <span className="font-semibold tabular-nums text-espresso">
+                          {money(s.monto)}
+                        </span>
+                        <form
+                          action={registrarPago}
+                          className="flex w-full items-center gap-2 sm:w-auto"
+                        >
+                          <input type="hidden" name="id" value={s.id} />
+                          <select
+                            name="metodo"
+                            aria-label="Método de pago"
+                            defaultValue="efectivo"
+                            className="admin-input flex-1 px-2.5 py-1.5 text-[12px] sm:flex-none"
+                          >
+                            {METODOS.map((x) => (
+                              <option key={x} value={x}>
+                                {METODO_LABEL[x]}
+                              </option>
+                            ))}
+                          </select>
+                          <button className="admin-btn-ghost rounded-full px-3.5 py-1.5 text-[12px] font-medium">
+                            Pagado
+                          </button>
+                        </form>
+                      </li>
+                    ))}
+                  </ul>
                 </li>
               ))}
             </ul>
@@ -317,38 +476,59 @@ export default async function FinanzasPage({
                   <span
                     aria-hidden
                     className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-                      m.manual || m.pagado
+                      m.tipo === "egreso"
+                        ? "bg-[var(--a-danger-soft)] text-[var(--a-danger)]"
+                        : m.manual || m.pagado
                         ? "bg-[#25D366]/12 text-[#1c7a45]"
                         : "bg-[var(--a-surface-2)] text-[var(--a-text-3)]"
                     }`}
                   >
                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      {m.manual || m.pagado ? <path d="M20 6 9 17l-5-5" /> : <><circle cx="12" cy="12" r="9" /><path d="M12 8v4l2.5 1.5" /></>}
+                      {m.tipo === "egreso" ? (
+                        <path d="M12 5v14M19 12l-7 7-7-7" />
+                      ) : m.manual || m.pagado ? (
+                        <path d="M20 6 9 17l-5-5" />
+                      ) : (
+                        <><circle cx="12" cy="12" r="9" /><path d="M12 8v4l2.5 1.5" /></>
+                      )}
                     </svg>
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-espresso">{m.nombre}</p>
                       {m.manual && (
-                        <span className="admin-chip-accent rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em]">
-                          Manual
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${
+                            m.tipo === "egreso"
+                              ? "bg-[var(--a-danger-soft)] text-[var(--a-danger)]"
+                              : "admin-chip-accent"
+                          }`}
+                        >
+                          {m.tipo === "egreso" ? "Gasto" : "Manual"}
                         </span>
                       )}
                     </div>
                     <p className="admin-muted text-[13px]">
                       {m.manual
-                        ? `Ingreso del consultorio${m.fecha ? ` · ${fechaHoraAR(m.fecha)} hs` : ""}`
+                        ? m.tipo === "egreso"
+                          ? `${m.categoria || "Gasto"}${m.fecha ? ` · ${fechaHoraAR(m.fecha)} hs` : ""}`
+                          : `Ingreso del consultorio${m.fecha ? ` · ${fechaHoraAR(m.fecha)} hs` : ""}`
                         : `${m.serviceName || "—"}${m.staffName ? ` · ${m.staffName}` : ""}${m.fecha ? ` · ${fechaHoraAR(m.fecha)} hs` : ""}`}
                     </p>
                   </div>
-                  <span className="ml-auto text-[1.05rem] font-bold tabular-nums text-[var(--a-text)]">
+                  <span
+                    className={`ml-auto text-[1.05rem] font-bold tabular-nums ${
+                      m.tipo === "egreso" ? "text-[var(--a-danger)]" : "text-[var(--a-text)]"
+                    }`}
+                  >
+                    {m.tipo === "egreso" ? "−" : ""}
                     {money(m.monto)}
                   </span>
                   {m.manual ? (
                     <form action={quitarMovimiento} className="w-full sm:w-auto">
                       <input type="hidden" name="id" value={m.id} />
                       <button
-                        aria-label={`Quitar ingreso ${m.nombre}`}
+                        aria-label={`Quitar ${m.tipo === "egreso" ? "gasto" : "ingreso"} ${m.nombre}`}
                         className="admin-btn-ghost w-full rounded-full px-3.5 py-2 text-[12px] font-medium sm:w-auto"
                       >
                         Quitar
