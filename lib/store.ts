@@ -306,7 +306,7 @@ export interface PacienteResumen extends Paciente {
 
 /** Clave de contacto robusta: email tal cual; teléfono → últimos 10 dígitos
  *  (tolera +54, espacios, guiones distintos entre el turno y la ficha). */
-function contactoKey(c: string): string {
+export function contactoKey(c: string): string {
   const t = (c || "").trim().toLowerCase();
   if (!t) return "";
   if (t.includes("@")) return t;

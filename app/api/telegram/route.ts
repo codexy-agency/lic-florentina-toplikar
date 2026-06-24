@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { listSolicitudes, stats, getFinanzas } from "@/lib/store";
 import { horaAR, fechaHoraAR } from "@/lib/scheduling/slots";
 import { sendTelegram } from "@/lib/telegram";
-import { verifyToken, SESSION_COOKIE } from "@/lib/auth";
+import { verifyToken, SESSION_COOKIE, safeEqual } from "@/lib/auth";
 
 const AR = "America/Argentina/Buenos_Aires";
 const money = (n?: number) => "$" + (n ?? 0).toLocaleString("es-AR");
@@ -93,7 +93,8 @@ export async function POST(req: Request) {
   // Verificación del secreto (Telegram lo envía en este header si registramos el
   // webhook con secret_token). Sin esto, cualquiera podría postear updates falsos.
   const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
-  if (!secret || req.headers.get("x-telegram-bot-api-secret-token") !== secret) {
+  const got = req.headers.get("x-telegram-bot-api-secret-token") || "";
+  if (!secret || !safeEqual(got, secret)) {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 
@@ -119,7 +120,9 @@ export async function POST(req: Request) {
         return;
       }
       if (!isAllowed) {
-        await sendTelegram(chatId, `🔒 No estás autorizada/o. Tu chat ID es ${chatId}.`);
+        // No respondemos a chats no autorizados (salvo /start/ayuda, arriba): si
+        // el secreto del webhook se filtra, un flood NO genera mensajes salientes
+        // que hagan que Telegram limite/banee al bot.
         return;
       }
       let resp: string;
@@ -156,7 +159,15 @@ export async function GET(req: Request) {
       { status: 400 }
     );
   }
-  const webhookUrl = `https://${req.headers.get("host")}/api/telegram`;
+  // Preferimos un dominio fijo de plataforma (no falsificable por el header Host)
+  // antes que confiar en req.headers.host para armar la URL del webhook.
+  const envBase =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : "");
+  const base = (envBase || `https://${req.headers.get("host")}`).replace(/\/$/, "");
+  const webhookUrl = `${base}/api/telegram`;
   try {
     const r = await fetch(`https://api.telegram.org/bot${botToken}/setWebhook`, {
       method: "POST",

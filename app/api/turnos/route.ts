@@ -6,6 +6,7 @@ import {
   getBusy,
   listServices,
   listStaff,
+  contactoKey,
 } from "@/lib/store";
 import { getAvailableSlots, endFromStart } from "@/lib/scheduling/slots";
 import { notificarTurno } from "@/lib/telegram";
@@ -14,7 +15,13 @@ import type { Modalidad } from "@/lib/scheduling/types";
 
 const MAX = 600;
 function clean(v: unknown, max = MAX) {
-  return String(v ?? "").trim().slice(0, max);
+  // Saneo de entrada: colapsamos caracteres de control (CR/LF/TAB y demás C0) a
+  // espacio antes de recortar. Defensa en profundidad contra inyecciones que
+  // dependen de saltos/control en cualquier sink futuro (CSV, email, etc.).
+  return String(v ?? "")
+    .replace(/[\x00-\x1F\x7F]/g, " ")
+    .trim()
+    .slice(0, max);
 }
 
 // Tope de tamaño del body (un turno son <2KB; 16KB es holgado). Evita pagar el
@@ -47,7 +54,18 @@ export async function POST(req: Request) {
       );
     }
 
-    const body = await req.json().catch(() => null);
+    // No confiar SOLO en content-length (se puede omitir con Transfer-Encoding
+    // chunked): leemos el texto y cortamos por tamaño real antes de parsear.
+    const raw = await req.text();
+    if (raw.length > 16_000) {
+      return NextResponse.json({ ok: false, error: "Solicitud demasiado grande." }, { status: 413 });
+    }
+    let body: Record<string, unknown> | null = null;
+    try {
+      body = JSON.parse(raw);
+    } catch {
+      body = null;
+    }
     if (!body || typeof body !== "object") {
       return NextResponse.json({ ok: false, error: "Datos inválidos." }, { status: 400 });
     }
@@ -76,8 +94,10 @@ export async function POST(req: Request) {
       );
     }
     // Segundo límite, por contacto: evita que un mismo número/email squattee
-    // muchos slots aunque rote de IP.
-    const rlC = rateLimit(`turnos-c:${contacto.toLowerCase()}`, 4, 30 * 60_000);
+    // muchos slots aunque rote de IP. Normalizamos con la MISMA lógica que el
+    // store (últimos 10 dígitos / email) para que no se evada cambiando el
+    // formato del teléfono (+54 9…, 0…, con guiones, etc.).
+    const rlC = rateLimit(`turnos-c:${contactoKey(contacto) || contacto.toLowerCase()}`, 4, 30 * 60_000);
     if (!rlC.ok) {
       return NextResponse.json(
         { ok: false, error: "Ya tenés varias solicitudes en curso. Te contactamos pronto." },

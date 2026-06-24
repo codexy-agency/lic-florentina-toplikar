@@ -22,8 +22,18 @@ export async function POST(req: Request) {
       );
     }
 
-    const { password } = await req.json().catch(() => ({ password: "" }));
-    if (!checkPassword(String(password || ""))) {
+    // No confiar solo en content-length: cortar por tamaño real antes de parsear.
+    const raw = await req.text();
+    if (raw.length > 4_000) {
+      return NextResponse.json({ ok: false, error: "Solicitud inválida." }, { status: 413 });
+    }
+    let password = "";
+    try {
+      password = String((JSON.parse(raw) || {}).password || "");
+    } catch {
+      password = "";
+    }
+    if (!checkPassword(password)) {
       return NextResponse.json(
         { ok: false, error: "Contraseña incorrecta." },
         { status: 401 }

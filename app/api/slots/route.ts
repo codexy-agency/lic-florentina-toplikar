@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getScheduling, getBusy, listServices } from "@/lib/store";
 import { getAvailableSlots } from "@/lib/scheduling/slots";
+import { rateLimit, clientIp } from "@/lib/ratelimit";
 import type { Modalidad } from "@/lib/scheduling/types";
 
 export const dynamic = "force-dynamic";
@@ -8,6 +9,15 @@ export const dynamic = "force-dynamic";
 // GET /api/slots?modalidad=online&serviceId=...&staffId=... → días con horarios libres
 export async function GET(req: Request) {
   try {
+    // Endpoint público que lee el estado completo: lo limitamos para que un loop
+    // anónimo no sature las lambdas ni infle las lecturas de Supabase.
+    const rl = rateLimit(`slots:${clientIp(req)}`, 60, 60_000);
+    if (!rl.ok) {
+      return NextResponse.json(
+        { ok: false, dias: [] },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfter) } }
+      );
+    }
     const { searchParams } = new URL(req.url);
     const modParam = searchParams.get("modalidad");
     const modalidad: Modalidad | undefined =

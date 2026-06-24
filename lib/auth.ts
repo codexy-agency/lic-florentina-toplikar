@@ -12,6 +12,20 @@ const SESSION_VERSION = process.env.ADMIN_SESSION_VERSION || "1";
 
 export const SESSION_COOKIE = COOKIE;
 
+const IS_PROD = process.env.NODE_ENV === "production";
+// Valores de demo/placeholder que NUNCA deben llegar a producción: si quedan
+// cargados en Vercel, la app falla-cerrado (mejor que /admin no abra a que la
+// sesión sea forjable con un secreto conocido o se entre con una pass pública).
+// En local (NODE_ENV != production) se permiten para no romper el desarrollo.
+const WEAK_VALUES = new Set([
+  "demo-secret-cambiar-en-produccion",
+  "paulina2026",
+  "changeme",
+  "secret",
+  "admin",
+  "password",
+]);
+
 function requireSecret(): string {
   if (!SECRET || SECRET.length < 16) {
     throw new Error(
@@ -19,10 +33,16 @@ function requireSecret(): string {
         "Definilo en .env.local y en las Variables de Entorno de Vercel."
     );
   }
+  if (IS_PROD && WEAK_VALUES.has(SECRET.toLowerCase())) {
+    throw new Error(
+      "ADMIN_SECRET inseguro en producción (valor de demo conocido). " +
+        "Generá uno aleatorio: `openssl rand -hex 32`."
+    );
+  }
   return SECRET;
 }
 
-function safeEqual(a: string, b: string) {
+export function safeEqual(a: string, b: string) {
   if (a.length !== b.length) return false;
   let r = 0;
   for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
@@ -47,6 +67,12 @@ async function sign(value: string): Promise<string> {
 export function checkPassword(input: string) {
   if (!PASSWORD || PASSWORD.length < 6) {
     throw new Error("ADMIN_PASSWORD sin configurar (mínimo 6 caracteres).");
+  }
+  if (IS_PROD && WEAK_VALUES.has(PASSWORD.toLowerCase())) {
+    throw new Error(
+      "ADMIN_PASSWORD inseguro en producción (valor de demo conocido). " +
+        "Cambialo por una passphrase fuerte y única en Vercel."
+    );
   }
   return safeEqual(input, PASSWORD);
 }

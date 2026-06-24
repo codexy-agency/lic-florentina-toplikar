@@ -14,9 +14,13 @@ const METODO_LABEL: Record<string, string> = {
   manual: "Manual / consultorio",
 };
 
-/** Escapa un campo para CSV con separador ';' (formato Excel-AR). */
+/** Escapa un campo para CSV con separador ';' (formato Excel-AR) y neutraliza
+ *  inyeccion de formulas: un valor de TEXTO que arranca con = + - @ (o tab/CR)
+ *  podria ejecutarse como formula al abrir el CSV en Excel/Sheets. Se le antepone
+ *  un apostrofo. No aplica a numeros (los montos negativos siguen siendo numeros). */
 function cell(v: string | number): string {
-  const s = String(v ?? "");
+  let s = String(v ?? "");
+  if (typeof v === "string" && /^[=+\-@\t\r]/.test(s)) s = "'" + s;
   return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
