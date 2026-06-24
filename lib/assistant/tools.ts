@@ -1,0 +1,376 @@
+// Herramientas del asistente del panel. Las de LECTURA se ejecutan solas; las de
+// ESCRITURA NO se ejecutan acá: el endpoint las devuelve como "propuesta" y el
+// panel le pide confirmación a la usuaria antes de aplicarlas (ver execute/route).
+// Privacidad: las lecturas NO exponen el motivo de consulta ni notas clínicas.
+import {
+  listSolicitudes,
+  getPacientesResumen,
+  getFinanzas,
+  getScheduling,
+  getBusy,
+  listServices,
+  listStaff,
+  crearTurnoManual,
+  setEstado,
+  setPago,
+  addMovimientoManual,
+  addException,
+  contactoKey,
+} from "@/lib/store";
+import {
+  getAvailableSlots,
+  fechaHoraAR,
+  horaAR,
+  arLocalToIso,
+  endFromStart,
+} from "@/lib/scheduling/slots";
+import type { Tool } from "@/lib/anthropic";
+
+type In = Record<string, unknown>;
+const str = (v: unknown) => String(v ?? "").trim();
+const money = (n?: number) => "$" + (n ?? 0).toLocaleString("es-AR");
+const AR = "America/Argentina/Buenos_Aires";
+const todayAR = () => new Date().toLocaleDateString("en-CA", { timeZone: AR });
+const dayAR = (iso?: string) => {
+  try {
+    return iso ? new Date(iso).toLocaleDateString("en-CA", { timeZone: AR }) : "";
+  } catch {
+    return "";
+  }
+};
+
+export const WRITE_TOOLS = new Set([
+  "agendar_turno",
+  "confirmar_turno",
+  "registrar_pago",
+  "bloquear_dia",
+  "cargar_movimiento",
+]);
+
+// ───────────────────────── Lectura ─────────────────────────
+
+async function readAgendaHoy(): Promise<string> {
+  const sols = await listSolicitudes();
+  const hoy = todayAR();
+  const items = sols
+    .filter((s) => s.estado === "confirmado" && dayAR(s.startsAt) === hoy)
+    .sort((a, b) => ((a.startsAt || "") < (b.startsAt || "") ? -1 : 1));
+  if (!items.length) return "No hay turnos confirmados para hoy.";
+  return items
+    .map((s) => `- ${horaAR(s.startsAt!)} · ${s.nombre}${s.serviceName ? ` · ${s.serviceName}` : ""} (${s.modalidad}) [turnoId=${s.id}]`)
+    .join("\n");
+}
+
+async function readProximos(cant = 8): Promise<string> {
+  const sols = await listSolicitudes();
+  const now = Date.now();
+  const items = sols
+    .filter((s) => s.estado === "confirmado" && s.startsAt && new Date(s.startsAt).getTime() >= now)
+    .sort((a, b) => ((a.startsAt || "") < (b.startsAt || "") ? -1 : 1))
+    .slice(0, Math.max(1, Math.min(cant, 20)));
+  if (!items.length) return "No hay próximos turnos confirmados.";
+  return items
+    .map((s) => `- ${fechaHoraAR(s.startsAt!)} hs · ${s.nombre}${s.serviceName ? ` · ${s.serviceName}` : ""} (${s.modalidad}) [turnoId=${s.id}]`)
+    .join("\n");
+}
+
+async function readPendientes(): Promise<string> {
+  const sols = await listSolicitudes();
+  const items = sols
+    .filter((s) => s.estado === "pendiente")
+    .sort((a, b) => ((a.startsAt || "") < (b.startsAt || "") ? -1 : 1));
+  if (!items.length) return "No hay solicitudes pendientes.";
+  return items
+    .map((s) => `- ${s.startsAt ? `${fechaHoraAR(s.startsAt)} hs` : "a coordinar"} · ${s.nombre} (${s.contacto})${s.serviceName ? ` · ${s.serviceName}` : ""} [turnoId=${s.id}]`)
+    .join("\n");
+}
+
+async function readFinanzas(periodo = "mes"): Promise<string> {
+  const f = await getFinanzas(periodo);
+  const deuda = f.cobranza.reduce((n, c) => n + c.total, 0);
+  return [
+    `Período: ${f.periodoLabel}`,
+    `Cobrado: ${money(f.cobrado)}`,
+    `Gastos: ${money(f.egresos)}`,
+    `Neto: ${money(f.neto)}`,
+    `Por cobrar: ${money(f.porCobrar)} (${f.cantTurnos - f.cantCobrados} turnos)`,
+    `Facturado: ${money(f.facturado)} · ${f.cantTurnos} turnos`,
+    f.cobranza.length ? `Cobranza pendiente: ${f.cobranza.length} paciente(s), ${money(deuda)}` : "Sin cobranza pendiente.",
+  ].join("\n");
+}
+
+async function readBuscarPaciente(query: string): Promise<string> {
+  const q = query.trim().toLowerCase();
+  if (!q) return "Pasá un nombre o contacto para buscar.";
+  const k = contactoKey(query);
+  const pac = await getPacientesResumen();
+  const hits = pac
+    .filter(
+      (p) =>
+        p.nombre.toLowerCase().includes(q) ||
+        p.contacto.toLowerCase().includes(q) ||
+        (!!k && contactoKey(p.contacto) === k)
+    )
+    .slice(0, 8);
+  if (!hits.length) return `No encontré pacientes para "${query}".`;
+  return hits
+    .map((p) => `- ${p.nombre} · ${p.contacto}${p.email ? ` · ${p.email}` : ""} · deuda ${money(p.deuda)}${p.proximoTurno ? ` · próximo ${fechaHoraAR(p.proximoTurno)} hs` : ""}`)
+    .join("\n");
+}
+
+async function readDeuda(): Promise<string> {
+  const pac = await getPacientesResumen();
+  const con = pac.filter((p) => p.deuda > 0).sort((a, b) => b.deuda - a.deuda);
+  if (!con.length) return "Nadie tiene deuda al día de hoy.";
+  return con
+    .map((p) => `- ${p.nombre} · ${p.contacto} · debe ${money(p.deuda)} (${p.turnosImpagos} sesión/es)`)
+    .join("\n");
+}
+
+async function readDisponibilidad(fecha?: string, modalidadIn?: string): Promise<string> {
+  const modalidad =
+    modalidadIn === "presencial" ? "presencial" : modalidadIn === "online" ? "online" : undefined;
+  const [{ config, rules, exceptions }, busy, services] = await Promise.all([
+    getScheduling(),
+    getBusy(),
+    listServices(true),
+  ]);
+  const dias = getAvailableSlots({
+    modalidad,
+    durationMin: services[0]?.durationMin,
+    rules,
+    config,
+    exceptions,
+    busy,
+  });
+  if (!dias.length) return "No hay horarios disponibles en la ventana de reserva.";
+  let lista = dias;
+  if (fecha) lista = dias.filter((d) => d.date === fecha);
+  if (!lista.length) return `No hay horarios libres para ${fecha}.`;
+  return lista
+    .slice(0, 7)
+    .map((d) => `- ${d.date}: ${d.slots.map((sl) => horaAR(sl.startsAt)).join(", ") || "sin horarios"}`)
+    .join("\n");
+}
+
+export async function runReadTool(name: string, input: In): Promise<string> {
+  try {
+    switch (name) {
+      case "agenda_hoy":
+        return await readAgendaHoy();
+      case "proximos_turnos":
+        return await readProximos(Number(input.cantidad) || 8);
+      case "pendientes":
+        return await readPendientes();
+      case "finanzas":
+        return await readFinanzas(str(input.periodo) || "mes");
+      case "buscar_paciente":
+        return await readBuscarPaciente(str(input.query));
+      case "pacientes_con_deuda":
+        return await readDeuda();
+      case "disponibilidad":
+        return await readDisponibilidad(str(input.fecha) || undefined, str(input.modalidad) || undefined);
+      default:
+        return `Herramienta de lectura desconocida: ${name}`;
+    }
+  } catch (e) {
+    return `Error al ejecutar ${name}: ${e instanceof Error ? e.message : "desconocido"}`;
+  }
+}
+
+// ───────────────────────── Escritura (tras confirmación) ─────────────────────────
+
+async function doAgendar(input: In): Promise<string> {
+  const nombre = str(input.nombre);
+  const contacto = str(input.contacto);
+  const fecha = str(input.fecha);
+  const modalidad = input.modalidad === "presencial" ? "presencial" : "online";
+  if (!nombre || !contacto || !fecha) return "Faltan datos (nombre, contacto o fecha).";
+  const startsAt = arLocalToIso(fecha);
+  if (!startsAt) return "Fecha inválida. Usá formato YYYY-MM-DDTHH:MM.";
+  const services = await listServices(true);
+  const svc = input.serviceId ? services.find((s) => s.id === input.serviceId) : services[0];
+  const staff = await listStaff(true);
+  const st = staff.find((s) => (svc ? s.serviceIds.includes(svc.id) : true)) || staff[0];
+  const endsAt = endFromStart(startsAt, svc?.durationMin ?? 50);
+  const res = await crearTurnoManual({
+    nombre,
+    contacto,
+    modalidad,
+    serviceId: svc?.id,
+    serviceName: svc?.nombre,
+    staffId: st?.id,
+    staffName: st?.nombre,
+    precio: svc?.priceARS,
+    startsAt,
+    endsAt,
+  });
+  return res
+    ? `✅ Turno agendado: ${nombre} · ${fechaHoraAR(startsAt)} hs${svc ? ` · ${svc.nombre}` : ""} (${modalidad}).`
+    : "⚠️ No se pudo: ese horario se superpone con otro turno.";
+}
+
+async function doConfirmar(input: In): Promise<string> {
+  const res = await setEstado(str(input.turnoId), "confirmado");
+  return res ? `✅ Turno de ${res.nombre} confirmado.` : "No encontré ese turno.";
+}
+
+async function doPago(input: In): Promise<string> {
+  const metodo = str(input.metodo) || "efectivo";
+  const res = await setPago(str(input.turnoId), true, metodo);
+  return res ? `✅ Pago registrado (${metodo}) para ${res.nombre}.` : "No encontré ese turno.";
+}
+
+async function doBloquear(input: In): Promise<string> {
+  const date = str(input.fecha).slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return "Fecha inválida (YYYY-MM-DD).";
+  await addException({ date, type: "block_day", reason: str(input.motivo) || undefined });
+  return `✅ Día bloqueado: ${date}.`;
+}
+
+async function doMovimiento(input: In): Promise<string> {
+  const concepto = str(input.concepto);
+  const monto = Math.round(Number(input.monto));
+  const tipo = input.tipo === "egreso" ? "egreso" : "ingreso";
+  if (!concepto || !Number.isFinite(monto) || monto <= 0) return "Faltan concepto o un monto válido.";
+  await addMovimientoManual({ concepto, monto, tipo, categoria: str(input.categoria) || undefined });
+  return `✅ ${tipo === "egreso" ? "Gasto" : "Ingreso"} registrado: ${money(monto)} · ${concepto}.`;
+}
+
+export async function runWriteTool(name: string, input: In): Promise<string> {
+  try {
+    switch (name) {
+      case "agendar_turno":
+        return await doAgendar(input);
+      case "confirmar_turno":
+        return await doConfirmar(input);
+      case "registrar_pago":
+        return await doPago(input);
+      case "bloquear_dia":
+        return await doBloquear(input);
+      case "cargar_movimiento":
+        return await doMovimiento(input);
+      default:
+        return `Acción desconocida: ${name}`;
+    }
+  } catch (e) {
+    return `Error al ejecutar ${name}: ${e instanceof Error ? e.message : "desconocido"}`;
+  }
+}
+
+/** Resumen legible de una acción de escritura, para la tarjeta de confirmación. */
+export function describeWriteTool(name: string, input: In): string {
+  switch (name) {
+    case "agendar_turno":
+      return `Agendar turno — ${str(input.nombre)} · ${str(input.fecha)} · ${input.modalidad === "presencial" ? "presencial" : "online"}`;
+    case "confirmar_turno":
+      return `Confirmar turno [${str(input.turnoId)}]`;
+    case "registrar_pago":
+      return `Registrar pago (${str(input.metodo) || "efectivo"}) del turno [${str(input.turnoId)}]`;
+    case "bloquear_dia":
+      return `Bloquear el día ${str(input.fecha)}${input.motivo ? ` — ${str(input.motivo)}` : ""}`;
+    case "cargar_movimiento":
+      return `Cargar ${input.tipo === "egreso" ? "gasto" : "ingreso"} de ${money(Number(input.monto))} — ${str(input.concepto)}`;
+    default:
+      return name;
+  }
+}
+
+// ───────────────────────── Esquemas (para Claude) ─────────────────────────
+
+export const TOOLS: Tool[] = [
+  { name: "agenda_hoy", description: "Turnos confirmados de hoy.", input_schema: { type: "object", properties: {} } },
+  {
+    name: "proximos_turnos",
+    description: "Próximos turnos confirmados a futuro.",
+    input_schema: { type: "object", properties: { cantidad: { type: "number", description: "máx. a listar (default 8)" } } },
+  },
+  { name: "pendientes", description: "Solicitudes de turno sin confirmar.", input_schema: { type: "object", properties: {} } },
+  {
+    name: "finanzas",
+    description: "Resumen financiero de un período (cobrado, gastos, neto, por cobrar).",
+    input_schema: { type: "object", properties: { periodo: { type: "string", enum: ["mes", "mes-pasado", "anio", "todo"], description: "default mes" } } },
+  },
+  {
+    name: "buscar_paciente",
+    description: "Busca un paciente por nombre o contacto; devuelve deuda y próximo turno.",
+    input_schema: { type: "object", properties: { query: { type: "string" } }, required: ["query"] },
+  },
+  { name: "pacientes_con_deuda", description: "Pacientes que tienen deuda (sesiones sin pagar).", input_schema: { type: "object", properties: {} } },
+  {
+    name: "disponibilidad",
+    description: "Horarios libres. Opcional: una fecha (YYYY-MM-DD) y modalidad.",
+    input_schema: { type: "object", properties: { fecha: { type: "string", description: "YYYY-MM-DD" }, modalidad: { type: "string", enum: ["online", "presencial"] } } },
+  },
+  // Escritura (requieren confirmación de la usuaria)
+  {
+    name: "agendar_turno",
+    description: "Agenda un turno confirmado. Requiere confirmación de la usuaria.",
+    input_schema: {
+      type: "object",
+      properties: {
+        nombre: { type: "string" },
+        contacto: { type: "string", description: "WhatsApp/teléfono o email" },
+        fecha: { type: "string", description: "YYYY-MM-DDTHH:MM (hora AR)" },
+        modalidad: { type: "string", enum: ["online", "presencial"] },
+        serviceId: { type: "string", description: "opcional; si no, usa el primer servicio" },
+      },
+      required: ["nombre", "contacto", "fecha"],
+    },
+  },
+  {
+    name: "confirmar_turno",
+    description: "Confirma una solicitud pendiente. Pasá el turnoId (obtenelo de pendientes).",
+    input_schema: { type: "object", properties: { turnoId: { type: "string" } }, required: ["turnoId"] },
+  },
+  {
+    name: "registrar_pago",
+    description: "Marca un turno como pagado. Pasá el turnoId y el método.",
+    input_schema: {
+      type: "object",
+      properties: { turnoId: { type: "string" }, metodo: { type: "string", enum: ["efectivo", "transferencia", "mercadopago", "tarjeta"] } },
+      required: ["turnoId"],
+    },
+  },
+  {
+    name: "bloquear_dia",
+    description: "Bloquea un día entero (no se ofrecen turnos). Fecha YYYY-MM-DD.",
+    input_schema: { type: "object", properties: { fecha: { type: "string" }, motivo: { type: "string" } }, required: ["fecha"] },
+  },
+  {
+    name: "cargar_movimiento",
+    description: "Registra un ingreso o gasto del consultorio.",
+    input_schema: {
+      type: "object",
+      properties: {
+        concepto: { type: "string" },
+        monto: { type: "number" },
+        tipo: { type: "string", enum: ["ingreso", "egreso"] },
+        categoria: { type: "string", description: "opcional (ej. alquiler, supervisión)" },
+      },
+      required: ["concepto", "monto", "tipo"],
+    },
+  },
+];
+
+export function buildSystemPrompt(): string {
+  const hoy = new Date().toLocaleDateString("es-AR", {
+    timeZone: AR,
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  return [
+    "Sos el asistente del panel de gestión de un consultorio de psicología. Hablás en español rioplatense, cálido pero conciso.",
+    `Hoy es ${hoy} (hora de Argentina).`,
+    "Podés CONSULTAR agenda, turnos, finanzas, pacientes y disponibilidad con las herramientas de lectura.",
+    "Para ACCIONES que cambian datos (agendar, confirmar, registrar pago, bloquear día, cargar ingreso/gasto) usás las herramientas de escritura: NO se ejecutan solas — el panel le muestra a la usuaria una confirmación antes de aplicar. Proponé la acción cuando te la pidan.",
+    "Reglas:",
+    "- Nunca inventes IDs ni datos: si necesitás el id de un turno o el contacto de un paciente, buscalo primero con una herramienta de lectura.",
+    "- Montos en pesos ($) y fechas/horas en formato argentino.",
+    "- Para agendar, la fecha va en formato YYYY-MM-DDTHH:MM (hora AR).",
+    "- No manejás ni comentás el motivo de consulta ni notas clínicas (datos de salud sensibles).",
+    "- Respuestas cortas y accionables. Si falta un dato para una acción, preguntalo.",
+  ].join("\n");
+}
