@@ -153,6 +153,28 @@ async function readDisponibilidad(fecha?: string, modalidadIn?: string): Promise
     .join("\n");
 }
 
+async function readImpagas(paciente?: string): Promise<string> {
+  // La deuda son sesiones realizadas (o confirmadas vencidas) sin pagar. getFinanzas
+  // ya las agrupa por paciente con el id de cada turno → eso necesita registrar_pago.
+  const f = await getFinanzas("todo");
+  let grupos = f.cobranza;
+  const q = (paciente || "").trim().toLowerCase();
+  if (q) {
+    const k = contactoKey(paciente!);
+    grupos = grupos.filter((g) => g.nombre.toLowerCase().includes(q) || (!!k && contactoKey(g.contacto) === k));
+  }
+  if (!grupos.length) return paciente ? `No hay sesiones impagas de "${paciente}".` : "No hay sesiones impagas.";
+  return grupos
+    .map(
+      (g) =>
+        `${g.nombre} (${g.contacto}) — debe ${money(g.total)} en ${g.sesiones.length} sesión/es:\n` +
+        g.sesiones
+          .map((s) => `  · ${s.fecha ? fechaHoraAR(s.fecha) + " hs" : "sin fecha"}${s.serviceName ? ` · ${s.serviceName}` : ""} — ${money(s.monto)} [turnoId=${s.id}]`)
+          .join("\n")
+    )
+    .join("\n");
+}
+
 export async function runReadTool(name: string, input: In): Promise<string> {
   try {
     switch (name) {
@@ -168,6 +190,8 @@ export async function runReadTool(name: string, input: In): Promise<string> {
         return await readBuscarPaciente(str(input.query));
       case "pacientes_con_deuda":
         return await readDeuda();
+      case "sesiones_impagas":
+        return await readImpagas(str(input.paciente) || undefined);
       case "disponibilidad":
         return await readDisponibilidad(str(input.fecha) || undefined, str(input.modalidad) || undefined);
       default:
@@ -300,6 +324,11 @@ export const TOOLS: OAITool[] = [
     required: ["query"],
   }),
   fn("pacientes_con_deuda", "Pacientes que tienen deuda (sesiones sin pagar).", { type: "object", properties: {} }),
+  fn(
+    "sesiones_impagas",
+    "Sesiones realizadas sin pagar (de acá sale la DEUDA, NO de 'pendientes'). Devuelve el turnoId de cada sesión para poder cobrarla con registrar_pago. Opcional: filtrar por paciente.",
+    { type: "object", properties: { paciente: { type: "string", description: "nombre o contacto (opcional)" } } }
+  ),
   fn("disponibilidad", "Horarios libres. Opcional: una fecha (YYYY-MM-DD) y modalidad.", {
     type: "object",
     properties: { fecha: { type: "string", description: "YYYY-MM-DD" }, modalidad: { type: "string", enum: ["online", "presencial"] } },
@@ -321,7 +350,7 @@ export const TOOLS: OAITool[] = [
     properties: { turnoId: { type: "string" } },
     required: ["turnoId"],
   }),
-  fn("registrar_pago", "Marca un turno como pagado. Pasá el turnoId y el método.", {
+  fn("registrar_pago", "Marca un turno como pagado. Pasá el turnoId (obtenelo de sesiones_impagas, o de la agenda) y el método.", {
     type: "object",
     properties: { turnoId: { type: "string" }, metodo: { type: "string", enum: ["efectivo", "transferencia", "mercadopago", "tarjeta"] } },
     required: ["turnoId"],
@@ -358,6 +387,7 @@ export function buildSystemPrompt(): string {
     "Para ACCIONES que cambian datos (agendar, confirmar, registrar pago, bloquear día, cargar ingreso/gasto) usás las herramientas de escritura: NO se ejecutan solas — el panel le muestra a la usuaria una confirmación antes de aplicar. Proponé la acción cuando te la pidan.",
     "Reglas:",
     "- Nunca inventes IDs ni datos: si necesitás el id de un turno o el contacto de un paciente, buscalo primero con una herramienta de lectura.",
+    "- La DEUDA de un paciente viene de sesiones REALIZADAS sin pagar, NO de turnos 'pendientes' (eso son solicitudes sin confirmar). Para cobrar una deuda: usá `sesiones_impagas` para obtener el turnoId y después `registrar_pago`.",
     "- Montos en pesos ($) y fechas/horas en formato argentino.",
     "- Para agendar, la fecha va en formato YYYY-MM-DDTHH:MM (hora AR).",
     "- No manejás ni comentás el motivo de consulta ni notas clínicas (datos de salud sensibles).",
