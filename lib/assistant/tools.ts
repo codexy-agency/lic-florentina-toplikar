@@ -118,12 +118,24 @@ async function readBuscarPaciente(query: string): Promise<string> {
     .join("\n");
 }
 
+// Pagos pendientes por paciente. MISMA fuente que sesiones_impagas y registrar_pago
+// (todas las sesiones confirmadas/realizadas sin pagar), para que los montos cuadren
+// entre "quién debe" y lo que después se cobra.
 async function readDeuda(): Promise<string> {
-  const pac = await getPacientesResumen();
-  const con = pac.filter((p) => p.deuda > 0).sort((a, b) => b.deuda - a.deuda);
-  if (!con.length) return "Nadie tiene deuda al día de hoy.";
-  return con
-    .map((p) => `- ${p.nombre} · ${p.contacto} · debe ${money(p.deuda)} (${p.turnosImpagos} sesión/es)`)
+  const sols = await listSolicitudes();
+  const impagas = sols.filter((s) => (s.estado === "confirmado" || s.estado === "realizado") && !s.pagado);
+  if (!impagas.length) return "Nadie tiene pagos pendientes al día de hoy.";
+  const byPac = new Map<string, { nombre: string; contacto: string; total: number; n: number }>();
+  for (const s of impagas) {
+    const k = contactoKey(s.contacto) || s.id;
+    const g = byPac.get(k) || { nombre: s.nombre, contacto: s.contacto, total: 0, n: 0 };
+    g.total += s.precio ?? 0;
+    g.n++;
+    byPac.set(k, g);
+  }
+  return [...byPac.values()]
+    .sort((a, b) => b.total - a.total)
+    .map((g) => `- ${g.nombre} · ${g.contacto} · debe ${money(g.total)} (${g.n} sesión/es)`)
     .join("\n");
 }
 
@@ -357,7 +369,7 @@ export const TOOLS: OAITool[] = [
     properties: { query: { type: "string" } },
     required: ["query"],
   }),
-  fn("pacientes_con_deuda", "Pacientes que tienen deuda (sesiones sin pagar).", { type: "object", properties: {} }),
+  fn("pacientes_con_deuda", "Pagos pendientes resumidos por paciente (cuánto debe cada uno y cuántas sesiones). Mismo criterio que sesiones_impagas.", { type: "object", properties: {} }),
   fn(
     "sesiones_impagas",
     "Sesiones realizadas sin pagar (de acá sale la DEUDA, NO de 'pendientes'). Devuelve el turnoId de cada sesión para poder cobrarla con registrar_pago. Opcional: filtrar por paciente.",
