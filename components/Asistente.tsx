@@ -78,6 +78,7 @@ export function Asistente() {
   const recRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const busyRef = useRef(false); // candado síncrono contra doble ejecución
+  const enviarRef = useRef<(t: string) => void>(() => {}); // última versión de enviar (para el audio)
 
   useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
@@ -149,6 +150,8 @@ export function Asistente() {
     setView((v) => [...v, { id: uid(), role: "user", text: t }]);
     chat(next);
   }
+
+  enviarRef.current = enviar; // mantener la referencia fresca en cada render
 
   async function confirmar(item: ViewItem) {
     if (!item.proposal || item.estado !== "pending" || busyRef.current) return;
@@ -222,7 +225,9 @@ export function Asistente() {
           fd.append("audio", blob, "audio.webm");
           const r = await fetch("/api/asistente/transcribir", { method: "POST", body: fd });
           const data = await r.json();
-          if (data.ok && data.text) setInput((p) => (p ? p + " " : "") + data.text);
+          // Voz → texto → se MANDA directo (aparece como tu mensaje y el asistente
+          // responde). No pasa por el campo de texto: para eso escribirías.
+          if (data.ok && data.text) enviarRef.current(data.text);
           else setView((v) => [...v, { id: uid(), role: "assistant", text: "⚠️ " + (data.error || "No pude transcribir el audio.") }]);
         } catch {
           setView((v) => [...v, { id: uid(), role: "assistant", text: "⚠️ No pude transcribir el audio." }]);
