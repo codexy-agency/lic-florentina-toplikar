@@ -24,7 +24,7 @@ import {
   arLocalToIso,
   endFromStart,
 } from "@/lib/scheduling/slots";
-import type { Tool } from "@/lib/anthropic";
+import type { OAITool } from "@/lib/openai";
 
 type In = Record<string, unknown>;
 const str = (v: unknown) => String(v ?? "").trim();
@@ -278,79 +278,69 @@ export function describeWriteTool(name: string, input: In): string {
 
 // ───────────────────────── Esquemas (para Claude) ─────────────────────────
 
-export const TOOLS: Tool[] = [
-  { name: "agenda_hoy", description: "Turnos confirmados de hoy.", input_schema: { type: "object", properties: {} } },
-  {
-    name: "proximos_turnos",
-    description: "Próximos turnos confirmados a futuro.",
-    input_schema: { type: "object", properties: { cantidad: { type: "number", description: "máx. a listar (default 8)" } } },
-  },
-  { name: "pendientes", description: "Solicitudes de turno sin confirmar.", input_schema: { type: "object", properties: {} } },
-  {
-    name: "finanzas",
-    description: "Resumen financiero de un período (cobrado, gastos, neto, por cobrar).",
-    input_schema: { type: "object", properties: { periodo: { type: "string", enum: ["mes", "mes-pasado", "anio", "todo"], description: "default mes" } } },
-  },
-  {
-    name: "buscar_paciente",
-    description: "Busca un paciente por nombre o contacto; devuelve deuda y próximo turno.",
-    input_schema: { type: "object", properties: { query: { type: "string" } }, required: ["query"] },
-  },
-  { name: "pacientes_con_deuda", description: "Pacientes que tienen deuda (sesiones sin pagar).", input_schema: { type: "object", properties: {} } },
-  {
-    name: "disponibilidad",
-    description: "Horarios libres. Opcional: una fecha (YYYY-MM-DD) y modalidad.",
-    input_schema: { type: "object", properties: { fecha: { type: "string", description: "YYYY-MM-DD" }, modalidad: { type: "string", enum: ["online", "presencial"] } } },
-  },
+const fn = (name: string, description: string, parameters: Record<string, unknown>): OAITool => ({
+  type: "function",
+  function: { name, description, parameters },
+});
+
+export const TOOLS: OAITool[] = [
+  fn("agenda_hoy", "Turnos confirmados de hoy.", { type: "object", properties: {} }),
+  fn("proximos_turnos", "Próximos turnos confirmados a futuro.", {
+    type: "object",
+    properties: { cantidad: { type: "number", description: "máx. a listar (default 8)" } },
+  }),
+  fn("pendientes", "Solicitudes de turno sin confirmar.", { type: "object", properties: {} }),
+  fn("finanzas", "Resumen financiero de un período (cobrado, gastos, neto, por cobrar).", {
+    type: "object",
+    properties: { periodo: { type: "string", enum: ["mes", "mes-pasado", "anio", "todo"], description: "default mes" } },
+  }),
+  fn("buscar_paciente", "Busca un paciente por nombre o contacto; devuelve deuda y próximo turno.", {
+    type: "object",
+    properties: { query: { type: "string" } },
+    required: ["query"],
+  }),
+  fn("pacientes_con_deuda", "Pacientes que tienen deuda (sesiones sin pagar).", { type: "object", properties: {} }),
+  fn("disponibilidad", "Horarios libres. Opcional: una fecha (YYYY-MM-DD) y modalidad.", {
+    type: "object",
+    properties: { fecha: { type: "string", description: "YYYY-MM-DD" }, modalidad: { type: "string", enum: ["online", "presencial"] } },
+  }),
   // Escritura (requieren confirmación de la usuaria)
-  {
-    name: "agendar_turno",
-    description: "Agenda un turno confirmado. Requiere confirmación de la usuaria.",
-    input_schema: {
-      type: "object",
-      properties: {
-        nombre: { type: "string" },
-        contacto: { type: "string", description: "WhatsApp/teléfono o email" },
-        fecha: { type: "string", description: "YYYY-MM-DDTHH:MM (hora AR)" },
-        modalidad: { type: "string", enum: ["online", "presencial"] },
-        serviceId: { type: "string", description: "opcional; si no, usa el primer servicio" },
-      },
-      required: ["nombre", "contacto", "fecha"],
+  fn("agendar_turno", "Agenda un turno confirmado. Requiere confirmación de la usuaria.", {
+    type: "object",
+    properties: {
+      nombre: { type: "string" },
+      contacto: { type: "string", description: "WhatsApp/teléfono o email" },
+      fecha: { type: "string", description: "YYYY-MM-DDTHH:MM (hora AR)" },
+      modalidad: { type: "string", enum: ["online", "presencial"] },
+      serviceId: { type: "string", description: "opcional; si no, usa el primer servicio" },
     },
-  },
-  {
-    name: "confirmar_turno",
-    description: "Confirma una solicitud pendiente. Pasá el turnoId (obtenelo de pendientes).",
-    input_schema: { type: "object", properties: { turnoId: { type: "string" } }, required: ["turnoId"] },
-  },
-  {
-    name: "registrar_pago",
-    description: "Marca un turno como pagado. Pasá el turnoId y el método.",
-    input_schema: {
-      type: "object",
-      properties: { turnoId: { type: "string" }, metodo: { type: "string", enum: ["efectivo", "transferencia", "mercadopago", "tarjeta"] } },
-      required: ["turnoId"],
+    required: ["nombre", "contacto", "fecha"],
+  }),
+  fn("confirmar_turno", "Confirma una solicitud pendiente. Pasá el turnoId (obtenelo de pendientes).", {
+    type: "object",
+    properties: { turnoId: { type: "string" } },
+    required: ["turnoId"],
+  }),
+  fn("registrar_pago", "Marca un turno como pagado. Pasá el turnoId y el método.", {
+    type: "object",
+    properties: { turnoId: { type: "string" }, metodo: { type: "string", enum: ["efectivo", "transferencia", "mercadopago", "tarjeta"] } },
+    required: ["turnoId"],
+  }),
+  fn("bloquear_dia", "Bloquea un día entero (no se ofrecen turnos). Fecha YYYY-MM-DD.", {
+    type: "object",
+    properties: { fecha: { type: "string" }, motivo: { type: "string" } },
+    required: ["fecha"],
+  }),
+  fn("cargar_movimiento", "Registra un ingreso o gasto del consultorio.", {
+    type: "object",
+    properties: {
+      concepto: { type: "string" },
+      monto: { type: "number" },
+      tipo: { type: "string", enum: ["ingreso", "egreso"] },
+      categoria: { type: "string", description: "opcional (ej. alquiler, supervisión)" },
     },
-  },
-  {
-    name: "bloquear_dia",
-    description: "Bloquea un día entero (no se ofrecen turnos). Fecha YYYY-MM-DD.",
-    input_schema: { type: "object", properties: { fecha: { type: "string" }, motivo: { type: "string" } }, required: ["fecha"] },
-  },
-  {
-    name: "cargar_movimiento",
-    description: "Registra un ingreso o gasto del consultorio.",
-    input_schema: {
-      type: "object",
-      properties: {
-        concepto: { type: "string" },
-        monto: { type: "number" },
-        tipo: { type: "string", enum: ["ingreso", "egreso"] },
-        categoria: { type: "string", description: "opcional (ej. alquiler, supervisión)" },
-      },
-      required: ["concepto", "monto", "tipo"],
-    },
-  },
+    required: ["concepto", "monto", "tipo"],
+  }),
 ];
 
 export function buildSystemPrompt(): string {

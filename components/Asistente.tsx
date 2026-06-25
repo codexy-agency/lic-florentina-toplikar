@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 
-type ApiMsg = { role: "user" | "assistant"; content: unknown };
-type Proposal = { toolUseId: string; tool: string; input: Record<string, unknown>; resumen: string };
+type ApiMsg = { role: string; content?: unknown; tool_call_id?: string; tool_calls?: unknown };
+type Proposal = { toolCallId: string; tool: string; input: Record<string, unknown>; resumen: string };
 type Estado = "pending" | "done" | "cancelled";
 type ViewItem = {
   id: number;
@@ -70,7 +70,7 @@ export function Asistente() {
     setView((v) => v.map((x) => (x.id === pend.id ? { ...x, estado: "cancelled" } : x)));
     return [
       ...messages,
-      { role: "user", content: [{ type: "tool_result", tool_use_id: pend.proposal.toolUseId, content: "El usuario canceló esta acción." }] },
+      { role: "tool", tool_call_id: pend.proposal.toolCallId, content: "El usuario canceló esta acción." },
     ];
   }
 
@@ -100,7 +100,7 @@ export function Asistente() {
       setView((v) => v.map((x) => (x.id === item.id ? { ...x, result } : x)));
       const next: ApiMsg[] = [
         ...api,
-        { role: "user", content: [{ type: "tool_result", tool_use_id: item.proposal.toolUseId, content: result }] },
+        { role: "tool", tool_call_id: item.proposal.toolCallId, content: result },
       ];
       setApi(next);
       await chat(next);
@@ -115,7 +115,7 @@ export function Asistente() {
     setView((v) => v.map((x) => (x.id === item.id ? { ...x, estado: "cancelled" } : x)));
     const next: ApiMsg[] = [
       ...api,
-      { role: "user", content: [{ type: "tool_result", tool_use_id: item.proposal.toolUseId, content: "El usuario canceló esta acción." }] },
+      { role: "tool", tool_call_id: item.proposal.toolCallId, content: "El usuario canceló esta acción." },
     ];
     setApi(next);
     chat(next);

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken, SESSION_COOKIE } from "@/lib/auth";
-import { claude, anthropicConfigured, type Msg, type Block } from "@/lib/anthropic";
+import { aiChat, aiConfigured, type OAIMessage } from "@/lib/openai";
 import { TOOLS, WRITE_TOOLS, runReadTool, describeWriteTool, buildSystemPrompt } from "@/lib/assistant/tools";
 
 export const dynamic = "force-dynamic";
@@ -11,27 +11,28 @@ async function isAdmin(): Promise<boolean> {
   return verifyToken(token);
 }
 
-function textOf(content: Block[]): string {
-  return content
-    .filter((b): b is Extract<Block, { type: "text" }> => b.type === "text")
-    .map((b) => b.text)
-    .join("\n")
-    .trim();
+function parseArgs(raw: string): Record<string, unknown> {
+  try {
+    const v = JSON.parse(raw || "{}");
+    return v && typeof v === "object" ? v : {};
+  } catch {
+    return {};
+  }
 }
 
-// POST { messages: Msg[] } → { type: "text" | "confirm" | "error", ... }
+// POST { messages: OAIMessage[] (sin el system) } → { type: "text" | "confirm" | "error", ... }
 export async function POST(req: Request) {
   if (!(await isAdmin())) {
     return NextResponse.json({ type: "error", error: "No autorizado" }, { status: 401 });
   }
-  if (!anthropicConfigured()) {
+  if (!aiConfigured()) {
     return NextResponse.json({
       type: "error",
-      error: "El asistente no está configurado: falta ANTHROPIC_API_KEY en las variables de entorno.",
+      error: "El asistente no está configurado: falta OPENAI_API_KEY en las variables de entorno.",
     });
   }
 
-  let messages: Msg[] = [];
+  let messages: OAIMessage[] = [];
   try {
     const raw = await req.text();
     if (raw.length > 200_000) {
@@ -46,39 +47,34 @@ export async function POST(req: Request) {
     return NextResponse.json({ type: "error", error: "Sin mensajes." }, { status: 400 });
   }
 
-  const system = buildSystemPrompt();
+  const system: OAIMessage = { role: "system", content: buildSystemPrompt() };
   try {
     // Loop agéntico: ejecutamos lecturas y seguimos; al primer pedido de escritura,
     // frenamos y devolvemos la propuesta para que la usuaria confirme.
     for (let i = 0; i < 6; i++) {
-      const resp = await claude({ system, tools: TOOLS, messages });
-      const toolUse = resp.content.find(
-        (b): b is Extract<Block, { type: "tool_use" }> => b.type === "tool_use"
-      );
-      const assistantMsg: Msg = { role: "assistant", content: resp.content };
+      const resp = await aiChat({ messages: [system, ...messages], tools: TOOLS });
+      const tc = resp.toolCalls[0];
 
-      if (!toolUse) {
-        return NextResponse.json({ type: "text", text: textOf(resp.content) || "…", messages: [...messages, assistantMsg] });
+      if (!tc) {
+        const assistantMsg: OAIMessage = { role: "assistant", content: resp.content };
+        return NextResponse.json({ type: "text", text: resp.content || "…", messages: [...messages, assistantMsg] });
       }
-      if (WRITE_TOOLS.has(toolUse.name)) {
+
+      const name = tc.function.name;
+      const input = parseArgs(tc.function.arguments);
+      const assistantMsg: OAIMessage = { role: "assistant", content: resp.content, tool_calls: [tc] };
+
+      if (WRITE_TOOLS.has(name)) {
         return NextResponse.json({
           type: "confirm",
-          text: textOf(resp.content),
-          proposal: {
-            toolUseId: toolUse.id,
-            tool: toolUse.name,
-            input: toolUse.input,
-            resumen: describeWriteTool(toolUse.name, toolUse.input),
-          },
+          text: resp.content || "",
+          proposal: { toolCallId: tc.id, tool: name, input, resumen: describeWriteTool(name, input) },
           messages: [...messages, assistantMsg],
         });
       }
-      const result = await runReadTool(toolUse.name, toolUse.input);
-      messages = [
-        ...messages,
-        assistantMsg,
-        { role: "user", content: [{ type: "tool_result", tool_use_id: toolUse.id, content: result }] },
-      ];
+
+      const result = await runReadTool(name, input);
+      messages = [...messages, assistantMsg, { role: "tool", tool_call_id: tc.id, content: result }];
     }
     return NextResponse.json({ type: "text", text: "No pude completar el pedido (demasiados pasos). Probá reformularlo.", messages });
   } catch (e) {
