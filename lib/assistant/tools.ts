@@ -16,6 +16,7 @@ import {
   addMovimientoManual,
   addException,
   contactoKey,
+  esImpaga,
 } from "@/lib/store";
 import {
   getAvailableSlots,
@@ -123,7 +124,7 @@ async function readBuscarPaciente(query: string): Promise<string> {
 // entre "quién debe" y lo que después se cobra.
 async function readDeuda(): Promise<string> {
   const sols = await listSolicitudes();
-  const impagas = sols.filter((s) => (s.estado === "confirmado" || s.estado === "realizado") && !s.pagado);
+  const impagas = sols.filter(esImpaga);
   if (!impagas.length) return "Nadie tiene pagos pendientes al día de hoy.";
   const byPac = new Map<string, { nombre: string; contacto: string; total: number; n: number }>();
   for (const s of impagas) {
@@ -174,10 +175,7 @@ async function readImpagas(paciente?: string): Promise<string> {
   const k = q ? contactoKey(paciente!) : "";
   const items = sols
     .filter(
-      (s) =>
-        (s.estado === "confirmado" || s.estado === "realizado") &&
-        !s.pagado &&
-        (!q || s.nombre.toLowerCase().includes(q) || (!!k && contactoKey(s.contacto) === k))
+      (s) => esImpaga(s) && (!q || s.nombre.toLowerCase().includes(q) || (!!k && contactoKey(s.contacto) === k))
     )
     .sort((a, b) => ((a.startsAt || "") < (b.startsAt || "") ? -1 : 1));
   if (!items.length) return paciente ? `${paciente} no tiene sesiones sin pagar.` : "No hay sesiones sin pagar.";
@@ -273,10 +271,7 @@ async function doPago(input: In): Promise<string> {
   const k = contactoKey(quien);
   const sols = await listSolicitudes();
   const impagas = sols.filter(
-    (s) =>
-      (s.estado === "confirmado" || s.estado === "realizado") &&
-      !s.pagado &&
-      (s.nombre.toLowerCase().includes(q) || (!!k && contactoKey(s.contacto) === k))
+    (s) => esImpaga(s) && (s.nombre.toLowerCase().includes(q) || (!!k && contactoKey(s.contacto) === k))
   );
   if (!impagas.length) return `No encontré sesiones sin pagar de "${quien}".`;
   if (impagas.length > 1) {
@@ -440,7 +435,7 @@ export function buildSystemPrompt(): string {
     "Para ACCIONES que cambian datos (agendar, confirmar, registrar pago, bloquear día, cargar ingreso/gasto) usás las herramientas de escritura: NO se ejecutan solas — el panel le muestra a la usuaria una confirmación antes de aplicar. Proponé la acción cuando te la pidan.",
     "Reglas:",
     "- El nombre que devuelven las herramientas es el del PACIENTE (la profesional es siempre la misma). Al listar turnos, presentá claro al paciente: ej. 'Lun 29/6 9:00 — Martina Liberato · Primera consulta (online)'. NO digas 'con [nombre]' como si el paciente fuera quien atiende. NUNCA muestres el turnoId interno a la usuaria.",
-    "- Para preguntas tipo 'quién no abonó', 'pagos pendientes' o 'cobranzas', usá SIEMPRE `sesiones_impagas` (lista TODAS las sesiones sin pagar). 'pacientes_con_deuda' es solo deuda de sesiones ya realizadas.",
+    "- Una sesión cuenta como deuda solo si NO está pagada y YA ocurrió (realizada, o confirmada con fecha vencida); las sesiones a futuro NO son deuda. Para 'quién no abonó / pagos pendientes / cobranzas' usá `sesiones_impagas` (detalle por sesión, con turnoId) o `pacientes_con_deuda` (total por paciente): ambas dan lo mismo.",
     "- Para cobrar: llamá `registrar_pago` con el nombre del paciente en `paciente` (o el turnoId que te da `sesiones_impagas`). El teléfono/contacto NO es un turnoId; nunca lo pases como turnoId.",
     "- Cuando proponés una acción de escritura, NO preguntes '¿confirmás?' ni pidas confirmación en el texto: el panel ya le muestra a la usuaria un botón de Confirmar. Decí en UNA frase corta qué vas a hacer y nada más.",
     "- Nunca inventes IDs ni datos: si te falta un dato, buscalo con una herramienta de lectura.",

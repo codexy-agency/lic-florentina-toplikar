@@ -314,6 +314,19 @@ export function contactoKey(c: string): string {
   return d.length >= 8 ? d.slice(-10) : d || t;
 }
 
+/** Definición CANÓNICA de "sesión impaga" (deuda), única para TODA la app
+ *  (Pacientes, ficha, Finanzas y el asistente): sin pagar Y la sesión ya ocurrió
+ *  —realizada, o confirmada con fecha ya vencida (di la sesión y olvidé marcarla)—.
+ *  Excluye pendientes, rechazados y turnos a futuro (un confirmado futuro NO es
+ *  deuda hasta que pase). El filtro por mes es responsabilidad SOLO de Finanzas. */
+export function esImpaga(t: Solicitud): boolean {
+  return (
+    !t.pagado &&
+    (t.estado === "realizado" ||
+      (t.estado === "confirmado" && !!t.startsAt && new Date(t.startsAt).getTime() < Date.now()))
+  );
+}
+
 /** Pacientes + estado de cuenta (deuda) y si tienen turno pendiente. */
 export async function getPacientesResumen(): Promise<PacienteResumen[]> {
   const db = await read();
@@ -335,7 +348,7 @@ export async function getPacientesResumen(): Promise<PacienteResumen[]> {
       let tienePendiente = false;
       let proximoTurno: string | undefined;
       for (const t of turnos) {
-        if (t.estado === "realizado" && !t.pagado) {
+        if (esImpaga(t)) {
           deuda += t.precio ?? 0;
           turnosImpagos++;
         }
@@ -870,7 +883,6 @@ export async function getFinanzas(periodo: string = "mes"): Promise<FinanzasResu
   let facturado = 0;
   let cobrado = 0;
   let cantCobrados = 0;
-  const ahoraMs = Date.now();
   const svc = new Map<string, { cantidad: number; monto: number; cobrado: number }>();
   const prof = new Map<string, { cantidad: number; monto: number; cobrado: number }>();
   const metodo = new Map<string, number>();
@@ -892,24 +904,18 @@ export async function getFinanzas(periodo: string = "mes"): Promise<FinanzasResu
       cantCobrados++;
       const mp = t.metodoPago || "efectivo";
       metodo.set(mp, (metodo.get(mp) || 0) + monto);
-    } else {
-      // Sin pagar y ya vencido → cobranza pendiente (a quién reclamarle).
-      // Incluye 'confirmado' con fecha pasada: caso común de "di la sesión y
-      // me olvidé de marcarla realizada", que antes inflaba "Por cobrar" sin
-      // aparecer en la lista.
-      const yaPaso =
-        t.estado === "realizado" ||
-        (!!t.startsAt && new Date(t.startsAt).getTime() < ahoraMs);
-      if (yaPaso) {
-        cobranzaRaw.push({
-          id: t.id,
-          nombre: t.nombre,
-          contacto: t.contacto,
-          serviceName: t.serviceName,
-          fecha: t.startsAt,
-          monto,
-        });
-      }
+    } else if (esImpaga(t)) {
+      // Sin pagar y la sesión YA ocurrió (misma def. canónica que Pacientes/ficha/
+      // asistente). Acá además queda acotado al período seleccionado: es la
+      // "cobranza del mes", no la deuda histórica total del paciente.
+      cobranzaRaw.push({
+        id: t.id,
+        nombre: t.nombre,
+        contacto: t.contacto,
+        serviceName: t.serviceName,
+        fecha: t.startsAt,
+        monto,
+      });
     }
     const sName = t.serviceName || "Sin servicio";
     const a = svc.get(sName) || { cantidad: 0, monto: 0, cobrado: 0 };

@@ -271,6 +271,10 @@ export default async function FinanzasPage({
                 {money(f.cobranza.reduce((n, c) => n + c.total, 0))} sin cobrar
               </span>
             </div>
+            <p className="admin-faint mt-2 text-[12.5px]">
+              Sesiones ya dadas y sin pagar del período ({f.periodoLabel.toLowerCase()}). La deuda total de cada
+              paciente —de todos los meses— está en su ficha.
+            </p>
             <ul className="mt-4 space-y-2.5">
               {f.cobranza.map((c) => (
                 <li key={c.contactoKey} className="admin-card rounded-2xl p-4">

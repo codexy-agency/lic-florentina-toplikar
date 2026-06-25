@@ -4,6 +4,7 @@ import {
   getPaciente,
   getPacienteTurnos,
   listNotas,
+  esImpaga,
 } from "@/lib/store";
 import { fechaHoraAR } from "@/lib/scheduling/slots";
 import { AdminShell } from "@/components/AdminShell";
@@ -68,8 +69,8 @@ export default async function PacienteDetalle({
     ? { cuando: `${fechaHoraAR(prox.startsAt)} hs`, servicio: prox.serviceName }
     : null;
 
-  // Estado de cuenta: deuda = sesiones realizadas sin pagar.
-  const impagos = turnos.filter((t) => t.estado === "realizado" && !t.pagado);
+  // Estado de cuenta: misma definición canónica que toda la app (esImpaga).
+  const impagos = turnos.filter(esImpaga);
   const deuda = impagos.reduce((n, t) => n + (t.precio ?? 0), 0);
   const money = (n: number) => "$" + (n || 0).toLocaleString("es-AR");
 
