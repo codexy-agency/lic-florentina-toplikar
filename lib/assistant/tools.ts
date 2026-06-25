@@ -153,26 +153,32 @@ async function readDisponibilidad(fecha?: string, modalidadIn?: string): Promise
     .join("\n");
 }
 
+// Lista TODAS las sesiones sin pagar (turnos confirmados o realizados, !pagado),
+// como las muestra Finanzas → Movimientos. Trae el turnoId REAL de cada una (el
+// [turnoId=...] es lo que necesita registrar_pago; el teléfono NO es un id).
 async function readImpagas(paciente?: string): Promise<string> {
-  // La deuda son sesiones realizadas (o confirmadas vencidas) sin pagar. getFinanzas
-  // ya las agrupa por paciente con el id de cada turno → eso necesita registrar_pago.
-  const f = await getFinanzas("todo");
-  let grupos = f.cobranza;
+  const sols = await listSolicitudes();
   const q = (paciente || "").trim().toLowerCase();
-  if (q) {
-    const k = contactoKey(paciente!);
-    grupos = grupos.filter((g) => g.nombre.toLowerCase().includes(q) || (!!k && contactoKey(g.contacto) === k));
-  }
-  if (!grupos.length) return paciente ? `No hay sesiones impagas de "${paciente}".` : "No hay sesiones impagas.";
-  return grupos
-    .map(
-      (g) =>
-        `${g.nombre} (${g.contacto}) — debe ${money(g.total)} en ${g.sesiones.length} sesión/es:\n` +
-        g.sesiones
-          .map((s) => `  · ${s.fecha ? fechaHoraAR(s.fecha) + " hs" : "sin fecha"}${s.serviceName ? ` · ${s.serviceName}` : ""} — ${money(s.monto)} [turnoId=${s.id}]`)
-          .join("\n")
+  const k = q ? contactoKey(paciente!) : "";
+  const items = sols
+    .filter(
+      (s) =>
+        (s.estado === "confirmado" || s.estado === "realizado") &&
+        !s.pagado &&
+        (!q || s.nombre.toLowerCase().includes(q) || (!!k && contactoKey(s.contacto) === k))
     )
-    .join("\n");
+    .sort((a, b) => ((a.startsAt || "") < (b.startsAt || "") ? -1 : 1));
+  if (!items.length) return paciente ? `${paciente} no tiene sesiones sin pagar.` : "No hay sesiones sin pagar.";
+  const total = items.reduce((n, s) => n + (s.precio ?? 0), 0);
+  return (
+    `Sesiones sin pagar (${items.length}, total ${money(total)}):\n` +
+    items
+      .map(
+        (s) =>
+          `- ${s.nombre} (${s.contacto})${s.startsAt ? ` · ${fechaHoraAR(s.startsAt)} hs` : ""}${s.serviceName ? ` · ${s.serviceName}` : ""} — ${money(s.precio ?? 0)} [turnoId=${s.id}]`
+      )
+      .join("\n")
+  );
 }
 
 export async function runReadTool(name: string, input: In): Promise<string> {
@@ -241,8 +247,34 @@ async function doConfirmar(input: In): Promise<string> {
 
 async function doPago(input: In): Promise<string> {
   const metodo = str(input.metodo) || "efectivo";
-  const res = await setPago(str(input.turnoId), true, metodo);
-  return res ? `✅ Pago registrado (${metodo}) para ${res.nombre}.` : "No encontré ese turno.";
+  const rawId = str(input.turnoId);
+  // Un turnoId real es un UUID (tiene guiones y letras a-f). Si vino eso, usarlo.
+  if (rawId && /-/.test(rawId) && /[a-f]/i.test(rawId)) {
+    const res = await setPago(rawId, true, metodo);
+    if (res) return `✅ Pago registrado (${metodo}) para ${res.nombre}.`;
+    return "No encontré ese turno (revisá el turnoId con sesiones_impagas).";
+  }
+  // Si no, resolver por paciente (nombre o contacto) — tolera que pasen el teléfono.
+  const quien = str(input.paciente) || rawId;
+  if (!quien) return "Necesito el turnoId (de sesiones_impagas) o el nombre del paciente.";
+  const q = quien.toLowerCase();
+  const k = contactoKey(quien);
+  const sols = await listSolicitudes();
+  const impagas = sols.filter(
+    (s) =>
+      (s.estado === "confirmado" || s.estado === "realizado") &&
+      !s.pagado &&
+      (s.nombre.toLowerCase().includes(q) || (!!k && contactoKey(s.contacto) === k))
+  );
+  if (!impagas.length) return `No encontré sesiones sin pagar de "${quien}".`;
+  if (impagas.length > 1) {
+    return (
+      `${impagas[0].nombre} tiene ${impagas.length} sesiones sin pagar. Decime cuál (por fecha) o pasá el turnoId:\n` +
+      impagas.map((s) => `- ${s.startsAt ? fechaHoraAR(s.startsAt) + " hs" : "sin fecha"} — ${money(s.precio ?? 0)} [turnoId=${s.id}]`).join("\n")
+    );
+  }
+  const res = await setPago(impagas[0].id, true, metodo);
+  return res ? `✅ Pago registrado (${metodo}) para ${res.nombre}.` : "No se pudo registrar el pago.";
 }
 
 async function doBloquear(input: In): Promise<string> {
@@ -289,8 +321,10 @@ export function describeWriteTool(name: string, input: In): string {
       return `Agendar turno — ${str(input.nombre)} · ${str(input.fecha)} · ${input.modalidad === "presencial" ? "presencial" : "online"}`;
     case "confirmar_turno":
       return `Confirmar turno [${str(input.turnoId)}]`;
-    case "registrar_pago":
-      return `Registrar pago (${str(input.metodo) || "efectivo"}) del turno [${str(input.turnoId)}]`;
+    case "registrar_pago": {
+      const quien = str(input.paciente) || str(input.turnoId);
+      return `Registrar pago (${str(input.metodo) || "efectivo"})${quien ? ` — ${quien}` : ""}`;
+    }
     case "bloquear_dia":
       return `Bloquear el día ${str(input.fecha)}${input.motivo ? ` — ${str(input.motivo)}` : ""}`;
     case "cargar_movimiento":
@@ -350,11 +384,18 @@ export const TOOLS: OAITool[] = [
     properties: { turnoId: { type: "string" } },
     required: ["turnoId"],
   }),
-  fn("registrar_pago", "Marca un turno como pagado. Pasá el turnoId (obtenelo de sesiones_impagas, o de la agenda) y el método.", {
-    type: "object",
-    properties: { turnoId: { type: "string" }, metodo: { type: "string", enum: ["efectivo", "transferencia", "mercadopago", "tarjeta"] } },
-    required: ["turnoId"],
-  }),
+  fn(
+    "registrar_pago",
+    "Marca una sesión como pagada. Pasá el turnoId (de sesiones_impagas) O el nombre/contacto del paciente. El teléfono NO es un turnoId.",
+    {
+      type: "object",
+      properties: {
+        turnoId: { type: "string", description: "id del turno (de sesiones_impagas)" },
+        paciente: { type: "string", description: "nombre o contacto, si no tenés el turnoId" },
+        metodo: { type: "string", enum: ["efectivo", "transferencia", "mercadopago", "tarjeta"] },
+      },
+    }
+  ),
   fn("bloquear_dia", "Bloquea un día entero (no se ofrecen turnos). Fecha YYYY-MM-DD.", {
     type: "object",
     properties: { fecha: { type: "string" }, motivo: { type: "string" } },
@@ -386,11 +427,13 @@ export function buildSystemPrompt(): string {
     "Podés CONSULTAR agenda, turnos, finanzas, pacientes y disponibilidad con las herramientas de lectura.",
     "Para ACCIONES que cambian datos (agendar, confirmar, registrar pago, bloquear día, cargar ingreso/gasto) usás las herramientas de escritura: NO se ejecutan solas — el panel le muestra a la usuaria una confirmación antes de aplicar. Proponé la acción cuando te la pidan.",
     "Reglas:",
-    "- Nunca inventes IDs ni datos: si necesitás el id de un turno o el contacto de un paciente, buscalo primero con una herramienta de lectura.",
-    "- La DEUDA de un paciente viene de sesiones REALIZADAS sin pagar, NO de turnos 'pendientes' (eso son solicitudes sin confirmar). Para cobrar una deuda: usá `sesiones_impagas` para obtener el turnoId y después `registrar_pago`.",
-    "- Montos en pesos ($) y fechas/horas en formato argentino.",
-    "- Para agendar, la fecha va en formato YYYY-MM-DDTHH:MM (hora AR).",
+    "- El nombre que devuelven las herramientas es el del PACIENTE (la profesional es siempre la misma). Al listar turnos, presentá claro al paciente: ej. 'Lun 29/6 9:00 — Martina Liberato · Primera consulta (online)'. NO digas 'con [nombre]' como si el paciente fuera quien atiende. NUNCA muestres el turnoId interno a la usuaria.",
+    "- Para preguntas tipo 'quién no abonó', 'pagos pendientes' o 'cobranzas', usá SIEMPRE `sesiones_impagas` (lista TODAS las sesiones sin pagar). 'pacientes_con_deuda' es solo deuda de sesiones ya realizadas.",
+    "- Para cobrar: llamá `registrar_pago` con el nombre del paciente en `paciente` (o el turnoId que te da `sesiones_impagas`). El teléfono/contacto NO es un turnoId; nunca lo pases como turnoId.",
+    "- Cuando proponés una acción de escritura, NO preguntes '¿confirmás?' ni pidas confirmación en el texto: el panel ya le muestra a la usuaria un botón de Confirmar. Decí en UNA frase corta qué vas a hacer y nada más.",
+    "- Nunca inventes IDs ni datos: si te falta un dato, buscalo con una herramienta de lectura.",
+    "- Montos en pesos ($) y fechas/horas en formato argentino. Para agendar, la fecha va en formato YYYY-MM-DDTHH:MM (hora AR).",
     "- No manejás ni comentás el motivo de consulta ni notas clínicas (datos de salud sensibles).",
-    "- Respuestas cortas y accionables. Si falta un dato para una acción, preguntalo.",
+    "- Respuestas cortas y claras. Si falta un dato para una acción, preguntalo.",
   ].join("\n");
 }

@@ -77,6 +77,23 @@ export function Asistente() {
   function enviar(texto: string) {
     const t = texto.trim();
     if (!t || loading) return;
+    // Si hay una acción esperando confirmación y la usuaria responde por texto,
+    // interpretamos sí/no sobre ESA acción (en vez de reabrir otra propuesta).
+    const pend = view.find((x) => x.proposal && x.estado === "pending");
+    if (pend) {
+      if (/^(s[ií]|dale|ok(a|ay)?|confirm[aá]r?|de una|listo|hac[eé]lo|perfecto|correcto)\.?$/i.test(t)) {
+        setInput("");
+        setView((v) => [...v, { id: uid(), role: "user", text: t }]);
+        confirmar(pend);
+        return;
+      }
+      if (/^(no|cancel[aá]r?|negativo|par[aá]|mejor no)\.?$/i.test(t)) {
+        setInput("");
+        setView((v) => [...v, { id: uid(), role: "user", text: t }]);
+        cancelar(pend);
+        return;
+      }
+    }
     setInput("");
     const base = cerrarPendiente(api);
     const next: ApiMsg[] = [...base, { role: "user", content: t }];
