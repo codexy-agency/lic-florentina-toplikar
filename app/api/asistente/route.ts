@@ -47,6 +47,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ type: "error", error: "Sin mensajes." }, { status: 400 });
   }
 
+  // Acotar el historial: mantener los últimos N mensajes para que no crezca sin
+  // límite (costo/contexto). Si tras recortar quedan mensajes 'tool' huérfanos al
+  // inicio (un tool_result sin su tool_call previo), se descartan: si no, la API falla.
+  const MAX_MSGS = 30;
+  if (messages.length > MAX_MSGS) {
+    messages = messages.slice(-MAX_MSGS);
+    while (messages.length && messages[0].role === "tool") messages.shift();
+  }
+
   const system: OAIMessage = { role: "system", content: buildSystemPrompt() };
   try {
     // Loop agéntico: ejecutamos lecturas y seguimos; al primer pedido de escritura,

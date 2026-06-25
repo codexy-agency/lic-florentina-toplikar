@@ -74,6 +74,7 @@ export function Asistente() {
   const [loading, setLoading] = useState(false);
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
   const recRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -304,11 +305,21 @@ export function Asistente() {
         </div>
         {view.length > 0 && (
           <button
-            onClick={limpiar}
+            onClick={() => {
+              if (confirmClear) { limpiar(); setConfirmClear(false); }
+              else { setConfirmClear(true); window.setTimeout(() => setConfirmClear(false), 3000); }
+            }}
             aria-label="Limpiar conversación"
-            className="admin-btn-ghost flex h-9 w-9 shrink-0 items-center justify-center rounded-full opacity-70 transition-opacity hover:opacity-100"
+            title="Limpiar conversación"
+            className={`flex h-9 shrink-0 items-center justify-center rounded-full text-[12px] font-medium transition-all ${
+              confirmClear ? "bg-[var(--a-accent-soft)] px-3 text-[var(--a-accent-ink)]" : "admin-btn-ghost w-9 opacity-70 hover:opacity-100"
+            }`}
           >
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /></svg>
+            {confirmClear ? (
+              "¿Limpiar?"
+            ) : (
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /></svg>
+            )}
           </button>
         )}
       </header>
