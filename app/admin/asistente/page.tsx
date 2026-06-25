@@ -12,10 +12,7 @@ export default async function AsistentePage() {
   return (
     <AdminShell>
       <section>
-        <AdminPageHeader
-          title="Asistente"
-          description="Pedile en lenguaje natural que consulte tu agenda y finanzas, o que agende y cobre por vos — siempre confirmás antes de cualquier acción."
-        />
+        <AdminPageHeader title="Asistente" description="Tu copiloto del consultorio, en lenguaje natural." />
         {!configurado && (
           <div className="mt-5 rounded-2xl border border-[var(--a-border-strong)] bg-[var(--a-danger-soft)] p-4 text-[13.5px] text-[var(--a-danger)]">
             <p className="font-semibold">Falta configurar el asistente.</p>

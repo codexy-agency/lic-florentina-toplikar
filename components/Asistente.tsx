@@ -32,10 +32,10 @@ const IC_INBOX = "M22 12h-6l-2 3h-4l-2-3H2|M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 
 const IC_CHECK = "M20 6 9 17l-5-5";
 
 const SUGERENCIAS = [
-  { texto: "¿Qué turnos tengo hoy?", icon: IC_CALENDAR },
-  { texto: "¿Quién me debe plata?", icon: IC_COIN },
-  { texto: "Resumen de finanzas del mes", icon: IC_CHART },
-  { texto: "¿Qué solicitudes tengo pendientes?", icon: IC_INBOX },
+  { label: "Turnos de hoy", full: "¿Qué turnos tengo hoy?", icon: IC_CALENDAR },
+  { label: "¿Quién me debe?", full: "¿Quién tiene un pago pendiente?", icon: IC_COIN },
+  { label: "Finanzas del mes", full: "Pasame el resumen de finanzas del mes", icon: IC_CHART },
+  { label: "Pendientes", full: "¿Qué solicitudes tengo pendientes?", icon: IC_INBOX },
 ];
 
 function saludo(): string {
@@ -92,6 +92,34 @@ export function Asistente() {
     t.style.height = "auto";
     t.style.height = Math.min(t.scrollHeight, 132) + "px";
   }, [input]);
+
+  // Persistencia por sesión: la conversación sobrevive a navegar y volver / recargar
+  // (se limpia sola al cerrar el navegador o con el botón de limpiar).
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("asistente:chat");
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (Array.isArray(saved?.view) && Array.isArray(saved?.api)) {
+          UID = saved.view.reduce((mx: number, x: ViewItem) => Math.max(mx, x.id || 0), 0);
+          setView(saved.view);
+          setApi(saved.api);
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    try {
+      if (view.length === 0) sessionStorage.removeItem("asistente:chat");
+      else sessionStorage.setItem("asistente:chat", JSON.stringify({ view, api }));
+    } catch {
+      /* ignore */
+    }
+  }, [view, api]);
 
   async function chat(messages: ApiMsg[]) {
     setLoading(true);
@@ -289,32 +317,26 @@ export function Asistente() {
       <div ref={scroller} className="flex-1 overflow-y-auto px-5 sm:px-6">
         <div className="mx-auto w-full max-w-[620px] space-y-6 py-6 sm:space-y-7">
           {view.length === 0 && (
-            <div className="relative pt-6 sm:pt-10">
-              <p className="admin-kicker">Tu asistente del consultorio</p>
-              <h2 className="mt-2 text-[24px] font-semibold tracking-tight text-[var(--a-text)] sm:text-[28px]">
-                {saludo()}.
+            <div className="relative pt-8 sm:pt-12">
+              <h2 className="text-[24px] font-semibold tracking-tight text-[var(--a-text)] sm:text-[28px]">
+                {saludo()}<span className="text-[var(--a-accent)]">.</span>
               </h2>
-              <p className="admin-muted mt-2 max-w-[48ch] text-[14px] leading-relaxed">
-                Estoy para ayudarte con la agenda y las finanzas. Pedime y lo vemos: siempre confirmás antes de agendar o cobrar.
-              </p>
-              <div className="mt-6">
-                {SUGERENCIAS.map((s, i) => (
+              <p className="admin-muted mt-1.5 text-[14px]">¿En qué te doy una mano? Agenda, finanzas y cobros.</p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                {SUGERENCIAS.map((s) => (
                   <button
-                    key={s.texto}
-                    onClick={() => enviar(s.texto)}
-                    className={`group flex w-full items-center gap-3 py-3 text-left ${i > 0 ? "border-t border-[var(--a-border)]" : ""}`}
+                    key={s.label}
+                    onClick={() => enviar(s.full)}
+                    className="group inline-flex items-center gap-2 rounded-full border border-[var(--a-border)] bg-[var(--a-surface)] px-3.5 py-2 text-[13px] font-medium text-[var(--a-text-2)] transition-colors hover:border-[var(--a-accent)]/40 hover:bg-[var(--a-accent-soft)] hover:text-[var(--a-accent-ink)]"
                   >
-                    <span className="shrink-0 text-[var(--a-text-3)] transition-colors group-hover:text-[var(--a-accent)]">
-                      <Icon d={s.icon} />
+                    <span className="text-[var(--a-text-3)] transition-colors group-hover:text-[var(--a-accent)]">
+                      <Icon d={s.icon} size={15} />
                     </span>
-                    <span className="flex-1 text-[15px] text-[var(--a-text)] transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-[3px]">
-                      {s.texto}
-                    </span>
-                    <span className="text-[var(--a-accent)] opacity-0 transition-opacity group-hover:opacity-100">→</span>
+                    {s.label}
                   </button>
                 ))}
               </div>
-              <svg aria-hidden className="botanic pointer-events-none absolute -bottom-1 right-0 h-20 w-20 text-[var(--a-accent)] opacity-[0.07]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg aria-hidden className="botanic pointer-events-none absolute -bottom-1 right-0 h-24 w-24 text-[var(--a-accent)] opacity-[0.08]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 22C12 14 8 8 2 6c2 8 6 14 10 16ZM12 22c0-6 3-11 9-13-1.5 6.5-4.5 11-9 13Z" />
               </svg>
             </div>
