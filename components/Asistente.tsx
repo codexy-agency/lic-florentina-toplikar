@@ -79,10 +79,19 @@ export function Asistente() {
   const chunksRef = useRef<Blob[]>([]);
   const busyRef = useRef(false); // candado síncrono contra doble ejecución
   const enviarRef = useRef<(t: string) => void>(() => {}); // última versión de enviar (para el audio)
+  const taRef = useRef<HTMLTextAreaElement>(null); // textarea (auto-resize)
 
   useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
   }, [view, loading]);
+
+  // El textarea crece solo con el contenido (hasta un tope) y se reinicia al limpiar.
+  useEffect(() => {
+    const t = taRef.current;
+    if (!t) return;
+    t.style.height = "auto";
+    t.style.height = Math.min(t.scrollHeight, 132) + "px";
+  }, [input]);
 
   async function chat(messages: ApiMsg[]) {
     setLoading(true);
@@ -254,10 +263,10 @@ export function Asistente() {
       {/* (A) Cabecera del asistente */}
       <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-[var(--a-border)] bg-[var(--a-surface)] px-5 py-3 sm:px-6">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--a-accent-soft)] ring-1 ring-[var(--a-accent)]/20 sm:h-10 sm:w-10">
-          <span style={{ fontFamily: "var(--font-serif), Georgia, serif" }} className="text-[16px] text-[var(--a-accent-ink)]">A</span>
+          <span className="text-[15px] font-semibold text-[var(--a-accent-ink)]">A</span>
         </div>
         <div className="min-w-0 flex-1 leading-tight">
-          <p style={{ fontFamily: "var(--font-serif), Georgia, serif" }} className="text-[15px] text-[var(--a-text)]">
+          <p className="text-[14.5px] font-semibold tracking-tight text-[var(--a-text)]">
             Asistente del consultorio
           </p>
           <p className="admin-kicker mt-0.5 flex items-center gap-1.5">
@@ -282,7 +291,7 @@ export function Asistente() {
           {view.length === 0 && (
             <div className="relative pt-6 sm:pt-10">
               <p className="admin-kicker">Tu asistente del consultorio</p>
-              <h2 style={{ fontFamily: "var(--font-serif), Georgia, serif" }} className="mt-2 text-[22px] font-normal text-[var(--a-text)] sm:text-[26px]">
+              <h2 className="mt-2 text-[24px] font-semibold tracking-tight text-[var(--a-text)] sm:text-[28px]">
                 {saludo()}.
               </h2>
               <p className="admin-muted mt-2 max-w-[48ch] text-[14px] leading-relaxed">
@@ -326,9 +335,8 @@ export function Asistente() {
                     <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed">{m.text.replace(/^⚠️\s*/, "")}</p>
                   </div>
                 ) : (
-                  <div className="border-l-2 border-[var(--a-accent)] pl-4">
-                    <p className="admin-kicker">Asistente</p>
-                    <p style={{ fontFamily: "var(--font-serif), Georgia, serif" }} className="mt-1 whitespace-pre-wrap text-[16px] leading-[1.65] text-[var(--a-text)] sm:text-[17px] sm:leading-[1.7]">
+                  <div className="border-l-2 border-[var(--a-accent)]/55 pl-4">
+                    <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-[var(--a-text)]">
                       {m.text}
                     </p>
                   </div>
@@ -396,6 +404,7 @@ export function Asistente() {
         <form onSubmit={(e) => { e.preventDefault(); enviar(input); }} className="mx-auto w-full max-w-[620px]">
           <div className="admin-input flex items-end gap-2 rounded-[26px] px-2 py-1.5 transition-shadow focus-within:border-[var(--a-accent)] focus-within:shadow-[0_0_0_3px_rgba(138,74,102,0.16)]">
             <textarea
+              ref={taRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviar(input); } }}
