@@ -56,8 +56,15 @@ export async function POST(req: Request) {
       const tc = resp.toolCalls[0];
 
       if (!tc) {
-        const assistantMsg: OAIMessage = { role: "assistant", content: resp.content };
-        return NextResponse.json({ type: "text", text: resp.content || "…", messages: [...messages, assistantMsg] });
+        let text = resp.content || "";
+        if (!text) {
+          text =
+            resp.finishReason === "length"
+              ? "Se me cortó la respuesta. Pedímelo más acotado (ej. por paciente o por semana)."
+              : "No tengo una respuesta para eso. ¿Lo reformulás?";
+        }
+        const assistantMsg: OAIMessage = { role: "assistant", content: text };
+        return NextResponse.json({ type: "text", text, messages: [...messages, assistantMsg] });
       }
 
       const name = tc.function.name;
@@ -79,6 +86,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ type: "text", text: "No pude completar el pedido (demasiados pasos). Probá reformularlo.", messages });
   } catch (e) {
     console.error("[asistente]", e);
-    return NextResponse.json({ type: "error", error: "Hubo un error con el asistente. Probá de nuevo." });
+    // Los errores de aiChat ya vienen con mensaje claro (quota, key, timeout…).
+    const error = e instanceof Error && e.message ? e.message : "Hubo un error con el asistente. Probá de nuevo.";
+    return NextResponse.json({ type: "error", error });
   }
 }

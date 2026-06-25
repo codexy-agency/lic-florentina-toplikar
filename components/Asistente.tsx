@@ -12,6 +12,7 @@ type ViewItem = {
   proposal?: Proposal;
   estado?: Estado;
   result?: string;
+  ok?: boolean;
 };
 
 const SUGERENCIAS = [
@@ -29,7 +30,12 @@ export function Asistente() {
   const [api, setApi] = useState<ApiMsg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
+  const recRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const busyRef = useRef(false); // candado síncrono contra doble ejecución
 
   useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
@@ -103,32 +109,45 @@ export function Asistente() {
   }
 
   async function confirmar(item: ViewItem) {
-    if (!item.proposal || loading) return;
+    if (!item.proposal || item.estado !== "pending" || busyRef.current) return;
+    busyRef.current = true; // candado síncrono: ni doble click ni "si" la disparan dos veces
     setLoading(true);
     setView((v) => v.map((x) => (x.id === item.id ? { ...x, estado: "done" } : x)));
+    const toolCallId = item.proposal.toolCallId;
+    let result = "No se pudo ejecutar la acción.";
+    let okFlag = false;
     try {
       const r = await fetch("/api/asistente/execute", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ tool: item.proposal.tool, input: item.proposal.input }),
       });
-      const data = await r.json();
-      const result = data.result || (data.ok ? "Hecho." : "No se pudo ejecutar.");
-      setView((v) => v.map((x) => (x.id === item.id ? { ...x, result } : x)));
-      const next: ApiMsg[] = [
-        ...api,
-        { role: "tool", tool_call_id: item.proposal.toolCallId, content: result },
-      ];
-      setApi(next);
-      await chat(next);
+      let data: { ok?: boolean; result?: string; error?: string } = {};
+      try {
+        data = await r.json();
+      } catch {
+        /* respuesta no-JSON (ej. 500 con HTML) */
+      }
+      if (r.status === 401) {
+        result = "Tu sesión venció. Recargá la página e ingresá de nuevo.";
+      } else {
+        result = data.result || data.error || (r.ok ? "Hecho." : "No se pudo ejecutar la acción.");
+        okFlag = !!data.ok && r.ok;
+      }
     } catch {
-      setView((v) => v.map((x) => (x.id === item.id ? { ...x, result: "⚠️ Error al ejecutar." } : x)));
-      setLoading(false);
+      result = "No pude conectar para ejecutar la acción.";
     }
+    setView((v) => v.map((x) => (x.id === item.id ? { ...x, result, ok: okFlag } : x)));
+    // Pase lo que pase, cerramos el tool_call en el hilo: si no, OpenAI rechaza el
+    // próximo mensaje (assistant con tool_calls sin su tool_result) y rompe el chat.
+    const next: ApiMsg[] = [...api, { role: "tool", tool_call_id: toolCallId, content: result }];
+    setApi(next);
+    busyRef.current = false;
+    await chat(next);
   }
 
   function cancelar(item: ViewItem) {
-    if (!item.proposal || loading) return;
+    if (!item.proposal || item.estado !== "pending" || busyRef.current) return;
     setView((v) => v.map((x) => (x.id === item.id ? { ...x, estado: "cancelled" } : x)));
     const next: ApiMsg[] = [
       ...api,
@@ -136,6 +155,45 @@ export function Asistente() {
     ];
     setApi(next);
     chat(next);
+  }
+
+  // Grabar audio del micrófono → transcribir (Whisper) → poner el texto en el input.
+  async function toggleMic() {
+    if (recording) {
+      recRef.current?.stop();
+      return;
+    }
+    if (loading || transcribing) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const rec = new MediaRecorder(stream);
+      chunksRef.current = [];
+      rec.ondataavailable = (e) => { if (e.data.size) chunksRef.current.push(e.data); };
+      rec.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        setRecording(false);
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        if (blob.size < 1500) return; // muy corto, ignorar
+        setTranscribing(true);
+        try {
+          const fd = new FormData();
+          fd.append("audio", blob, "audio.webm");
+          const r = await fetch("/api/asistente/transcribir", { method: "POST", body: fd });
+          const data = await r.json();
+          if (data.ok && data.text) setInput((p) => (p ? p + " " : "") + data.text);
+          else setView((v) => [...v, { id: uid(), role: "assistant", text: "⚠️ " + (data.error || "No pude transcribir el audio.") }]);
+        } catch {
+          setView((v) => [...v, { id: uid(), role: "assistant", text: "⚠️ No pude transcribir el audio." }]);
+        } finally {
+          setTranscribing(false);
+        }
+      };
+      recRef.current = rec;
+      rec.start();
+      setRecording(true);
+    } catch {
+      setView((v) => [...v, { id: uid(), role: "assistant", text: "⚠️ No pude acceder al micrófono. Revisá los permisos del navegador." }]);
+    }
   }
 
   return (
@@ -193,8 +251,10 @@ export function Asistente() {
                         </button>
                       </div>
                     ) : (
-                      <p className={`mt-2.5 text-[13px] font-medium ${m.estado === "cancelled" ? "admin-muted" : "text-[#1c7a45]"}`}>
-                        {m.estado === "cancelled" ? "Cancelada." : m.result || "Hecho."}
+                      <p className={`mt-2.5 whitespace-pre-wrap text-[13px] font-medium ${
+                        m.estado === "cancelled" ? "admin-muted" : m.ok ? "text-[#1c7a45]" : "text-[var(--a-danger)]"
+                      }`}>
+                        {m.estado === "cancelled" ? "Cancelada." : m.result || (m.ok ? "Hecho." : "No se pudo.")}
                       </p>
                     )}
                   </div>
@@ -225,10 +285,31 @@ export function Asistente() {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviar(input); } }}
           rows={1}
-          placeholder="Escribile a tu asistente…"
-          className="admin-input max-h-32 flex-1 resize-none rounded-2xl px-3.5 py-2.5 text-[14px] text-espresso"
+          disabled={recording || transcribing}
+          placeholder={
+            recording ? "Grabando… tocá el micrófono para terminar" : transcribing ? "Transcribiendo…" : "Escribí o usá el micrófono…"
+          }
+          className="admin-input max-h-32 flex-1 resize-none rounded-2xl px-3.5 py-2.5 text-[14px] text-espresso disabled:opacity-60"
         />
-        <button type="submit" disabled={loading || !input.trim()} className="admin-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full disabled:opacity-40" aria-label="Enviar">
+        {/* Micrófono: voz → texto */}
+        <button
+          type="button"
+          onClick={toggleMic}
+          disabled={loading || transcribing}
+          aria-label={recording ? "Detener grabación" : "Grabar audio"}
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-40 ${
+            recording ? "animate-pulse bg-[var(--a-danger)] text-white" : "admin-btn-ghost"
+          }`}
+        >
+          {transcribing ? (
+            <svg className="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+          ) : recording ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
+          ) : (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" /><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4" /></svg>
+          )}
+        </button>
+        <button type="submit" disabled={loading || recording || transcribing || !input.trim()} className="admin-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full disabled:opacity-40" aria-label="Enviar">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z" /></svg>
         </button>
       </form>

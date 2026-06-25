@@ -14,15 +14,24 @@ export async function POST(req: Request) {
   let tool = "";
   let input: Record<string, unknown> = {};
   try {
-    const b = JSON.parse(await req.text());
+    const raw = await req.text();
+    if (raw.length > 20_000) {
+      return NextResponse.json({ ok: false, result: "Solicitud demasiado grande." }, { status: 413 });
+    }
+    const b = JSON.parse(raw);
     tool = String(b?.tool || "");
     input = b?.input && typeof b.input === "object" ? b.input : {};
   } catch {
-    return NextResponse.json({ ok: false, error: "Datos inválidos" }, { status: 400 });
+    return NextResponse.json({ ok: false, result: "Datos inválidos." }, { status: 400 });
   }
   if (!WRITE_TOOLS.has(tool)) {
-    return NextResponse.json({ ok: false, error: "Acción no permitida" }, { status: 400 });
+    return NextResponse.json({ ok: false, result: "Acción no permitida." }, { status: 400 });
   }
-  const result = await runWriteTool(tool, input);
-  return NextResponse.json({ ok: true, result });
+  try {
+    const res = await runWriteTool(tool, input);
+    return NextResponse.json({ ok: res.ok, result: res.mensaje });
+  } catch (e) {
+    console.error("[asistente/execute]", e);
+    return NextResponse.json({ ok: false, result: "No se pudo ejecutar la acción." });
+  }
 }
