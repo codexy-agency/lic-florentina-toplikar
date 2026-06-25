@@ -239,6 +239,17 @@ body {
   mix-blend-mode: screen;
 }
 
+/* ---- Entrada de turnos del chat del asistente (sutil fade-up) ---- */
+@media (prefers-reduced-motion: no-preference) {
+  .chat-rise {
+    animation: chat-rise 0.3s var(--ease-fluid) both;
+  }
+  @keyframes chat-rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+  }
+}
+
 /* ---- Botanical motion ---- */
 @media (prefers-reduced-motion: no-preference) {
   /* gentle perpetual sway for branches */

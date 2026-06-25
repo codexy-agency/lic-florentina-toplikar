@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 
 type ApiMsg = { role: string; content?: unknown; tool_call_id?: string; tool_calls?: unknown };
 type Proposal = { toolCallId: string; tool: string; input: Record<string, unknown>; resumen: string };
@@ -15,12 +15,54 @@ type ViewItem = {
   ok?: boolean;
 };
 
+// Iconos lineales finos (varios paths separados por "|").
+function Icon({ d, size = 18 }: { d: string; size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      {d.split("|").map((p, i) => (
+        <path key={i} d={p} />
+      ))}
+    </svg>
+  );
+}
+const IC_CALENDAR = "M8 2v4M16 2v4M3 10h18|M5 4h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z";
+const IC_COIN = "M12 2v20|M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6";
+const IC_CHART = "M3 3v18h18|M7 14l3-4 4 3 5-7";
+const IC_INBOX = "M22 12h-6l-2 3h-4l-2-3H2|M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1Z";
+const IC_CHECK = "M20 6 9 17l-5-5";
+
 const SUGERENCIAS = [
-  "¿Qué turnos tengo hoy?",
-  "¿Quién me debe plata?",
-  "Resumen de finanzas del mes",
-  "¿Qué solicitudes tengo pendientes?",
+  { texto: "¿Qué turnos tengo hoy?", icon: IC_CALENDAR },
+  { texto: "¿Quién me debe plata?", icon: IC_COIN },
+  { texto: "Resumen de finanzas del mes", icon: IC_CHART },
+  { texto: "¿Qué solicitudes tengo pendientes?", icon: IC_INBOX },
 ];
+
+function saludo(): string {
+  const h = new Date().getHours();
+  return h < 12 ? "Buenos días" : h < 20 ? "Buenas tardes" : "Buenas noches";
+}
+
+function iconoTool(tool: string): string {
+  if (tool === "agendar_turno") return IC_CALENDAR;
+  if (tool === "registrar_pago") return IC_COIN;
+  if (tool === "cargar_movimiento") return IC_CHART;
+  return IC_CHECK;
+}
+
+// Campos clave de una propuesta → mini-lista etiqueta/valor de la tarjeta.
+function datosClave(input: Record<string, unknown>): { label: string; value: string }[] {
+  const s = (v: unknown) => String(v ?? "").trim();
+  const out: { label: string; value: string }[] = [];
+  const pac = s(input.nombre) || s(input.paciente);
+  if (pac) out.push({ label: "Paciente", value: pac });
+  if (s(input.fecha)) out.push({ label: "Cuándo", value: s(input.fecha).replace("T", " · ") });
+  if (s(input.modalidad)) out.push({ label: "Modalidad", value: s(input.modalidad) });
+  if (input.monto != null && s(input.monto)) out.push({ label: "Monto", value: "$" + Number(input.monto).toLocaleString("es-AR") });
+  if (s(input.metodo)) out.push({ label: "Método", value: s(input.metodo) });
+  if (s(input.concepto)) out.push({ label: "Concepto", value: s(input.concepto) });
+  return out.slice(0, 4);
+}
 
 let UID = 0;
 const uid = () => ++UID;
@@ -196,123 +238,196 @@ export function Asistente() {
     }
   }
 
+  function limpiar() {
+    if (loading) return;
+    setView([]);
+    setApi([]);
+  }
+
   return (
-    <div className="admin-card flex h-[calc(100vh-12rem)] min-h-[28rem] flex-col overflow-hidden rounded-2xl">
-      {/* Mensajes */}
-      <div ref={scroller} className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
-        {view.length === 0 && (
-          <div className="mx-auto max-w-md py-8 text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--a-accent)]/12 text-[var(--a-accent)]">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 8V4M8 12H4m16 0h-4M12 16v4" /><circle cx="12" cy="12" r="4" />
+    <div className="admin-card flex h-[calc(100dvh-9rem)] flex-col overflow-hidden rounded-2xl sm:h-[calc(100vh-12rem)] sm:min-h-[28rem]">
+      {/* (A) Cabecera del asistente */}
+      <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-[var(--a-border)] bg-[var(--a-surface)] px-5 py-3 sm:px-6">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--a-accent-soft)] ring-1 ring-[var(--a-accent)]/20 sm:h-10 sm:w-10">
+          <span style={{ fontFamily: "var(--font-serif), Georgia, serif" }} className="text-[16px] text-[var(--a-accent-ink)]">A</span>
+        </div>
+        <div className="min-w-0 flex-1 leading-tight">
+          <p style={{ fontFamily: "var(--font-serif), Georgia, serif" }} className="text-[15px] text-[var(--a-text)]">
+            Asistente del consultorio
+          </p>
+          <p className="admin-kicker mt-0.5 flex items-center gap-1.5">
+            <span className={`h-1.5 w-1.5 rounded-full bg-[var(--a-accent)] ${loading ? "animate-pulse" : ""}`} />
+            {loading ? "Pensando…" : "En línea"}
+          </p>
+        </div>
+        {view.length > 0 && (
+          <button
+            onClick={limpiar}
+            aria-label="Limpiar conversación"
+            className="admin-btn-ghost flex h-9 w-9 shrink-0 items-center justify-center rounded-full opacity-70 transition-opacity hover:opacity-100"
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /></svg>
+          </button>
+        )}
+      </header>
+
+      {/* (B) Río de mensajes — columna de lectura */}
+      <div ref={scroller} className="flex-1 overflow-y-auto px-5 sm:px-6">
+        <div className="mx-auto w-full max-w-[620px] space-y-6 py-6 sm:space-y-7">
+          {view.length === 0 && (
+            <div className="relative pt-6 sm:pt-10">
+              <p className="admin-kicker">Tu asistente del consultorio</p>
+              <h2 style={{ fontFamily: "var(--font-serif), Georgia, serif" }} className="mt-2 text-[22px] font-normal text-[var(--a-text)] sm:text-[26px]">
+                {saludo()}.
+              </h2>
+              <p className="admin-muted mt-2 max-w-[48ch] text-[14px] leading-relaxed">
+                Estoy para ayudarte con la agenda y las finanzas. Pedime y lo vemos: siempre confirmás antes de agendar o cobrar.
+              </p>
+              <div className="mt-6">
+                {SUGERENCIAS.map((s, i) => (
+                  <button
+                    key={s.texto}
+                    onClick={() => enviar(s.texto)}
+                    className={`group flex w-full items-center gap-3 py-3 text-left ${i > 0 ? "border-t border-[var(--a-border)]" : ""}`}
+                  >
+                    <span className="shrink-0 text-[var(--a-text-3)] transition-colors group-hover:text-[var(--a-accent)]">
+                      <Icon d={s.icon} />
+                    </span>
+                    <span className="flex-1 text-[15px] text-[var(--a-text)] transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-[3px]">
+                      {s.texto}
+                    </span>
+                    <span className="text-[var(--a-accent)] opacity-0 transition-opacity group-hover:opacity-100">→</span>
+                  </button>
+                ))}
+              </div>
+              <svg aria-hidden className="botanic pointer-events-none absolute -bottom-1 right-0 h-20 w-20 text-[var(--a-accent)] opacity-[0.07]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22C12 14 8 8 2 6c2 8 6 14 10 16ZM12 22c0-6 3-11 9-13-1.5 6.5-4.5 11-9 13Z" />
               </svg>
             </div>
-            <p className="text-[15px] font-medium text-espresso">Tu asistente del consultorio</p>
-            <p className="admin-muted mt-1 text-[13px]">Pedile que consulte tu agenda y finanzas, o que agende y cobre por vos (siempre confirmás antes).</p>
-            <div className="mt-5 flex flex-wrap justify-center gap-2">
-              {SUGERENCIAS.map((s) => (
-                <button key={s} onClick={() => enviar(s)} className="admin-chip rounded-full px-3.5 py-1.5 text-[12.5px] hover:border-[var(--a-border-strong)]">
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+          )}
 
-        {view.map((m) =>
-          m.role === "user" ? (
-            <div key={m.id} className="flex justify-end">
-              <div className="max-w-[85%] rounded-2xl rounded-br-md bg-[var(--a-accent)] px-3.5 py-2.5 text-[14px] text-white">{m.text}</div>
-            </div>
-          ) : (
-            <div key={m.id} className="flex justify-start">
-              <div className="max-w-[88%] space-y-2.5">
-                {m.text && (
-                  <div className="admin-soft whitespace-pre-wrap rounded-2xl rounded-bl-md px-3.5 py-2.5 text-[14px] leading-relaxed text-espresso">{m.text}</div>
-                )}
-                {m.proposal && (
-                  <div className="rounded-2xl border border-[var(--a-border-strong)] bg-[var(--a-surface)] p-3.5">
-                    <div className="flex items-start gap-2">
-                      <span className="mt-0.5 text-[var(--a-accent)]">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 9v4M12 17h.01" /><circle cx="12" cy="12" r="9" /></svg>
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="admin-kicker text-[11px]">Confirmá la acción</p>
-                        <p className="mt-1 text-[13.5px] font-medium text-espresso">{m.proposal.resumen}</p>
-                      </div>
-                    </div>
-                    {m.estado === "pending" ? (
-                      <div className="mt-3 flex gap-2">
-                        <button onClick={() => confirmar(m)} disabled={loading} className="admin-btn rounded-full px-4 py-1.5 text-[13px] font-medium disabled:opacity-50">
-                          Confirmar
-                        </button>
-                        <button onClick={() => cancelar(m)} disabled={loading} className="admin-btn-ghost rounded-full px-4 py-1.5 text-[13px] font-medium disabled:opacity-50">
-                          Cancelar
-                        </button>
-                      </div>
-                    ) : (
-                      <p className={`mt-2.5 whitespace-pre-wrap text-[13px] font-medium ${
-                        m.estado === "cancelled" ? "admin-muted" : m.ok ? "text-[#1c7a45]" : "text-[var(--a-danger)]"
-                      }`}>
-                        {m.estado === "cancelled" ? "Cancelada." : m.result || (m.ok ? "Hecho." : "No se pudo.")}
-                      </p>
-                    )}
+          {view.map((m) =>
+            m.role === "user" ? (
+              <div key={m.id} className="chat-rise flex justify-end">
+                <div className="max-w-[82%] whitespace-pre-wrap rounded-[18px] rounded-br-[6px] border border-[var(--a-border)] bg-[var(--a-accent-soft)] px-3.5 py-2.5 text-[14px] text-[var(--a-accent-ink)] sm:max-w-[85%]">
+                  {m.text}
+                </div>
+              </div>
+            ) : (
+              <div key={m.id} className="chat-rise space-y-2.5">
+                {m.text && (m.text.startsWith("⚠️") ? (
+                  <div className="flex items-start gap-2 rounded-xl border-l-2 border-[var(--a-danger)] bg-[var(--a-danger-soft)] px-3 py-2 text-[var(--a-danger)]">
+                    <svg className="mt-0.5 shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" /><path d="M12 9v4M12 17h.01" /></svg>
+                    <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed">{m.text.replace(/^⚠️\s*/, "")}</p>
                   </div>
-                )}
+                ) : (
+                  <div className="border-l-2 border-[var(--a-accent)] pl-4">
+                    <p className="admin-kicker">Asistente</p>
+                    <p style={{ fontFamily: "var(--font-serif), Georgia, serif" }} className="mt-1 whitespace-pre-wrap text-[16px] leading-[1.65] text-[var(--a-text)] sm:text-[17px] sm:leading-[1.7]">
+                      {m.text}
+                    </p>
+                  </div>
+                ))}
+
+                {m.proposal && (() => {
+                  const datos = datosClave(m.proposal.input);
+                  const resuelto = m.estado === "done" || m.estado === "cancelled";
+                  return (
+                    <div className={`rounded-2xl border border-[var(--a-border)] border-l-[3px] bg-[var(--a-surface-2)] p-4 transition-colors duration-500 ${resuelto ? "border-l-[var(--a-border)]" : "border-l-[var(--a-accent)]"}`}>
+                      <div className="flex items-start gap-2.5">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--a-accent-soft)] text-[var(--a-accent-ink)]">
+                          <Icon d={m.estado === "done" && m.ok ? IC_CHECK : iconoTool(m.proposal.tool)} size={15} />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="admin-kicker">{m.estado === "done" && m.ok ? "Registrado" : "Confirmá la acción"}</p>
+                          <p className="mt-1 text-[14px] font-medium text-[var(--a-text)]">{m.proposal.resumen}</p>
+                          {datos.length > 0 && (
+                            <dl className="mt-2.5 grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-1 rounded-lg bg-[var(--a-surface)] px-3 py-2">
+                              {datos.map((d) => (
+                                <Fragment key={d.label}>
+                                  <dt className="admin-faint text-[10px] uppercase tracking-[0.08em]">{d.label}</dt>
+                                  <dd className="admin-stat text-[13px] font-medium">{d.value}</dd>
+                                </Fragment>
+                              ))}
+                            </dl>
+                          )}
+                        </div>
+                      </div>
+                      {m.estado === "pending" ? (
+                        <div className="mt-3 flex gap-2 pl-[2.375rem]">
+                          <button onClick={() => confirmar(m)} disabled={loading} className="admin-btn rounded-full px-4 py-1.5 text-[13px] font-medium disabled:opacity-50">
+                            Confirmar
+                          </button>
+                          <button onClick={() => cancelar(m)} disabled={loading} className="admin-btn-ghost rounded-full px-4 py-1.5 text-[13px] font-medium disabled:opacity-50">
+                            Cancelar
+                          </button>
+                        </div>
+                      ) : (
+                        <p className={`mt-2.5 whitespace-pre-wrap pl-[2.375rem] text-[13px] font-medium ${m.estado === "cancelled" ? "admin-muted" : m.ok ? "text-[#1c7a45]" : "text-[var(--a-danger)]"}`}>
+                          {m.estado === "cancelled" ? "Cancelada." : m.result || (m.ok ? "Hecho." : "No se pudo.")}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            )
+          )}
+
+          {loading && (
+            <div className="chat-rise border-l-2 border-[var(--a-accent)] pl-4">
+              <div className="flex items-center gap-1.5 py-1.5">
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--a-text-3)] [animation-delay:-0.2s]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--a-text-3)] [animation-delay:-0.1s]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--a-text-3)]" />
               </div>
             </div>
-          )
-        )}
-
-        {loading && (
-          <div className="flex justify-start">
-            <div className="admin-soft flex items-center gap-1.5 rounded-2xl rounded-bl-md px-3.5 py-3">
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--a-text-3)] [animation-delay:-0.2s]" />
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--a-text-3)] [animation-delay:-0.1s]" />
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--a-text-3)]" />
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* Input */}
-      <form
-        onSubmit={(e) => { e.preventDefault(); enviar(input); }}
-        className="flex items-end gap-2 border-t border-[var(--a-border)] p-3"
-      >
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviar(input); } }}
-          rows={1}
-          disabled={recording || transcribing}
-          placeholder={
-            recording ? "Grabando… tocá el micrófono para terminar" : transcribing ? "Transcribiendo…" : "Escribí o usá el micrófono…"
-          }
-          className="admin-input max-h-32 flex-1 resize-none rounded-2xl px-3.5 py-2.5 text-[14px] text-espresso disabled:opacity-60"
-        />
-        {/* Micrófono: voz → texto */}
-        <button
-          type="button"
-          onClick={toggleMic}
-          disabled={loading || transcribing}
-          aria-label={recording ? "Detener grabación" : "Grabar audio"}
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-40 ${
-            recording ? "animate-pulse bg-[var(--a-danger)] text-white" : "admin-btn-ghost"
-          }`}
-        >
-          {transcribing ? (
-            <svg className="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
-          ) : recording ? (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
-          ) : (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" /><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4" /></svg>
-          )}
-        </button>
-        <button type="submit" disabled={loading || recording || transcribing || !input.trim()} className="admin-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full disabled:opacity-40" aria-label="Enviar">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z" /></svg>
-        </button>
-      </form>
+      {/* (C) Composer */}
+      <div className="border-t border-[var(--a-border)] bg-[var(--a-surface)] px-5 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:pb-3">
+        <form onSubmit={(e) => { e.preventDefault(); enviar(input); }} className="mx-auto w-full max-w-[620px]">
+          <div className="admin-input flex items-end gap-2 rounded-[26px] px-2 py-1.5 transition-shadow focus-within:border-[var(--a-accent)] focus-within:shadow-[0_0_0_3px_rgba(138,74,102,0.16)]">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviar(input); } }}
+              rows={1}
+              disabled={recording || transcribing}
+              placeholder={recording ? "Grabando… tocá para terminar" : transcribing ? "Transcribiendo tu nota…" : "Escribí o decí lo que necesitás…"}
+              className="max-h-[7.5rem] flex-1 resize-none border-0 bg-transparent px-2 py-2 text-[14px] text-[var(--a-text)] placeholder:text-[var(--a-text-3)] focus:outline-none disabled:opacity-60"
+            />
+            <button
+              type="button"
+              onClick={toggleMic}
+              disabled={loading || transcribing}
+              aria-label={recording ? "Detener grabación" : "Grabar audio"}
+              className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-40 sm:h-10 sm:w-10 ${recording ? "bg-[var(--a-accent-soft)] text-[var(--a-accent-ink)]" : "admin-btn-ghost"}`}
+            >
+              {recording && <span className="absolute inset-0 animate-ping rounded-full bg-[var(--a-accent)] opacity-20" />}
+              <span className="relative flex items-center justify-center">
+                {transcribing ? (
+                  <svg className="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+                ) : recording ? (
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2.5" /></svg>
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" /><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4" /></svg>
+                )}
+              </span>
+            </button>
+            <button
+              type="submit"
+              disabled={loading || recording || transcribing || !input.trim()}
+              aria-label="Enviar"
+              className="admin-btn flex h-11 w-11 shrink-0 items-center justify-center rounded-full disabled:opacity-40 disabled:shadow-none sm:h-10 sm:w-10"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z" /></svg>
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
