@@ -20,6 +20,8 @@ import {
   PROFESSIONAL_ID,
 } from "./supabase";
 import { endFromStart, nowIsoAR } from "./scheduling/slots";
+import { headers } from "next/headers";
+import { TENANT_HEADER } from "./tenant";
 
 export type { Service, Staff } from "./scheduling/types";
 
@@ -143,31 +145,52 @@ function normalize(raw: Partial<DB> & { scheduling?: Partial<Scheduling> }): DB 
   };
 }
 
-// ── Persistencia en ARCHIVO (local / fallback) ──
-async function fileRead(): Promise<DB> {
+/** professional_id del REQUEST actual (MULTI-TENANT): lee el header que puso el
+ *  proxy a partir del host; si no está (host sin tenant, o fuera de un request como
+ *  build/scripts), cae al tenant por defecto (env PROFESSIONAL_ID = la demo).
+ *  Es la ÚNICA fuente de scoping de datos entre psicólogos. */
+async function currentTenantId(): Promise<string | undefined> {
+  try {
+    const pid = (await headers()).get(TENANT_HEADER);
+    if (pid) return pid;
+  } catch {
+    /* fuera de un contexto de request: usar el tenant por defecto */
+  }
+  return PROFESSIONAL_ID;
+}
+
+// ── Persistencia en ARCHIVO (local / fallback) — un archivo por tenant ──
+function dbPathFor(pid?: string): string {
+  if (!pid) return DB_PATH;
+  const safe = pid.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 60);
+  return path.join(path.dirname(DB_PATH), `db.${safe}.json`);
+}
+
+async function fileRead(pid?: string): Promise<DB> {
   let raw: string;
   try {
-    raw = await fs.readFile(DB_PATH, "utf-8");
+    raw = await fs.readFile(dbPathFor(pid), "utf-8");
   } catch {
     return emptyDB(); // archivo no existe → base vacía
   }
   return normalize(JSON.parse(raw)); // si está corrupto, que lance
 }
 
-async function fileWrite(db: DB): Promise<void> {
-  await fs.mkdir(path.dirname(DB_PATH), { recursive: true });
-  const tmp = `${DB_PATH}.${randomUUID()}.tmp`;
+async function fileWrite(db: DB, pid?: string): Promise<void> {
+  const p = dbPathFor(pid);
+  await fs.mkdir(path.dirname(p), { recursive: true });
+  const tmp = `${p}.${randomUUID()}.tmp`;
   await fs.writeFile(tmp, JSON.stringify(db, null, 2), "utf-8");
-  await fs.rename(tmp, DB_PATH); // rename es atómico en el mismo FS
+  await fs.rename(tmp, p); // rename es atómico en el mismo FS
 }
 
-// ── Persistencia en SUPABASE (JSONB versionado, escritura atómica) ──
-async function sbRead(): Promise<{ db: DB; rev: number }> {
+// ── Persistencia en SUPABASE (JSONB versionado) — scopeado por tenant (professional_id) ──
+async function sbRead(pid?: string): Promise<{ db: DB; rev: number }> {
   const sb = getServiceClient();
   const { data, error } = await sb
     .from("app_state")
     .select("data, rev")
-    .eq("professional_id", PROFESSIONAL_ID)
+    .eq("professional_id", pid)
     .maybeSingle();
   if (error) {
     console.error("[supabase] sbRead error:", error.message);
@@ -178,19 +201,19 @@ async function sbRead(): Promise<{ db: DB; rev: number }> {
 }
 
 /** Escribe SOLO si rev no cambió (optimistic lock). false = conflicto → reintentar. */
-async function sbWrite(db: DB, rev: number): Promise<boolean> {
+async function sbWrite(db: DB, rev: number, pid?: string): Promise<boolean> {
   const sb = getServiceClient();
   if (rev === 0) {
     const { error } = await sb
       .from("app_state")
-      .insert({ professional_id: PROFESSIONAL_ID, data: db, rev: 1 });
+      .insert({ professional_id: pid, data: db, rev: 1 });
     if (error) {
       const code = (error as { code?: string }).code;
       if (code === "23505") return false; // ya existía → conflicto recuperable
       if (code === "23503") {
-        // FK: el PROFESSIONAL_ID no existe en professionals (env mal configurada)
+        // FK: el professional_id no existe en professionals (tenant mal dado de alta)
         console.error(
-          `[supabase] sbWrite: PROFESSIONAL_ID '${PROFESSIONAL_ID}' no existe en professionals. Revisá la env var.`
+          `[supabase] sbWrite: professional_id '${pid}' no existe en professionals. Revisá el alta del tenant.`
         );
       } else {
         console.error("[supabase] sbWrite insert error:", error.message);
@@ -202,7 +225,7 @@ async function sbWrite(db: DB, rev: number): Promise<boolean> {
   const { data, error } = await sb
     .from("app_state")
     .update({ data: db, rev: rev + 1, updated_at: new Date().toISOString() })
-    .eq("professional_id", PROFESSIONAL_ID)
+    .eq("professional_id", pid)
     .eq("rev", rev)
     .select("rev");
   if (error) {
@@ -212,11 +235,12 @@ async function sbWrite(db: DB, rev: number): Promise<boolean> {
   return Array.isArray(data) && data.length > 0; // 0 filas = rev cambió = conflicto
 }
 
-// Lectura (no mutante): despacha a Supabase o archivo.
+// Lectura (no mutante): resuelve el tenant del request y despacha a Supabase o archivo.
 async function read(): Promise<DB> {
   assertBackendConfigOk();
-  if (supabaseConfigurado) return (await sbRead()).db;
-  return fileRead();
+  const pid = await currentTenantId();
+  if (supabaseConfigurado) return (await sbRead(pid)).db;
+  return fileRead(pid);
 }
 
 // Cola: serializa las mutaciones (read-modify-write) para que no se pisen DENTRO
@@ -224,8 +248,12 @@ async function read(): Promise<DB> {
 // que dos escrituras concurrentes se pisen (reintenta el ciclo completo).
 let queue: Promise<unknown> = Promise.resolve();
 function mutate<T>(fn: (db: DB) => T | Promise<T>): Promise<T> {
+  // Resolver el tenant AHORA (en contexto de request); el trabajo diferido en la
+  // cola puede correr fuera de ese contexto async.
+  const pidPromise = currentTenantId();
   const next = queue.then(async () => {
     assertBackendConfigOk();
+    const pid = await pidPromise;
     if (supabaseConfigurado) {
       for (let intento = 0; intento < 10; intento++) {
         if (intento > 0) {
@@ -233,16 +261,16 @@ function mutate<T>(fn: (db: DB) => T | Promise<T>): Promise<T> {
           // compitiendo por el mismo rev cambiante bajo contención real.
           await new Promise((r) => setTimeout(r, 25 * 2 ** Math.min(intento, 5) + Math.random() * 40));
         }
-        const { db, rev } = await sbRead();
+        const { db, rev } = await sbRead(pid);
         const result = await fn(db);
-        if (await sbWrite(db, rev)) return result;
+        if (await sbWrite(db, rev, pid)) return result;
         // conflicto de rev → re-leer y re-aplicar contra el estado más fresco
       }
       throw new Error("No se pudo guardar: conflicto de concurrencia (10 intentos).");
     }
-    const db = await fileRead();
+    const db = await fileRead(pid);
     const result = await fn(db);
-    await fileWrite(db);
+    await fileWrite(db, pid);
     return result;
   });
   queue = next.catch(() => {});
