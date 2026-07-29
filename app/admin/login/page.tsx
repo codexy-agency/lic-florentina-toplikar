@@ -61,7 +61,11 @@ export default function LoginPage() {
               Ingresá tu contraseña para entrar al panel.
             </p>
 
-            <form onSubmit={onSubmit} className="mt-6">
+            {/* method="post" es deliberado: si el JS todavía no hidrató y el
+                navegador envía el formulario de forma nativa, un GET pondría la
+                CONTRASEÑA en la URL (queda en el historial, en los logs y en el
+                header Referer). Con POST eso no pasa. */}
+            <form onSubmit={onSubmit} method="post" className="mt-6">
               <label className="mb-4 block">
                 <span className="mb-1.5 block text-[12px] font-medium uppercase tracking-[0.14em] text-sage-deep">
                   Email
