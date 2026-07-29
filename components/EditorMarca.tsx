@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { IconoCheck } from "@/components/iconos";
 import { guardarMarca, type MarcaState } from "@/app/admin/marca/actions";
 import { PALETAS, type Marca } from "@/lib/marca";
 import { SubmitButton } from "./SubmitButton";
@@ -126,7 +127,7 @@ export function EditorMarca({ inicial }: { inicial: Marca }) {
             Guardar y publicar
           </SubmitButton>
           {state?.ok && state.mensaje && (
-            <span className="text-[13.5px] font-medium text-[#1c7a45]">✓ {state.mensaje}</span>
+            <span className="inline-flex items-center gap-1.5 text-[13.5px] font-medium text-[var(--a-ok)]"><IconoCheck size={14} /> {state.mensaje}</span>
           )}
           {state && !state.ok && state.error && (
             <span className="admin-danger text-[13.5px] font-medium">{state.error}</span>

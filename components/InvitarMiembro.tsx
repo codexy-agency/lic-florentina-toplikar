@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { IconoX } from "@/components/iconos";
 import { invitarMiembro, type EquipoState } from "@/app/admin/equipo/actions";
 import { ROL_LABEL, ROLES, type Rol } from "@/lib/permisos";
 import { SubmitButton } from "./SubmitButton";
@@ -28,7 +29,7 @@ export function InvitarMiembro({ puedeCrearOwner }: { puedeCrearOwner: boolean }
           Dar acceso a alguien
         </button>
         {state?.ok && state.mensaje && (
-          <p className="max-w-sm text-[13px] font-medium text-[#1c7a45]">{state.mensaje}</p>
+          <p className="max-w-sm text-[13px] font-medium text-[var(--a-ok)]">{state.mensaje}</p>
         )}
       </div>
     );
@@ -39,7 +40,7 @@ export function InvitarMiembro({ puedeCrearOwner }: { puedeCrearOwner: boolean }
       <div className="flex items-center justify-between">
         <h3 className="text-[15px] font-semibold text-espresso">Nuevo acceso</h3>
         <button type="button" onClick={() => setAbierto(false)} aria-label="Cerrar" className="admin-faint text-[18px] leading-none hover:text-espresso">
-          ✕
+          <IconoX size={16} />
         </button>
       </div>
 

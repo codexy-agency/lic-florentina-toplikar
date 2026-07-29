@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { IconoCheck, IconoMas } from "@/components/iconos";
 import { guardarServicios } from "@/app/admin/servicios/actions";
 import { DeleteConfirm } from "@/components/DeleteConfirm";
 import type { Service } from "@/lib/scheduling/types";
@@ -164,19 +165,19 @@ export function ServiciosEditor({ initial }: { initial: Service[] }) {
       <div className="flex flex-wrap items-center gap-4">
         <button
           onClick={add}
-          className="admin-btn-ghost w-full rounded-full px-4 py-2.5 text-[13px] font-medium sm:w-auto"
+          className="admin-btn-ghost inline-flex w-full items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-[13px] font-medium sm:w-auto"
         >
-          + Agregar servicio
+          <IconoMas size={15} /> Agregar servicio
         </button>
         <button
           onClick={guardar}
           disabled={estado === "guardando"}
-          className="w-full rounded-full bg-espresso px-6 py-2.5 text-[14px] font-medium text-cream transition-all hover:-translate-y-px disabled:opacity-60 sm:w-auto"
+          className="admin-btn w-full rounded-full px-6 py-2.5 text-[14px] font-medium disabled:opacity-60 sm:w-auto"
         >
           {estado === "guardando" ? "Guardando…" : "Guardar servicios"}
         </button>
         {estado === "ok" && (
-          <span className="text-[14px] font-medium text-[var(--a-accent-ink)]">✓ Guardado</span>
+          <span className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[var(--a-ok)]"><IconoCheck size={15} /> Guardado</span>
         )}
         {estado === "error" && (
           <span className="admin-danger text-[14px] font-medium">

@@ -400,7 +400,7 @@ export default async function AdminPage({
                     />
                     <SubmitButton
                       pendingText="Confirmando…"
-                      className="rounded-full bg-espresso px-4 py-2.5 text-[13px] font-medium text-cream transition-colors hover:bg-espresso/90"
+                      className="admin-btn rounded-full px-4 py-2.5 text-[13px] font-medium"
                     >
                       {x.startsAt ? "Confirmar" : "Confirmar con fecha"}
                     </SubmitButton>
@@ -500,7 +500,7 @@ export default async function AdminPage({
             {grupos.map((g) => (
               <div key={g.key}>
                 <div className="flex items-baseline gap-3">
-                  <h3 className="font-serif text-[17px] tracking-tight text-espresso">
+                  <h3 className="text-[17px] font-semibold tracking-tight text-espresso">
                     {dayLabel(g.key, todayKey, tomorrowKey)}
                   </h3>
                   <span className="admin-kicker text-[12px]">
@@ -531,9 +531,9 @@ export default async function AdminPage({
                             Enviar recordatorio
                           </a>
                         </div>
-                        <p className="admin-stat shrink-0 whitespace-nowrap font-serif text-2xl italic">
+                        <p className="admin-stat shrink-0 whitespace-nowrap text-2xl font-semibold tabular-nums">
                           {x.startsAt ? `${horaAR(x.startsAt)}` : "Sin hora"}
-                          <span className="admin-muted ml-1 text-[13px] not-italic">hs</span>
+                          <span className="admin-muted ml-1 text-[13px] font-normal">hs</span>
                         </p>
                       </div>
                       <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -617,7 +617,7 @@ export default async function AdminPage({
         </div>
         {alDia.length === 0 ? (
           <div className="admin-empty mt-5 rounded-2xl p-8 text-center">
-            <p className="inline-flex items-center gap-2 font-serif text-[17px] tracking-tight text-espresso">
+            <p className="inline-flex items-center gap-2 text-[17px] font-semibold tracking-tight text-espresso">
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-sage/20 text-sage-deep">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
               </span>
@@ -647,7 +647,7 @@ export default async function AdminPage({
                     <span className="mt-1 flex flex-wrap items-center gap-1.5">
                       {p.deuda > 0 && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-[var(--a-danger-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--a-danger)]">
-                          Debe {money(p.deuda)}
+                          Debe <span className="tabular-nums">{money(p.deuda)}</span>
                         </span>
                       )}
                       {p.proximoTurno && (

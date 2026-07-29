@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { getMarca } from "@/lib/store";
-import { cssDeMarca, nombreMostrable } from "@/lib/marca";
+import { cssDeMarca, nombreMostrable, type Marca } from "@/lib/marca";
 
 const fraunces = Fraunces({
   variable: "--font-serif",
@@ -57,45 +57,51 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Psychologist",
-  name: "Lic. Paulina Pilotti",
-  description:
-    "Psicóloga clínica especializada en Terapia Cognitivo Conductual (TCC) y ACT. Atención presencial en Viedma y online.",
-  url: SITE_URL,
-  priceRange: "$$",
-  knowsLanguage: "es",
-  areaServed: [
-    { "@type": "City", name: "Viedma, Río Negro, Argentina" },
-    { "@type": "Place", name: "Atención online a todo el mundo" },
-  ],
-  availableService: [
-    { "@type": "MedicalTherapy", name: "Terapia Cognitivo Conductual (TCC)" },
-    { "@type": "MedicalTherapy", name: "Terapia de Aceptación y Compromiso (ACT)" },
-  ],
-  address: {
-    "@type": "PostalAddress",
-    addressLocality: "Viedma",
-    addressRegion: "Río Negro",
-    addressCountry: "AR",
-  },
-  sameAs: ["https://www.instagram.com/psicoterapia.pauli/"],
-};
+/** Datos estructurados (Google) DE ESTE consultorio.
+ *  Estaban hardcodeados: cada suscriptor publicaba el nombre, la ciudad y el
+ *  Instagram de otra profesional, que además es lo que Google indexa. */
+function jsonLdDe(m: Marca | null) {
+  const nombre = m?.nombre || "Consultorio de psicología";
+  const titulo = m?.titulo || "";
+  const ciudad = m?.ciudad || "";
+  const url = m?.dominio ? `https://${m.dominio}` : SITE_URL;
+  const ig = m?.instagram?.trim();
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "Psychologist",
+    name: [titulo, nombre].filter(Boolean).join(" "),
+    description:
+      m?.heroSubtitulo ||
+      `Psicología clínica${ciudad ? ` en ${ciudad}` : ""} y atención online.`,
+    url,
+    priceRange: "$$",
+    knowsLanguage: "es",
+    areaServed: [
+      ...(ciudad ? [{ "@type": "City", name: ciudad }] : []),
+      { "@type": "Place", name: "Atención online" },
+    ],
+    ...(ciudad ? { address: { "@type": "PostalAddress", addressLocality: ciudad } } : {}),
+    ...(ig
+      ? { sameAs: [ig.startsWith("http") ? ig : `https://www.instagram.com/${ig.replace(/^@/, "")}/`] }
+      : {}),
+  };
+}
 
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Colores de ESTE consultorio. Si el store no está disponible (build, o un
-  // tenant sin resolver), se usan los tokens por defecto de globals.css.
-  let css = "";
+  // Colores y datos de ESTE consultorio. Si el store no está disponible (build,
+  // o un tenant sin resolver), se usan los tokens por defecto de globals.css.
+  let marca: Marca | null = null;
   try {
-    css = cssDeMarca(await getMarca());
+    marca = await getMarca();
   } catch {
-    css = "";
+    marca = null;
   }
+  const css = marca ? cssDeMarca(marca) : "";
   return (
     <html
       lang="es"
@@ -104,7 +110,7 @@ export default async function RootLayout({
       <head>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdDe(marca)) }}
         />
         {/* Paleta del consultorio: pisa los tokens por defecto. */}
         {css && <style dangerouslySetInnerHTML={{ __html: css }} />}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { IconoCheck, IconoX } from "@/components/iconos";
 import { guardarDisponibilidad, setBloqueos } from "@/app/admin/disponibilidad/actions";
 import type {
   AvailabilityRule,
@@ -245,7 +246,7 @@ export function DisponibilidadEditor({
                               className="admin-danger flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[14px] transition-colors hover:bg-[var(--a-danger)]/10 sm:h-8 sm:w-8"
                               aria-label="Eliminar franja"
                             >
-                              ✕
+                              <IconoX size={15} />
                             </button>
                           </div>
                           {invalida && (
@@ -299,7 +300,7 @@ export function DisponibilidadEditor({
           <button
             onClick={addBloqueo}
             disabled={!nuevaFecha || blockBusy}
-            className="w-full rounded-full bg-espresso px-4 py-2 text-[13px] font-medium text-cream transition-all hover:-translate-y-px disabled:opacity-50 sm:w-auto"
+            className="admin-btn w-full rounded-full px-4 py-2 text-[13px] font-medium disabled:opacity-50 sm:w-auto"
           >
             Bloquear día
           </button>
@@ -326,7 +327,7 @@ export function DisponibilidadEditor({
                   className="flex h-7 w-7 items-center justify-center rounded-full text-espresso-soft transition-colors hover:bg-[var(--a-danger)]/12 hover:text-[var(--a-danger)] disabled:opacity-50 sm:h-6 sm:w-6"
                   aria-label={`Quitar bloqueo del ${fmtFecha(d)}`}
                 >
-                  ✕
+                  <IconoX size={13} />
                 </button>
               </span>
             ))}
@@ -404,7 +405,7 @@ export function DisponibilidadEditor({
         <button
           onClick={guardar}
           disabled={estado === "guardando" || hayInvalidas || !dirty}
-          className="w-full rounded-full bg-espresso px-7 py-3 text-[15px] font-medium text-cream shadow-float transition-all duration-300 hover:-translate-y-px disabled:opacity-60 sm:w-auto sm:py-3.5"
+          className="admin-btn w-full rounded-full px-7 py-3 text-[15px] font-medium disabled:opacity-60 sm:w-auto sm:py-3.5"
         >
           {estado === "guardando" ? "Guardando…" : "Guardar horarios"}
         </button>
@@ -417,8 +418,8 @@ export function DisponibilidadEditor({
             No se pudo guardar. Reintentá.
           </span>
         ) : estado === "ok" ? (
-          <span className="text-[14px] font-medium text-[var(--a-accent-ink)]">
-            ✓ Horarios guardados
+          <span className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[var(--a-ok)]">
+            <IconoCheck size={15} /> Horarios guardados
           </span>
         ) : dirty ? (
           <span className="inline-flex items-center gap-2 text-[14px] font-medium text-[var(--a-accent-ink)]">

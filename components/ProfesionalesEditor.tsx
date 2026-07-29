@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { IconoCheck, IconoMas } from "@/components/iconos";
 import { guardarProfesionales } from "@/app/admin/profesionales/actions";
 import { DeleteConfirm } from "@/components/DeleteConfirm";
 import type { Staff, Service } from "@/lib/scheduling/types";
@@ -146,7 +147,7 @@ export function ProfesionalesEditor({
                   />
                 ) : (
                   <span
-                    className="flex h-16 w-16 items-center justify-center rounded-full text-[22px] font-serif"
+                    className="flex h-16 w-16 items-center justify-center rounded-full text-[20px] font-semibold"
                     style={{ backgroundColor: `${color(m)}22`, color: color(m) }}
                   >
                     {(m.nombre.trim()[0] || "?").toUpperCase()}
@@ -271,13 +272,13 @@ export function ProfesionalesEditor({
                           <button
                             key={svc.id}
                             onClick={() => toggleSvc(i, svc.id)}
-                            className={`inline-flex items-center rounded-full border px-3.5 py-2 min-h-[40px] text-[13px] transition-colors ${
+                            className={`inline-flex min-h-[40px] items-center gap-1.5 rounded-full border px-3.5 py-2 text-[13px] transition-colors ${
                               on
                                 ? "admin-chip-accent border-transparent font-medium"
                                 : "admin-chip hover:border-[var(--a-border-strong)]"
                             }`}
                           >
-                            {on ? "✓ " : ""}
+                            {on && <IconoCheck size={13} />}
                             {svc.nombre}
                           </button>
                         );
@@ -298,19 +299,19 @@ export function ProfesionalesEditor({
       <div className="flex flex-wrap items-center gap-4">
         <button
           onClick={add}
-          className="admin-btn-ghost rounded-full px-4 py-2 text-[13px] font-medium transition-colors"
+          className="admin-btn-ghost inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-medium transition-colors"
         >
-          + Agregar profesional
+          <IconoMas size={15} /> Agregar profesional
         </button>
         <button
           onClick={guardar}
           disabled={estado === "guardando"}
-          className="rounded-full bg-espresso px-6 py-2.5 text-[14px] font-medium text-cream transition-all hover:-translate-y-px disabled:opacity-60"
+          className="admin-btn rounded-full px-6 py-2.5 text-[14px] font-medium disabled:opacity-60"
         >
           {estado === "guardando" ? "Guardando…" : "Guardar profesionales"}
         </button>
         {estado === "ok" && (
-          <span className="text-[14px] font-medium text-[var(--a-accent-ink)]">✓ Guardado</span>
+          <span className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[var(--a-ok)]"><IconoCheck size={15} /> Guardado</span>
         )}
         {estado === "error" && (
           <span className="admin-danger text-[14px] font-medium">

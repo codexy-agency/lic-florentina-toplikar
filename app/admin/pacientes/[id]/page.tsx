@@ -90,11 +90,11 @@ export default async function PacienteDetalle({
 
         {/* Cabecera del paciente */}
         <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-4 border-b border-[var(--a-border)] pb-6">
-          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[var(--a-accent-soft)] font-serif text-2xl text-[var(--a-accent-ink)]">
+          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[var(--a-accent-soft)] text-[20px] font-semibold text-[var(--a-accent-ink)]">
             {(paciente.nombre.trim()[0] || "?").toUpperCase()}
           </span>
           <div className="min-w-0">
-            <h1 className="font-serif text-[26px] leading-tight tracking-tight text-espresso md:text-[30px]">
+            <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-espresso md:text-[30px]">
               {paciente.nombre}
             </h1>
             <p className="admin-muted mt-1 text-[14px]">
@@ -113,7 +113,7 @@ export default async function PacienteDetalle({
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="2" y="6" width="20" height="13" rx="2" /><path d="M2 10h20M6 15h2" />
                 </svg>
-                Debe {money(deuda)}
+                Debe <span className="tabular-nums">{money(deuda)}</span>
                 <span className="font-medium opacity-80">· {impagos.length} {impagos.length === 1 ? "sesión" : "sesiones"} sin pagar</span>
               </span>
             )}
@@ -222,7 +222,7 @@ export default async function PacienteDetalle({
             {/* Timeline */}
             {notas.length === 0 ? (
               <div className="admin-empty mt-5 rounded-2xl p-10 text-center">
-                <p className="font-serif text-[17px] tracking-tight text-espresso">
+                <p className="text-[17px] font-semibold tracking-tight text-espresso">
                   Todavía no hay notas
                 </p>
                 <p className="admin-muted mx-auto mt-1.5 max-w-xs text-[14px] leading-relaxed">

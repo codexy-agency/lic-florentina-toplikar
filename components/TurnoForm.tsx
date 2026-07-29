@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent, type ReactNode, type CSSProperties } from "react";
+import { IconoCheck } from "@/components/iconos";
 import { horaAR } from "@/lib/scheduling/slots";
 import { Arrow, ArrowLeft } from "./Arrow";
 import type { DaySlots, Slot, Modalidad, Service, Staff } from "@/lib/scheduling/types";
@@ -307,7 +308,7 @@ export function TurnoForm() {
                         : "bg-cream-deep/60 text-espresso-soft/60"
                   }`}
                 >
-                  {done ? "✓" : i + 1}
+                  {done ? <IconoCheck size={13} /> : i + 1}
                 </span>
                 <span
                   className={`truncate text-[11px] font-medium uppercase tracking-[0.06em] ${

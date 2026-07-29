@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { IconoCheck, IconoX } from "@/components/iconos";
 import { agendarTurnoManual, type ManualState } from "@/app/admin/actions";
 import type { Service, Staff } from "@/lib/scheduling/types";
 import { SubmitButton } from "./SubmitButton";
@@ -48,7 +49,7 @@ export function AgendarManualForm({
       <div className="mt-5">
         <button
           onClick={abrir}
-          className="inline-flex items-center gap-2 rounded-full bg-espresso px-5 py-2.5 text-[14px] font-medium text-cream shadow-float transition-all duration-300 hover:-translate-y-px"
+          className="admin-btn inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[14px] font-medium"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
             <path d="M12 5v14M5 12h14" />
@@ -56,8 +57,8 @@ export function AgendarManualForm({
           Agendar turno a mano
         </button>
         {justSubmitted && state?.ok && (
-          <span className="ml-3 text-[14px] font-medium text-[var(--a-accent-ink)]">
-            ✓ Turno agendado{state.nombre ? ` para ${state.nombre}` : ""}.
+          <span className="ml-3 inline-flex items-center gap-1.5 text-[14px] font-medium text-[var(--a-ok)]">
+            <IconoCheck size={15} /> Turno agendado{state.nombre ? ` para ${state.nombre}` : ""}.
           </span>
         )}
       </div>
@@ -75,7 +76,7 @@ export function AgendarManualForm({
           className="text-[13px] text-espresso-soft transition-colors hover:text-espresso"
           aria-label="Cerrar"
         >
-          ✕
+          <IconoX size={14} />
         </button>
       </div>
       <p className="mt-1 text-[13px] text-espresso-soft">
@@ -136,7 +137,7 @@ export function AgendarManualForm({
         <div className="sm:col-span-2 mt-1 flex flex-wrap items-center gap-3">
           <SubmitButton
             pendingText="Agendando…"
-            className="rounded-full bg-espresso px-6 py-3 text-[14px] font-medium text-cream transition-all duration-300 hover:-translate-y-px"
+            className="admin-btn rounded-full px-6 py-3 text-[14px] font-medium"
           >
             Agendar turno
           </SubmitButton>
@@ -144,7 +145,7 @@ export function AgendarManualForm({
             <span className="admin-danger text-[13px] font-medium">{state.error}</span>
           )}
           {justSubmitted && state?.ok && (
-            <span className="text-[13px] font-medium text-[var(--a-accent-ink)]">✓ Agendado.</span>
+            <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--a-ok)]"><IconoCheck size={14} /> Agendado.</span>
           )}
         </div>
       </form>

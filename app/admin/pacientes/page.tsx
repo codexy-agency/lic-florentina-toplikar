@@ -1,4 +1,5 @@
 import { getPacientesResumen } from "@/lib/store";
+import { IconoChevron } from "@/components/iconos";
 import { AdminShell } from "@/components/AdminShell";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { PacientesList } from "@/components/PacientesList";
@@ -24,7 +25,7 @@ export default async function PacientesPage() {
         <details className="admin-card group mt-5 rounded-2xl">
           <summary className="flex cursor-pointer list-none items-center justify-between p-4 text-[14px] font-medium text-espresso">
             <span>+ Nuevo paciente</span>
-            <span className="admin-faint transition-transform group-open:rotate-180">⌄</span>
+            <IconoChevron className="admin-faint transition-transform group-open:rotate-180" />
           </summary>
           <form action={crearPaciente} className="border-t border-[var(--color-line)] p-4">
             <div className="grid gap-3 sm:grid-cols-2">
@@ -49,7 +50,7 @@ export default async function PacientesPage() {
               </label>
             </div>
             <div className="mt-3 flex justify-end">
-              <button className="rounded-full bg-espresso px-5 py-2.5 text-[14px] font-medium text-cream transition-all hover:-translate-y-px">
+              <button className="admin-btn rounded-full px-5 py-2.5 text-[14px] font-medium">
                 Crear y abrir historia
               </button>
             </div>

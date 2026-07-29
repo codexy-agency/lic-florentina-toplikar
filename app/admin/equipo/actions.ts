@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requirePermiso } from "@/lib/session";
-import { crearMiembro, revocarAcceso, cambiarPassword } from "@/lib/accounts";
+import { crearMiembro, revocarAcceso, cambiarPassword, setSoporteHabilitado, soporteHabilitado } from "@/lib/accounts";
 import { esRolValido, PERMISOS, type Permisos, type Rol } from "@/lib/permisos";
 import { leerAuth, mutarAuth, logAudit } from "@/lib/accounts-store";
 
@@ -107,8 +107,18 @@ export async function resetearPassword(formData: FormData): Promise<void> {
   revalidatePath("/admin/equipo");
 }
 
+/** El cliente decide si el equipo de Codexy puede entrar a ayudarlo. */
+export async function alternarSoporte(formData: FormData) {
+  const s = await requirePermiso("equipo");
+  if (!s.pid) return;
+  const habilitar = String(formData.get("habilitar") || "") === "1";
+  await setSoporteHabilitado(s.pid, habilitar, s.userId ?? undefined);
+  revalidatePath("/admin/equipo");
+}
+
 /** Últimos accesos del consultorio (para la tarjeta de actividad). */
 export async function ultimosAccesos(professionalId: string, limite = 12) {
   const db = await leerAuth();
   return db.audit.filter((a) => a.professionalId === professionalId).slice(0, limite);
 }
+export async function estadoSoporte(pid: string) { return soporteHabilitado(pid); }

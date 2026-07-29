@@ -16,6 +16,8 @@ export interface Sesion {
   puede: (p: Permiso) => boolean;
   /** true si entró con la contraseña vieja del consultorio (sin cuenta propia) */
   legacy: boolean;
+  /** true si es una sesión de SOPORTE de Codexy (se muestra un cartel en el panel) */
+  soporte?: boolean;
 }
 
 /** Tenant (professional_id) del request actual, según el header que puso el proxy. */
@@ -35,7 +37,7 @@ export async function tenantDelRequest(): Promise<string | null> {
 // identidad en cada request. Consecuencia: revocar una sesión tarda hasta 60s
 // en cortar (documentado en docs/SEGURIDAD.md).
 const CACHE_MS = 60_000;
-const cache = new Map<string, { hasta: number; ok: boolean; rol: Rol; permisos: (p: Permiso) => boolean }>();
+const cache = new Map<string, { hasta: number; ok: boolean; rol: Rol; permisos: (p: Permiso) => boolean; soporte?: boolean }>();
 
 /** ÚNICA verificación de sesión del lado servidor. Valida:
  *   1. la cookie firmada (y que el tenant coincida con el host),
@@ -75,7 +77,7 @@ export async function sesionValida(): Promise<Sesion | null> {
   const ahora = Date.now();
   if (hit && hit.hasta > ahora) {
     if (!hit.ok) return null;
-    return { pid, userId: claims.uid, sessionId: claims.sid, rol: hit.rol, puede: hit.permisos, legacy: false };
+    return { pid, userId: claims.uid, sessionId: claims.sid, rol: hit.rol, puede: hit.permisos, legacy: false, soporte: hit.soporte };
   }
 
   try {
@@ -89,8 +91,8 @@ export async function sesionValida(): Promise<Sesion | null> {
       cache.set(clave, { hasta: ahora + CACHE_MS, ok: false, rol: "asistente", permisos: () => false });
       return null;
     }
-    cache.set(clave, { hasta: ahora + CACHE_MS, ok: true, rol: perm.rol, permisos: perm.puede });
-    return { pid, userId: claims.uid, sessionId: claims.sid, rol: perm.rol, puede: perm.puede, legacy: false };
+    cache.set(clave, { hasta: ahora + CACHE_MS, ok: true, rol: perm.rol, permisos: perm.puede, soporte: perm.soporte });
+    return { pid, userId: claims.uid, sessionId: claims.sid, rol: perm.rol, puede: perm.puede, legacy: false, soporte: perm.soporte };
   } catch (e) {
     console.error("[session] error verificando la sesión:", e);
     return null; // fail-closed

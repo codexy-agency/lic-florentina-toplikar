@@ -10,6 +10,7 @@ import {
 } from "./accounts-store";
 import { hashPassword, verifyPassword, necesitaRehash, DUMMY_HASH, validarPassword } from "./passwords";
 import { permisosPorRol, normalizarPermisos, esRolValido, type Permiso, type Rol, tienePermiso } from "./permisos";
+import { esEmailDeSoporte, puedeSoporte, ROL_SOPORTE } from "./soporte";
 
 // Anti-fuerza-bruta POR CUENTA (además del rate-limit por IP del endpoint).
 const MAX_INTENTOS = 8;
@@ -33,6 +34,28 @@ export interface LoginError {
 export async function tieneCuentas(professionalId: string): Promise<boolean> {
   const db = await leerAuth();
   return db.memberships.some((m) => m.professionalId === professionalId && m.activo);
+}
+
+/** ¿Este consultorio permite el acceso de soporte de Codexy? Por defecto sí
+ *  (para poder ayudar), y el cliente lo puede apagar desde su panel. */
+export async function soporteHabilitado(professionalId: string): Promise<boolean> {
+  const db = await leerAuth();
+  return db.soporte?.[professionalId] !== false;
+}
+
+export async function setSoporteHabilitado(
+  professionalId: string,
+  habilitado: boolean,
+  porUserId?: string
+): Promise<void> {
+  await mutarAuth((d) => {
+    d.soporte[professionalId] = habilitado;
+  });
+  await logAudit({
+    userId: porUserId,
+    professionalId,
+    accion: habilitado ? "soporte_habilitado" : "soporte_deshabilitado",
+  });
 }
 
 /** Login por email + contraseña, siempre dentro de UN consultorio. */
@@ -63,6 +86,44 @@ export async function login(
   //    de respuesta no revele si el email tiene cuenta en este consultorio.
   const hash = user ? db.credentials[user.id]?.hash : undefined;
   const okPass = await verifyPassword(password, hash || DUMMY_HASH);
+
+  // ACCESO DE SOPORTE: alguien del equipo de Codexy entrando a ayudar. No tiene
+  // membresía en este consultorio, pero sí cuenta propia y contraseña válida.
+  // Solo si el consultorio lo permite (lo puede apagar desde su panel).
+  const esSoporte = !membership && !!user && !!hash && okPass && esEmailDeSoporte(email);
+  if (esSoporte) {
+    if (!(await soporteHabilitado(professionalId))) {
+      await logAudit({ professionalId, accion: "soporte_rechazado", meta: { email } });
+      return { ok: false, error: "Este consultorio tiene el soporte desactivado." };
+    }
+    const sessionId = randomUUID();
+    await mutarAuth((d) => {
+      delete d.throttle[clave];
+      d.sesiones.unshift({
+        id: sessionId,
+        userId: user!.id,
+        professionalId,
+        creadoEn: new Date().toISOString(),
+        userAgent: meta?.userAgent?.slice(0, 200),
+      });
+    });
+    // Queda registrado para que el cliente lo vea en Equipo → Actividad.
+    await logAudit({ userId: user!.id, professionalId, accion: "soporte_ingreso", meta: { email } });
+    return {
+      ok: true,
+      user: user!,
+      membership: {
+        id: "soporte",
+        userId: user!.id,
+        professionalId,
+        rol: ROL_SOPORTE,
+        permisos: {},
+        activo: true,
+        creadoEn: new Date().toISOString(),
+      },
+      sessionId,
+    };
+  }
 
   if (!user || !membership || !hash || !okPass) {
     await registrarFallo(clave);
@@ -112,7 +173,10 @@ export async function sesionActiva(sessionId: string, userId: string, profession
   const db = await leerAuth();
   const s = db.sesiones.find((x) => x.id === sessionId);
   if (!s || s.revocadaEn || s.userId !== userId || s.professionalId !== professionalId) return false;
-  return db.memberships.some((m) => m.userId === userId && m.professionalId === professionalId && m.activo);
+  if (db.memberships.some((m) => m.userId === userId && m.professionalId === professionalId && m.activo)) return true;
+  // Sesión de soporte: sin membresía, pero con email habilitado y permiso del cliente.
+  const u = db.users.find((x) => x.id === userId && x.activo);
+  return !!u && esEmailDeSoporte(u.email) && (await soporteHabilitado(professionalId));
 }
 
 export async function revocarSesion(sessionId: string): Promise<void> {
@@ -126,11 +190,18 @@ export async function revocarSesion(sessionId: string): Promise<void> {
 export async function permisosDe(userId: string, professionalId: string): Promise<{
   rol: Rol;
   puede: (p: Permiso) => boolean;
+  soporte?: boolean;
 } | null> {
   const db = await leerAuth();
   const m = db.memberships.find((x) => x.userId === userId && x.professionalId === professionalId && x.activo);
-  if (!m) return null;
-  return { rol: m.rol, puede: (p: Permiso) => tienePermiso(m.rol, m.permisos, p) };
+  if (m) return { rol: m.rol, puede: (p: Permiso) => tienePermiso(m.rol, m.permisos, p) };
+
+  // Sin membresía: puede ser una sesión de SOPORTE de Codexy.
+  const u = db.users.find((x) => x.id === userId && x.activo);
+  if (u && esEmailDeSoporte(u.email) && (await soporteHabilitado(professionalId))) {
+    return { rol: ROL_SOPORTE, puede: puedeSoporte, soporte: true };
+  }
+  return null;
 }
 
 export interface MiembroEquipo {

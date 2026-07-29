@@ -6,6 +6,7 @@ import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { requireAdmin } from "@/lib/session";
 import { registrarPago, quitarPago, agregarMovimiento, quitarMovimiento } from "./actions";
+import { IconoBaja, IconoSube } from "@/components/iconos";
 
 export const dynamic = "force-dynamic";
 
@@ -45,17 +46,18 @@ type Kpi = {
   delta?: number | null;
 };
 
-/** Variación % respecto al mes anterior (▲ verde / ▼ rojo). */
+/** Variación % respecto al mes anterior: sube verde, baja rojo. */
 function Delta({ d }: { d: number | null | undefined }) {
   if (d == null) return null;
   const up = d >= 0;
   return (
     <span
-      className={`mt-1.5 flex items-center gap-1 text-[11px] font-semibold ${
-        up ? "text-[#1c7a45]" : "text-[var(--a-danger)]"
+      className={`mt-1.5 flex items-center gap-1.5 text-[11px] font-semibold ${
+        up ? "text-[var(--a-ok)]" : "text-[var(--a-danger)]"
       }`}
     >
-      {up ? "▲" : "▼"} {Math.abs(d)}%
+      {up ? <IconoSube size={12} /> : <IconoBaja size={12} />}
+      <span className="tabular-nums">{Math.abs(d)}%</span>
       <span className="admin-faint font-normal">vs mes pasado</span>
     </span>
   );
@@ -452,7 +454,7 @@ export default async function FinanzasPage({
               {f.porProfesional.map((p) => (
                 <div key={p.nombre} className="admin-soft rounded-xl p-4">
                   <p className="font-medium text-espresso">{p.nombre}</p>
-                  <p className="admin-stat mt-1 font-serif text-xl tabular-nums">{money(p.monto)}</p>
+                  <p className="admin-stat mt-1 text-xl font-semibold tabular-nums">{money(p.monto)}</p>
                   <p className="admin-muted text-[12px]">
                     {p.cantidad} turnos · {money(p.cobrado)} cobrado
                   </p>
@@ -464,7 +466,7 @@ export default async function FinanzasPage({
 
         {/* Movimientos */}
         <div className="mt-4">
-          <h3 className="font-serif text-lg tracking-tight text-espresso">Movimientos</h3>
+          <h3 className="text-[18px] font-semibold tracking-tight text-espresso">Movimientos</h3>
           {f.movimientos.length === 0 ? (
             <p className="admin-empty admin-muted mt-4 rounded-2xl p-8 text-center text-[14px]">
               Acá vas a ver cada turno con su cobro y los ingresos que cargues a
@@ -483,7 +485,7 @@ export default async function FinanzasPage({
                       m.tipo === "egreso"
                         ? "bg-[var(--a-danger-soft)] text-[var(--a-danger)]"
                         : m.manual || m.pagado
-                        ? "bg-[#25D366]/12 text-[#1c7a45]"
+                        ? "admin-chip-ok"
                         : "bg-[var(--a-surface-2)] text-[var(--a-text-3)]"
                     }`}
                   >
@@ -520,8 +522,10 @@ export default async function FinanzasPage({
                         : `${m.serviceName || "—"}${m.staffName ? ` · ${m.staffName}` : ""}${m.fecha ? ` · ${fechaHoraAR(m.fecha)} hs` : ""}`}
                     </p>
                   </div>
+                  {/* Columna fija, no ml-auto: si el monto flota, cada fila
+                      termina en una x distinta y la columna no se puede escanear. */}
                   <span
-                    className={`ml-auto text-[1.05rem] font-bold tabular-nums ${
+                    className={`ml-auto w-28 shrink-0 text-right text-[1.05rem] font-bold tabular-nums ${
                       m.tipo === "egreso" ? "text-[var(--a-danger)]" : "text-[var(--a-text)]"
                     }`}
                   >
@@ -540,7 +544,7 @@ export default async function FinanzasPage({
                     </form>
                   ) : m.pagado ? (
                     <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#25D366]/12 px-3 py-1.5 text-[12px] font-semibold text-[#1c7a45]">
+                      <span className="admin-chip-ok inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold">
                         {METODO_LABEL[m.metodoPago || ""] || "Cobrado"}
                       </span>
                       <form action={quitarPago}>

@@ -77,11 +77,20 @@ function isActive(path: string, href: string) {
   return href === "/admin" ? path === "/admin" : path.startsWith(href);
 }
 
-function Brand() {
+/** Identidad del consultorio que está usando el panel. Nunca hardcodeada: es un
+ *  SaaS y cada profesional tiene que ver SU nombre. */
+export interface MarcaSidebar {
+  pila: string;
+  apellido: string;
+  iniciales: string;
+}
+
+function Brand({ marca }: { marca: MarcaSidebar }) {
   return (
     <Link href="/admin" className="block">
       <p className="font-serif text-xl tracking-tight text-cream">
-        Paulina<span className="italic text-[#EBC4D2]"> Pilotti</span>
+        {marca.pila}
+        {marca.apellido && <span className="italic text-[var(--a-accent-on-dark)]"> {marca.apellido}</span>}
       </p>
       <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-cream/55">
         Panel de gestión
@@ -113,7 +122,7 @@ function Fondo() {
   );
 }
 
-export function AdminSidebar() {
+export function AdminSidebar({ marca }: { marca: MarcaSidebar }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   // El topbar mobile se oculta al bajar y reaparece al subir (más lugar para el contenido).
@@ -157,9 +166,9 @@ export function AdminSidebar() {
             }`}
           >
             {active && (
-              <span aria-hidden className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[#EBC4D2]" />
+              <span aria-hidden className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[var(--a-accent-on-dark)]" />
             )}
-            <span className={active ? "text-[#EBC4D2]" : "text-cream/55"}>{t.icon}</span>
+            <span className={active ? "text-[var(--a-accent-on-dark)]" : "text-cream/55"}>{t.icon}</span>
             {t.label}
           </Link>
         );
@@ -221,9 +230,9 @@ export function AdminSidebar() {
         <Link
           href="/admin"
           aria-label="Inicio del panel"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--a-accent-soft)] font-serif text-[15px] tracking-tight text-[var(--a-accent-ink)]"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--a-accent-soft)] text-[13px] font-semibold tracking-tight text-[var(--a-accent-ink)]"
         >
-          PP
+          {marca.iniciales}
         </Link>
       </header>
 
@@ -246,7 +255,7 @@ export function AdminSidebar() {
         <div className="relative flex h-full flex-col gap-6 px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="px-1.5">
-              <Brand />
+              <Brand marca={marca} />
             </div>
             <button
               onClick={() => setOpen(false)}

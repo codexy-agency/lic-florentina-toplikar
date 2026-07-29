@@ -110,7 +110,7 @@ export function PacientesList({ pacientes }: { pacientes: PacienteResumen[] }) {
                     <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
                       {p.deuda > 0 && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-[var(--a-danger-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--a-danger)]">
-                          Debe {money(p.deuda)}
+                          Debe <span className="tabular-nums">{money(p.deuda)}</span>
                         </span>
                       )}
                       {p.tienePendiente && (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { IconoX } from "@/components/iconos";
 import { agendarTurnoManual, type ManualState } from "@/app/admin/actions";
 import { SubmitButton } from "./SubmitButton";
 import type { Service, Staff } from "@/lib/scheduling/types";
@@ -76,7 +77,7 @@ export function NuevoTurnoModal({
       >
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-[18px] font-semibold tracking-tight text-espresso">Nuevo turno</h3>
-          <button onClick={onClose} aria-label="Cerrar" className="flex h-8 w-8 items-center justify-center rounded-full text-espresso-soft transition-colors hover:bg-[var(--a-surface-2)] hover:text-espresso">✕</button>
+          <button onClick={onClose} aria-label="Cerrar" className="flex h-8 w-8 items-center justify-center rounded-full text-espresso-soft transition-colors hover:bg-[var(--a-surface-2)] hover:text-espresso"><IconoX size={16} /></button>
         </div>
 
         <form action={formAction} className="mt-4 grid gap-4 sm:grid-cols-2">

@@ -409,7 +409,7 @@ export function Asistente() {
                           </button>
                         </div>
                       ) : (
-                        <p className={`mt-2.5 whitespace-pre-wrap pl-[2.375rem] text-[13px] font-medium ${m.estado === "cancelled" ? "admin-muted" : m.ok ? "text-[#1c7a45]" : "text-[var(--a-danger)]"}`}>
+                        <p className={`mt-2.5 whitespace-pre-wrap pl-[2.375rem] text-[13px] font-medium ${m.estado === "cancelled" ? "admin-muted" : m.ok ? "text-[var(--a-ok)]" : "text-[var(--a-danger)]"}`}>
                           {m.estado === "cancelled" ? "Cancelada." : m.result || (m.ok ? "Hecho." : "No se pudo.")}
                         </p>
                       )}

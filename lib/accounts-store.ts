@@ -68,10 +68,12 @@ interface AuthDB {
   sesiones: Sesion[];
   throttle: Record<string, Throttle>;
   audit: AuditEntry[];
+  /** Acceso de soporte de Codexy por consultorio. Ausente = habilitado. */
+  soporte: Record<string, boolean>;
 }
 
 function vacia(): AuthDB {
-  return { users: [], credentials: {}, memberships: [], sesiones: [], throttle: {}, audit: [] };
+  return { users: [], credentials: {}, memberships: [], sesiones: [], throttle: {}, audit: [], soporte: {} };
 }
 
 function normalizar(raw: Partial<AuthDB> | null | undefined): AuthDB {
@@ -83,6 +85,7 @@ function normalizar(raw: Partial<AuthDB> | null | undefined): AuthDB {
     sesiones: Array.isArray(d.sesiones) ? d.sesiones : [],
     throttle: d.throttle && typeof d.throttle === "object" ? d.throttle : {},
     audit: Array.isArray(d.audit) ? d.audit : [],
+    soporte: d.soporte && typeof d.soporte === "object" ? d.soporte : {},
   };
 }
 

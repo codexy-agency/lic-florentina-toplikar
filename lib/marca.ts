@@ -152,3 +152,15 @@ export function partirNombre(nombre: string): [string, string] {
   if (partes.length < 2) return [partes[0] || "", ""];
   return [partes[0], partes.slice(1).join(" ")];
 }
+
+/** Monograma para el avatar del topbar: dos letras como mucho. */
+export function iniciales(nombre: string): string {
+  const letras = (nombre || "")
+    .trim()
+    .split(/\s+/)
+    .map((p) => p[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("");
+  return letras.toUpperCase() || "·";
+}

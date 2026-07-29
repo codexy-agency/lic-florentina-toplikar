@@ -337,6 +337,11 @@ details.faq > .faq-body > div {
   --a-accent: #8A4A66;        /* VINO — único acento (≈5.3:1) */
   --a-accent-ink: #6F3A52;    /* vino más oscuro para texto sobre claro (≈7:1) */
   --a-accent-soft: #F1E7EC;   /* fondo tenue del acento (chips/pestaña hover) */
+  --a-accent-on-dark: #E4B9CC; /* el mismo vino aclarado, para el sidebar oscuro */
+  --a-ok: #2F6B4F;            /* verde del panel para "hecho/activo" (≈5.4:1).
+                                 NO es el verde de WhatsApp: ese es el color de
+                                 una marca ajena y sólo se usa en su botón. */
+  --a-ok-soft: #E7F0EA;
   --a-danger: #A8473D;        /* rojo apagado para destructivos (≈5.6:1) */
   --a-danger-soft: #F3E5E2;
 
@@ -417,6 +422,19 @@ details.faq > .faq-body > div {
 .admin-faint { color: var(--a-text-3); } /* metadatos no críticos */
 .admin-stat  { color: var(--a-text); }   /* números importantes — OSCUROS y grandes */
 
+/* ---- Foco de teclado ----
+   Antes sólo .admin-input tenía anillo: los ~160 botones y links del panel no
+   mostraban nada al tabular. Es accesibilidad y además se siente inacabado. */
+.admin-shell :is(a, button, summary, select, [role="switch"], [tabindex]):focus-visible {
+  outline: 2px solid var(--a-accent);
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+/* En el sidebar oscuro el vino no se ve: ahí el anillo va claro. */
+.admin-shell aside :is(a, button):focus-visible {
+  outline-color: var(--a-accent-on-dark);
+}
+
 /* ---- Chips / badges ---- */
 .admin-chip { /* chip neutro por defecto */
   background: var(--a-surface-2);
@@ -426,6 +444,10 @@ details.faq > .faq-body > div {
 .admin-chip-accent { /* chip con el acento, para destacar UNO */
   background: var(--a-accent-soft);
   color: var(--a-accent-ink);
+}
+.admin-chip-ok { /* permiso concedido, guardado, activo */
+  background: var(--a-ok-soft);
+  color: var(--a-ok);
 }
 
 /* ---- Acciones ---- */
