@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-07-29 — Fase 1: cuentas individuales
+
+**Contexto:** tras el blindaje multi-tenant, cada consultorio tenía *su* contraseña,
+pero seguía siendo **una clave compartida** por todo el consultorio: sin cuentas
+individuales, sin saber quién hizo qué, sin poder dar de baja a una sola persona.
+
+**Hecho** (`cc64c7e`) → [ADR-0004](decisiones/ADR-0004-cuentas-individuales.md):
+- **Identidad separada del consultorio**: `app_users` (global por email) +
+  `memberships` N:N con rol y permisos. Esto es lo que permite que una persona
+  trabaje en varios consultorios con una sola cuenta.
+- Hash **PBKDF2-HMAC-SHA256 600k** con Web Crypto (funciona en edge, sin binarios).
+- **Token v2** con `userId` y `sessionId` dentro de la firma → trazabilidad y
+  revocación de una sola sesión.
+- Almacén de identidad **separado** del blob de dominio (el login no debe tocar el
+  documento que tiene la historia clínica).
+- **Ventana de transición**: se acepta la clave vieja hasta que el consultorio crea
+  su primera cuenta; ahí se apaga sola. La demo no se rompe.
+- Anti-enumeración, bloqueo por intentos **por cuenta**, y **audit log**.
+- `scripts/crear-cuenta.mjs` para dar de alta al primer dueño.
+
+**Verificado con pruebas reales:** login por email ✓ · la clave vieja deja de
+funcionar sola ✓ · email inexistente da el mismo mensaje genérico ✓ · bloqueo por
+intentos ✓ · cookie de un consultorio rechazada en otro ✓ · auditoría registrando ✓.
+
+**Pendiente de Fase 1:** UI de equipo (invitar/roles), recuperación por email
+(falta proveedor), gateo por permiso en cada sección, y acceso de soporte de Codexy.
+
+---
+
 ## 2026-07-29 — Sistema de documentación + multi-tenant blindado
 
 **Contexto:** el proyecto gira a **SaaS multi-tenant para psicólogos**. Se necesita
