@@ -1,6 +1,6 @@
 "use server";
 
-import { sesionValida } from "@/lib/session";
+import { requirePermiso } from "@/lib/session";
 
 import { revalidatePath } from "next/cache";
 import { setPago, addMovimientoManual, removeMovimientoManual } from "@/lib/store";
@@ -8,7 +8,7 @@ import { setPago, addMovimientoManual, removeMovimientoManual } from "@/lib/stor
 import { arLocalToIso } from "@/lib/scheduling/slots";
 
 async function auth() {
-  if (!(await sesionValida())) throw new Error("No autorizado");
+  return requirePermiso("finanzas");
 }
 
 export async function agregarMovimiento(formData: FormData) {

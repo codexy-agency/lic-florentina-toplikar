@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { sesionValida } from "@/lib/session";
+import { puede } from "@/lib/session";
 
 import { transcribe, aiConfigured } from "@/lib/openai";
 
@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 // POST (multipart) { audio } → { ok, text } : voz → texto para el asistente.
 export async function POST(req: Request) {
-  if (!(await sesionValida())) {
+  if (!(await puede("asistente_ia"))) {
     return NextResponse.json({ ok: false, error: "No autorizado" }, { status: 401 });
   }
   if (!aiConfigured()) {

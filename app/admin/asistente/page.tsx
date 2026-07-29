@@ -7,7 +7,7 @@ import { aiConfigured } from "@/lib/openai";
 export const dynamic = "force-dynamic";
 
 export default async function AsistentePage() {
-  await requireAdmin();
+  await requireAdmin("asistente_ia");
   const configurado = aiConfigured();
   return (
     <AdminShell>

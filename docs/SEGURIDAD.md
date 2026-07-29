@@ -25,6 +25,7 @@
 | 2026-06-25 | Lógica de deuda (5 agentes) | 4 cálculos divergentes unificados en `esImpaga()` (`4f9774b`) |
 | 2026-06-25 | Asistente IA (4 revisores) | Escrituras fallidas mostradas como éxito, chat que se rompía, fechas imposibles — corregidos (`2d69096`) |
 | 2026-07-29 | **Aislamiento multi-tenant (4 atacantes)** | **4 fallas críticas**, corregidas antes de desplegar (`5a390fc`) |
+| 2026-07-29 | Diseño de la capa de datos (4 expertos) | Detectó 2 bugs **propios recién introducidos**: permisos definidos pero nunca invocados (fuga activa) y tabla `auth_state` inexistente (habría roto el login al desplegar). Corregidos. |
 
 ## Controles implementados
 
@@ -42,6 +43,23 @@
   y el store igual valida que sea un UUID de un tenant conocido.
 - **Telegram por consultorio** (`TELEGRAM_CHAT_IDS`); sin chat propio, no se notifica.
 - **Landing sin caché compartida** (`force-dynamic`).
+
+### Cuentas y permisos
+- **Cuentas individuales** por persona (email + contraseña propia), con identidad
+  global: la misma persona puede trabajar en varios consultorios con una sola cuenta.
+- Contraseñas con **PBKDF2-HMAC-SHA256, 600.000 iteraciones**, salt por usuario y
+  `AUTH_PEPPER` opcional fuera de la base. Formato autodescriptivo (se puede subir
+  el costo sin migración) y **rehash automático** al iniciar sesión.
+- **Anti-enumeración**: si el email no existe se verifica igual contra un hash
+  señuelo, para que el tiempo de respuesta no revele quién tiene cuenta.
+- **Bloqueo por cuenta** tras varios intentos (además del límite por IP).
+- **Permisos por sección efectivamente aplicados** en las 8 páginas del panel, las
+  6 server actions, el export CSV y las rutas del asistente. La **historia clínica**
+  exige su propio permiso (`notas_clinicas`): una asistente ve el contacto del
+  paciente, **no** su evolución clínica — verificado con dos cuentas reales.
+- **Revocación**: cambiar la contraseña o quitar el acceso cierra las sesiones
+  abiertas (con hasta 60 s de demora por caché).
+- **Auditoría** de ingresos, intentos fallidos y cambios de acceso.
 
 ### Aplicación
 - Cabeceras: CSP (con `object-src 'none'`, `base-uri`, `form-action`), HSTS, COOP/CORP,

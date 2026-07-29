@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { sesionValida } from "@/lib/session";
+import { puede } from "@/lib/session";
 
 import { WRITE_TOOLS, runWriteTool } from "@/lib/assistant/tools";
 
@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 // POST { tool, input } → ejecuta una acción de escritura YA confirmada por la usuaria.
 export async function POST(req: Request) {
-  if (!(await sesionValida())) {
+  if (!(await puede("asistente_ia"))) {
     return NextResponse.json({ ok: false, error: "No autorizado" }, { status: 401 });
   }
   let tool = "";

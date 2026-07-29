@@ -8,7 +8,7 @@ import { requireAdmin } from "@/lib/session";
 export const dynamic = "force-dynamic";
 
 export default async function PacientesPage() {
-  await requireAdmin();
+  await requireAdmin("pacientes");
   const pacientes = await getPacientesResumen();
   const field =
     "admin-input w-full px-3 py-2.5 text-[14px] text-espresso";

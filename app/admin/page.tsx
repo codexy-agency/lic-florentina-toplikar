@@ -110,7 +110,7 @@ export default async function AdminPage({
 }: {
   searchParams: Promise<{ vista?: string }>;
 }) {
-  await requireAdmin();
+  await requireAdmin("agenda");
   const vista = (await searchParams).vista === "calendario" ? "calendario" : "lista";
   const [solicitudes, pacientes, services, staff, sched, s] = await Promise.all([
     listSolicitudes(),

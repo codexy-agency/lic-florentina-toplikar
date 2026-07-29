@@ -45,14 +45,17 @@ export default async function PacienteDetalle({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireAdmin();
+  const sesion = await requireAdmin("pacientes");
+  // La historia clínica es dato de salud: solo se LEE si la persona tiene el
+  // permiso. Sin él, ni siquiera se consulta (no llega al servidor de render).
+  const verNotas = sesion.puede("notas_clinicas");
   const { id } = await params;
   const paciente = await getPaciente(id);
   if (!paciente) notFound();
 
   const [turnos, notas] = await Promise.all([
     getPacienteTurnos(paciente.contacto),
-    listNotas(id),
+    verNotas ? listNotas(id) : Promise.resolve([]),
   ]);
 
   // Próximo turno (para la plantilla de recordatorio de WhatsApp).
@@ -165,8 +168,14 @@ export default async function PacienteDetalle({
         </details>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-3 lg:items-start">
-          {/* Historia clínica */}
+          {/* Historia clínica — solo con permiso (dato de salud) */}
           <div className="lg:col-span-2">
+            {!verNotas ? (
+              <div className="admin-empty admin-muted rounded-2xl p-8 text-center text-[14px]">
+                No tenés acceso a la historia clínica de este paciente.
+              </div>
+            ) : (
+            <>
             <div className="flex h-9 items-center justify-between gap-3 border-b border-[var(--a-border)] pb-3">
               <h2 className="text-[18px] font-semibold tracking-tight text-espresso">
                 Historia clínica
@@ -247,6 +256,8 @@ export default async function PacienteDetalle({
                   </li>
                 ))}
               </ol>
+            )}
+            </>
             )}
           </div>
 

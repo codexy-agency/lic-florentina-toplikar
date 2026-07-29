@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { sesionValida } from "@/lib/session";
+import { puede } from "@/lib/session";
 import { getFinanzas } from "@/lib/store";
 
 import { isoToArLocal } from "@/lib/scheduling/slots";
@@ -27,7 +27,7 @@ function cell(v: string | number): string {
 /** Exporta los movimientos del período a CSV (para pasarle a la contadora).
  *  Una fila por movimiento: turnos + ingresos/egresos cargados a mano. */
 export async function GET(req: Request) {
-  if (!(await sesionValida())) {
+  if (!(await puede("finanzas"))) {
     return new NextResponse("No autorizado", { status: 401 });
   }
 

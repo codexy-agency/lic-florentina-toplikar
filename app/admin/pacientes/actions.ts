@@ -1,6 +1,6 @@
 "use server";
 
-import { sesionValida } from "@/lib/session";
+import { requirePermiso } from "@/lib/session";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -9,7 +9,7 @@ import { addNota, removeNota, updatePacienteFicha, updatePacienteDatos, addPacie
 import { arLocalToIso } from "@/lib/scheduling/slots";
 
 async function auth() {
-  if (!(await sesionValida())) throw new Error("No autorizado");
+  return requirePermiso("pacientes");
 }
 
 export async function crearPaciente(formData: FormData) {
@@ -25,7 +25,9 @@ export async function crearPaciente(formData: FormData) {
 }
 
 export async function agregarNota(formData: FormData) {
-  await auth();
+  // La HISTORIA CLÍNICA es dato de salud: exige su propio permiso, aparte del de
+  // pacientes (una secretaria puede ver el contacto, no la evolución clínica).
+  await requirePermiso("notas_clinicas");
   const patientId = String(formData.get("patientId") || "");
   const contenido = String(formData.get("contenido") || "").trim().slice(0, 4000);
   const titulo = String(formData.get("titulo") || "").trim().slice(0, 80) || undefined;
@@ -37,7 +39,7 @@ export async function agregarNota(formData: FormData) {
 }
 
 export async function borrarNota(formData: FormData) {
-  await auth();
+  await requirePermiso("notas_clinicas");
   const id = String(formData.get("id") || "");
   const patientId = String(formData.get("patientId") || "");
   if (id) await removeNota(id);

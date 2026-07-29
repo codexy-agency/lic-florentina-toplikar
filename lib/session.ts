@@ -111,6 +111,12 @@ export async function requirePermiso(p: Permiso): Promise<Sesion> {
   return s;
 }
 
+/** Versión booleana para route handlers (que responden 401/403 en vez de lanzar). */
+export async function puede(p: Permiso): Promise<boolean> {
+  const s = await sesionValida();
+  return !!s && s.puede(p);
+}
+
 /** Defensa en profundidad para las páginas del panel: además del proxy,
  *  re-verificamos en el árbol de Server Components (los bypass de middleware son
  *  un vector real — CVE-2025-29927). Si falta el permiso, manda al panel. */

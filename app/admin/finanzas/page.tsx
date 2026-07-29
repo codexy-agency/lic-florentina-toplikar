@@ -66,7 +66,7 @@ export default async function FinanzasPage({
 }: {
   searchParams: Promise<{ periodo?: string }>;
 }) {
-  await requireAdmin();
+  await requireAdmin("finanzas");
   const sp = await searchParams;
   const periodo = PERIODOS.some((p) => p.k === sp.periodo) ? sp.periodo! : "mes";
   const f = await getFinanzas(periodo);

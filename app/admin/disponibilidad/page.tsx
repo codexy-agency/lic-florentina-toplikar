@@ -7,7 +7,7 @@ import { requireAdmin } from "@/lib/session";
 export const dynamic = "force-dynamic";
 
 export default async function DisponibilidadPage() {
-  await requireAdmin();
+  await requireAdmin("disponibilidad");
   const { config, rules, exceptions } = await getScheduling();
 
   return (
