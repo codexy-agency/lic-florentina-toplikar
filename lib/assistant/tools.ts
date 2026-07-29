@@ -26,6 +26,7 @@ import {
   endFromStart,
 } from "@/lib/scheduling/slots";
 import type { OAITool } from "@/lib/openai";
+import type { Permiso } from "@/lib/permisos";
 
 type In = Record<string, unknown>;
 const str = (v: unknown) => String(v ?? "").trim();
@@ -47,6 +48,39 @@ export const WRITE_TOOLS = new Set([
   "bloquear_dia",
   "cargar_movimiento",
 ]);
+
+/** Permiso que exige cada herramienta. SIN esto el asistente sería un bypass del
+ *  modelo de permisos: alguien sin acceso a Finanzas podría pedir por chat
+ *  "¿cuánto cobré este mes?" y obtenerlo. */
+export const PERMISO_POR_TOOL: Record<string, Permiso> = {
+  agenda_hoy: "agenda",
+  proximos_turnos: "agenda",
+  pendientes: "agenda",
+  disponibilidad: "agenda",
+  buscar_paciente: "pacientes",
+  finanzas: "finanzas",
+  pacientes_con_deuda: "finanzas",
+  sesiones_impagas: "finanzas",
+  agendar_turno: "agenda",
+  confirmar_turno: "agenda",
+  registrar_pago: "finanzas",
+  bloquear_dia: "disponibilidad",
+  cargar_movimiento: "finanzas",
+};
+
+/** Herramientas que esta persona puede usar, según sus permisos. */
+export function toolsPermitidas(puede: (p: Permiso) => boolean): OAITool[] {
+  return TOOLS.filter((t) => {
+    const p = PERMISO_POR_TOOL[t.function.name];
+    return !p || puede(p);
+  });
+}
+
+/** ¿Puede ejecutar ESTA herramienta? (segunda barrera, por si el modelo insiste). */
+export function toolPermitida(nombre: string, puede: (p: Permiso) => boolean): boolean {
+  const p = PERMISO_POR_TOOL[nombre];
+  return !p || puede(p);
+}
 
 // ───────────────────────── Lectura ─────────────────────────
 

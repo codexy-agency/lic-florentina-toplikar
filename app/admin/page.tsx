@@ -161,9 +161,18 @@ export default async function AdminPage({
   const hoyAR = new Date().toLocaleDateString("en-CA", {
     timeZone: "America/Argentina/Buenos_Aires",
   });
+  // "Próximos turnos" = de HOY en adelante. Antes no filtraba por fecha, así que
+  // los turnos viejos que nunca se marcaron realizados quedaban arriba de "Hoy"
+  // y se acumulaban para siempre bajo un título que dice "próximos".
   const agenda = solicitudes
-    .filter((x) => x.estado === "confirmado")
-    .sort((a, b) => (a.startsAt || "") < (b.startsAt || "") ? -1 : 1);
+    .filter((x) => x.estado === "confirmado" && (!x.startsAt || x.startsAt.slice(0, 10) >= hoyAR))
+    .sort((a, b) => ((a.startsAt || "") < (b.startsAt || "") ? -1 : 1));
+
+  // Sesiones ya pasadas sin cerrar: hay que marcarlas realizadas (o no asistió)
+  // para que la deuda y las finanzas queden bien.
+  const sinCerrar = solicitudes
+    .filter((x) => x.estado === "confirmado" && !!x.startsAt && x.startsAt.slice(0, 10) < hoyAR)
+    .sort((a, b) => ((a.startsAt || "") < (b.startsAt || "") ? 1 : -1));
 
   // Agrupar los próximos turnos por día (Hoy / Mañana / fecha), respetando el
   // orden ya ordenado por horario.
@@ -404,6 +413,49 @@ export default async function AdminPage({
           </ul>
         )}
       </section>
+
+      {/* Sesiones ya dadas que quedaron sin cerrar. Si no se cierran, la deuda y
+          las finanzas quedan mal, y antes desaparecían de la vista. */}
+      {sinCerrar.length > 0 && (
+        <section className="mt-14">
+          <div className="flex flex-wrap items-center gap-3 border-b border-[var(--a-border)] pb-3">
+            <h2 className="text-[18px] font-semibold tracking-tight text-espresso">
+              Sesiones sin cerrar
+            </h2>
+            <span className="rounded-full bg-[var(--a-danger-soft)] px-2.5 py-0.5 text-[12px] font-semibold tabular-nums text-[var(--a-danger)]">
+              {sinCerrar.length}
+            </span>
+            <span className="admin-muted ml-auto text-[13px]">
+              Ya pasaron: marcá si se hicieron para que la plata quede bien.
+            </span>
+          </div>
+          <ul className="mt-4 space-y-2.5">
+            {sinCerrar.slice(0, 12).map((s) => (
+              <li key={s.id} className="admin-card flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl p-4">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-espresso">{s.nombre}</p>
+                  <p className="admin-muted text-[13px]">
+                    {s.startsAt ? `${fechaHoraAR(s.startsAt)} hs` : "sin fecha"}
+                    {s.serviceName ? ` · ${s.serviceName}` : ""}
+                  </p>
+                </div>
+                <form action={marcarNoAsistio}>
+                  <input type="hidden" name="id" value={s.id} />
+                  <button className="admin-faint rounded-full px-3.5 py-2 text-[12.5px] font-medium transition-colors hover:text-[var(--a-danger)]">
+                    No asistió
+                  </button>
+                </form>
+                <form action={marcarRealizado}>
+                  <input type="hidden" name="id" value={s.id} />
+                  <button className="admin-btn rounded-full px-4 py-2 text-[13px] font-medium">
+                    Se hizo
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* Agenda */}
       <section className="mt-14">

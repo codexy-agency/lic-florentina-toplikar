@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { puede } from "@/lib/session";
 
-import { WRITE_TOOLS, runWriteTool } from "@/lib/assistant/tools";
+import { WRITE_TOOLS, runWriteTool, toolPermitida } from "@/lib/assistant/tools";
+import { sesionValida } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,12 @@ export async function POST(req: Request) {
   }
   if (!WRITE_TOOLS.has(tool)) {
     return NextResponse.json({ ok: false, result: "Acción no permitida." }, { status: 400 });
+  }
+  // Además del permiso de usar el asistente, hace falta el permiso del DOMINIO
+  // que toca la acción (cobrar exige finanzas, bloquear exige disponibilidad…).
+  const sesion = await sesionValida();
+  if (!sesion || !toolPermitida(tool, sesion.puede)) {
+    return NextResponse.json({ ok: false, result: "No tenés permiso para hacer eso." }, { status: 403 });
   }
   try {
     const res = await runWriteTool(tool, input);

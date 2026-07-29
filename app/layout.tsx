@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import { getMarca } from "@/lib/store";
+import { cssDeMarca, nombreMostrable } from "@/lib/marca";
 
 const fraunces = Fraunces({
   variable: "--font-serif",
@@ -17,51 +19,43 @@ const jakarta = Plus_Jakarta_Sans({
 
 const SITE_URL = "https://paulinapilotti.com";
 
-export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
-  title: {
-    default: "Lic. Paulina Pilotti | Psicóloga Clínica en Viedma y Online",
-    template: "%s | Lic. Paulina Pilotti",
-  },
-  description:
-    "Psicóloga clínica especializada en Terapia Cognitivo Conductual (TCC) y ACT. Atención presencial en Viedma y online a todo el mundo para adolescentes, jóvenes y adultos. Agendá tu primera consulta por WhatsApp.",
-  keywords: [
-    "psicóloga Viedma",
-    "psicóloga online",
-    "terapia cognitivo conductual",
-    "terapia ACT",
-    "psicóloga clínica",
-    "Paulina Pilotti",
-    "terapia adolescentes",
-    "terapia ansiedad",
-    "salud mental Viedma",
-    "psicóloga Río Negro",
-  ],
-  authors: [{ name: "Lic. Paulina Pilotti" }],
-  creator: "Lic. Paulina Pilotti",
-  alternates: { canonical: "/" },
-  openGraph: {
-    type: "website",
-    locale: "es_AR",
-    url: SITE_URL,
-    siteName: "Lic. Paulina Pilotti — Psicóloga Clínica",
-    title: "Lic. Paulina Pilotti | Psicóloga Clínica en Viedma y Online",
-    description:
-      "Terapia Cognitivo Conductual y ACT. Atención presencial en Viedma y online a todo el mundo. Un espacio para cuidar tu salud mental.",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Lic. Paulina Pilotti | Psicóloga Clínica",
-    description:
-      "Terapia Cognitivo Conductual y ACT. Presencial en Viedma y online a todo el mundo.",
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: { index: true, follow: true, "max-image-preview": "large" },
-  },
-  category: "health",
-};
+/** Metadatos POR CONSULTORIO: el titulo del navegador, el SEO y las tarjetas al
+ *  compartir el link salen de la marca que cada psicologo configura en el panel. */
+export async function generateMetadata(): Promise<Metadata> {
+  let m;
+  try {
+    m = await getMarca();
+  } catch {
+    m = null;
+  }
+  const nombre = m && m.nombre ? m.nombre : "Consultorio de psicología";
+  const titulo = m && m.titulo ? m.titulo : "Psicología clínica";
+  const ciudad = m && m.ciudad ? m.ciudad : "";
+  const base = m && m.dominio ? `https://${m.dominio}` : SITE_URL;
+  const tituloCompleto = ciudad
+    ? `${nombre} | ${titulo} en ${ciudad} y online`
+    : `${nombre} | ${titulo}`;
+  const descripcion =
+    (m && m.heroSubtitulo) ||
+    `${titulo}${ciudad ? ` en ${ciudad}` : ""} y online. Reservá tu turno en línea.`;
+  return {
+    metadataBase: new URL(base),
+    title: { default: tituloCompleto, template: `%s | ${nombre}` },
+    description: descripcion,
+    authors: [{ name: nombre }],
+    creator: nombre,
+    openGraph: {
+      type: "website",
+      locale: "es_AR",
+      url: base,
+      siteName: nombre,
+      title: tituloCompleto,
+      description: descripcion,
+    },
+    twitter: { card: "summary_large_image", title: tituloCompleto, description: descripcion },
+    robots: { index: true, follow: true },
+  };
+}
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -89,11 +83,19 @@ const jsonLd = {
   sameAs: ["https://www.instagram.com/psicoterapia.pauli/"],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Colores de ESTE consultorio. Si el store no está disponible (build, o un
+  // tenant sin resolver), se usan los tokens por defecto de globals.css.
+  let css = "";
+  try {
+    css = cssDeMarca(await getMarca());
+  } catch {
+    css = "";
+  }
   return (
     <html
       lang="es"
@@ -104,6 +106,8 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+        {/* Paleta del consultorio: pisa los tokens por defecto. */}
+        {css && <style dangerouslySetInnerHTML={{ __html: css }} />}
       </head>
       <body className="min-h-full flex flex-col bg-[#FBF8F2] text-[#2B2722]">
         {children}

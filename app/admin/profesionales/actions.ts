@@ -1,6 +1,6 @@
 "use server";
 
-import { sesionValida } from "@/lib/session";
+import { requirePermiso } from "@/lib/session";
 
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
@@ -11,7 +11,7 @@ import type { Staff } from "@/lib/scheduling/types";
 type Entrada = Partial<Staff> & { nombre: string };
 
 export async function guardarProfesionales(list: Entrada[]) {
-  if (!(await sesionValida())) throw new Error("No autorizado");
+  await requirePermiso("equipo");
 
   const staff: Staff[] = (list || [])
     .filter((s) => s.nombre && s.nombre.trim())

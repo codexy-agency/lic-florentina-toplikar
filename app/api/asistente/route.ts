@@ -1,13 +1,10 @@
 import { NextResponse } from "next/server";
-import { sesionValida } from "@/lib/session";
+import { sesionValida, puede } from "@/lib/session";
 import { aiChat, aiConfigured, type OAIMessage } from "@/lib/openai";
-import { TOOLS, WRITE_TOOLS, runReadTool, describeWriteTool, buildSystemPrompt } from "@/lib/assistant/tools";
+import { WRITE_TOOLS, runReadTool, describeWriteTool, buildSystemPrompt, toolsPermitidas, toolPermitida } from "@/lib/assistant/tools";
 
 export const dynamic = "force-dynamic";
 
-async function isAdmin(): Promise<boolean> {
-  return (await sesionValida()) !== null;
-}
 
 function parseArgs(raw: string): Record<string, unknown> {
   try {
@@ -20,7 +17,8 @@ function parseArgs(raw: string): Record<string, unknown> {
 
 // POST { messages: OAIMessage[] (sin el system) } → { type: "text" | "confirm" | "error", ... }
 export async function POST(req: Request) {
-  if (!(await isAdmin())) {
+  const sesion = await sesionValida();
+  if (!sesion || !sesion.puede("asistente_ia")) {
     return NextResponse.json({ type: "error", error: "No autorizado" }, { status: 401 });
   }
   if (!aiConfigured()) {
@@ -59,7 +57,7 @@ export async function POST(req: Request) {
     // Loop agéntico: ejecutamos lecturas y seguimos; al primer pedido de escritura,
     // frenamos y devolvemos la propuesta para que la usuaria confirme.
     for (let i = 0; i < 6; i++) {
-      const resp = await aiChat({ messages: [system, ...messages], tools: TOOLS });
+      const resp = await aiChat({ messages: [system, ...messages], tools: toolsPermitidas(sesion.puede) });
       const tc = resp.toolCalls[0];
 
       if (!tc) {
@@ -79,6 +77,9 @@ export async function POST(req: Request) {
       const assistantMsg: OAIMessage = { role: "assistant", content: resp.content, tool_calls: [tc] };
 
       if (WRITE_TOOLS.has(name)) {
+        if (!toolPermitida(name, sesion.puede)) {
+          return NextResponse.json({ type: "error", error: "No tenés permiso para hacer eso." }, { status: 403 });
+        }
         return NextResponse.json({
           type: "confirm",
           text: resp.content || "",
@@ -87,6 +88,10 @@ export async function POST(req: Request) {
         });
       }
 
+      if (!toolPermitida(name, sesion.puede)) {
+        messages = [...messages, assistantMsg, { role: "tool", tool_call_id: tc.id, content: "No tenés permiso para consultar eso." }];
+        continue;
+      }
       const result = await runReadTool(name, input);
       messages = [...messages, assistantMsg, { role: "tool", tool_call_id: tc.id, content: result }];
     }

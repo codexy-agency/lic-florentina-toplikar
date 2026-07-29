@@ -22,6 +22,7 @@ import {
 import { endFromStart, nowIsoAR } from "./scheduling/slots";
 import { headers } from "next/headers";
 import { TENANT_HEADER, esMultiTenant, esTenantConocido } from "./tenant";
+import { MARCA_DEFECTO, normalizarMarca, type Marca } from "./marca";
 
 export type { Service, Staff } from "./scheduling/types";
 
@@ -100,6 +101,8 @@ interface DB {
   staff: Staff[];
   scheduling: Scheduling;
   movimientosManuales: MovimientoManual[];
+  /** Identidad del consultorio: nombre, textos y colores del sitio público. */
+  marca: Marca;
 }
 
 const DB_PATH = path.join(process.cwd(), "data", "db.json");
@@ -113,6 +116,7 @@ function emptyDB(): DB {
     staff: [],
     scheduling: { config: DEFAULT_CONFIG, rules: [], exceptions: [] },
     movimientosManuales: [],
+    marca: MARCA_DEFECTO,
   };
 }
 
@@ -142,6 +146,7 @@ function normalize(raw: Partial<DB> & { scheduling?: Partial<Scheduling> }): DB 
       exceptions: raw.scheduling?.exceptions ?? [],
     },
     movimientosManuales: raw.movimientosManuales ?? [],
+    marca: normalizarMarca(raw.marca),
   };
 }
 
@@ -919,7 +924,11 @@ export async function getFinanzas(periodo: string = "mes"): Promise<FinanzasResu
   // Turnos del período (KPIs, servicio, profesional, método, cobranza).
   const turnos = db.solicitudes.filter(
     (s) =>
-      (s.estado === "confirmado" || s.estado === "realizado") && dentro(s.startsAt)
+      // "no_asistio" entra SOLO si ya estaba cobrado: si el paciente pagó y
+      // faltó, esa plata existe y no puede desaparecer del panel (antes se
+      // evaporaba de cobrado, del CSV y de Movimientos, sin forma de deshacerlo).
+      (s.estado === "confirmado" || s.estado === "realizado" || (s.estado === "no_asistio" && s.pagado)) &&
+      dentro(s.startsAt)
   );
   const manualesP = db.movimientosManuales.filter((m) => dentro(m.fecha));
 
@@ -1124,6 +1133,21 @@ export async function getFinanzas(periodo: string = "mes"): Promise<FinanzasResu
 }
 
 // ───────────────────────── Disponibilidad (config) ─────────────────────────
+
+// ───────────────────────── Marca del consultorio ─────────────────────────
+
+/** Identidad del consultorio (nombre, textos, colores). Cada tenant la suya. */
+export async function getMarca(): Promise<Marca> {
+  const db = await read();
+  return normalizarMarca(db.marca);
+}
+
+export async function saveMarca(marca: unknown): Promise<Marca> {
+  return mutate((db) => {
+    db.marca = normalizarMarca(marca);
+    return db.marca;
+  });
+}
 
 export async function getScheduling(): Promise<Scheduling> {
   return (await read()).scheduling;

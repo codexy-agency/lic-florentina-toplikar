@@ -1,7 +1,7 @@
 # Índice del proyecto
 
 > **Mapa navegable, generado automáticamente.** No lo edites a mano: corré `npm run indice`.
-> Última generación: 2026-07-29 · 98 archivos.
+> Última generación: 2026-07-29 · 102 archivos.
 >
 > Para entender *cómo* funciona el sistema leé [ARQUITECTURA.md](ARQUITECTURA.md);
 > para saber *por qué* está así, [decisiones/](decisiones/).
@@ -14,12 +14,13 @@
 | [`lib/accounts-store.ts`](../lib/accounts-store.ts) <br><sub>201 líneas</sub> | Almacén de IDENTIDAD (cuentas, membresías, sesiones, auditoría). | `AppUser`, `Membership`, `Sesion`, `AuditEntry`, `normalizarEmail`, `leerAuth` |
 | [`lib/accounts.ts`](../lib/accounts.ts) <br><sub>284 líneas</sub> | Casos de uso de cuentas. Acá viven las reglas de autorización. | `LoginOk`, `LoginError`, `tieneCuentas`, `login`, `sesionActiva`, `revocarSesion` |
 | [`lib/auth.ts`](../lib/auth.ts) <br><sub>165 líneas</sub> | Auth mínima para el panel: cookie de sesión firmada con HMAC (Web Crypto, | `SESSION_COOKIE`, `safeEqual`, `checkPassword`, `TokenClaims`, `makeToken`, `readToken` |
+| [`lib/marca.ts`](../lib/marca.ts) <br><sub>155 líneas</sub> | Identidad del consultorio: lo que cada psicólogo personaliza de SU sitio. | `PaletaMarca`, `Marca`, `PALETA_DEFECTO`, `PALETAS`, `MARCA_DEFECTO`, `normalizarMarca` |
 | [`lib/openai.ts`](../lib/openai.ts) <br><sub>114 líneas</sub> | Cliente mínimo de la Chat Completions API de OpenAI (function calling), por | `ToolCall`, `OAIMessage`, `OAITool`, `aiConfigured`, `OAIResponse`, `aiChat` |
 | [`lib/passwords.ts`](../lib/passwords.ts) <br><sub>107 líneas</sub> | Hashing de contraseñas — PBKDF2-HMAC-SHA256 con Web Crypto. | `ITERACIONES`, `hashPassword`, `verifyPassword`, `necesitaRehash`, `DUMMY_HASH`, `validarPassword` |
 | [`lib/permisos.ts`](../lib/permisos.ts) <br><sub>109 líneas</sub> | Roles y permisos por consultorio. | `ROLES`, `Rol`, `PERMISOS`, `Permiso`, `Permisos`, `ROL_LABEL` |
 | [`lib/ratelimit.ts`](../lib/ratelimit.ts) <br><sub>63 líneas</sub> | Rate limiter en memoria, best-effort. En serverless (Vercel) el estado es por | `RateResult`, `rateLimit`, `clientIp` |
 | [`lib/session.ts`](../lib/session.ts) <br><sub>131 líneas</sub> | — | `Sesion`, `tenantDelRequest`, `sesionValida`, `requireSesion`, `requirePermiso`, `puede` |
-| [`lib/store.ts`](../lib/store.ts) <br><sub>1175 líneas</sub> | Capa de datos del MVP — persistencia en archivo JSON con escritura ATÓMICA | `Estado`, `Solicitud`, `Paciente`, `NotaClinica`, `MovimientoManual`, `listSolicitudes` |
+| [`lib/store.ts`](../lib/store.ts) <br><sub>1199 líneas</sub> | Capa de datos del MVP — persistencia en archivo JSON con escritura ATÓMICA | `Estado`, `Solicitud`, `Paciente`, `NotaClinica`, `MovimientoManual`, `listSolicitudes` |
 | [`lib/supabase.ts`](../lib/supabase.ts) <br><sub>44 líneas</sub> | Cliente de Supabase — SOLO servidor (Route Handlers / Server Actions). | `PROFESSIONAL_ID`, `supabaseConfigurado`, `assertBackendConfigOk`, `getServiceClient` |
 | [`lib/telegram.ts`](../lib/telegram.ts) <br><sub>98 líneas</sub> | Telegram — notificador de salida + helper reutilizable de envío. | `escMarkdown`, `sendTelegram`, `notificarTurno` |
 | [`lib/tenant.ts`](../lib/tenant.ts) <br><sub>112 líneas</sub> | Resolución de tenant (multi-tenant). Módulo EDGE-SAFE: lo usa el proxy | `TENANT_HEADER`, `esUuid`, `esMultiTenant`, `tenantPorDefecto`, `normalizarHost`, `resolveTenantFromHost` |
@@ -35,7 +36,7 @@
 
 | Archivo | Qué hace | Exporta |
 |---|---|---|
-| [`lib/assistant/tools.ts`](../lib/assistant/tools.ts) <br><sub>467 líneas</sub> | Herramientas del asistente del panel. Las de LECTURA se ejecutan solas; las de | `WRITE_TOOLS`, `runReadTool`, `WriteResult`, `runWriteTool`, `describeWriteTool`, `TOOLS` |
+| [`lib/assistant/tools.ts`](../lib/assistant/tools.ts) <br><sub>501 líneas</sub> | Herramientas del asistente del panel. Las de LECTURA se ejecutan solas; las de | `WRITE_TOOLS`, `PERMISO_POR_TOOL`, `toolsPermitidas`, `toolPermitida`, `runReadTool`, `WriteResult` |
 
 ## Panel /admin (páginas y acciones)
 
@@ -52,10 +53,12 @@
 | [`app/admin/finanzas/export/route.ts`](../app/admin/finanzas/export/route.ts) <br><sub>74 líneas</sub> | — | `dynamic`, `GET` |
 | [`app/admin/finanzas/page.tsx`](../app/admin/finanzas/page.tsx) <br><sub>591 líneas</sub> | — | `dynamic` |
 | [`app/admin/login/page.tsx`](../app/admin/login/page.tsx) <br><sub>165 líneas</sub> | — | — |
+| [`app/admin/marca/actions.ts`](../app/admin/marca/actions.ts) <br><sub>60 líneas</sub> | — | `MarcaState`, `guardarMarca`, `marcaActual` |
+| [`app/admin/marca/page.tsx`](../app/admin/marca/page.tsx) <br><sub>25 líneas</sub> | — | `dynamic` |
 | [`app/admin/pacientes/[id]/page.tsx`](../app/admin/pacientes/[id]/page.tsx) <br><sub>337 líneas</sub> | — | `dynamic` |
 | [`app/admin/pacientes/actions.ts`](../app/admin/pacientes/actions.ts) <br><sub>69 líneas</sub> | — | `crearPaciente`, `agregarNota`, `borrarNota`, `editarPaciente`, `guardarFicha` |
 | [`app/admin/pacientes/page.tsx`](../app/admin/pacientes/page.tsx) <br><sub>66 líneas</sub> | — | `dynamic` |
-| [`app/admin/page.tsx`](../app/admin/page.tsx) <br><sub>615 líneas</sub> | — | `dynamic` |
+| [`app/admin/page.tsx`](../app/admin/page.tsx) <br><sub>667 líneas</sub> | — | `dynamic` |
 | [`app/admin/profesionales/actions.ts`](../app/admin/profesionales/actions.ts) <br><sub>59 líneas</sub> | — | `guardarProfesionales` |
 | [`app/admin/profesionales/page.tsx`](../app/admin/profesionales/page.tsx) <br><sub>26 líneas</sub> | — | `dynamic` |
 | [`app/admin/servicios/actions.ts`](../app/admin/servicios/actions.ts) <br><sub>46 líneas</sub> | — | `guardarServicios` |
@@ -66,8 +69,8 @@
 | Archivo | Qué hace | Exporta |
 |---|---|---|
 | [`app/api/admin/route.ts`](../app/api/admin/route.ts) <br><sub>117 líneas</sub> | — | `POST`, `DELETE` |
-| [`app/api/asistente/execute/route.ts`](../app/api/asistente/execute/route.ts) <br><sub>37 líneas</sub> | — | `dynamic`, `POST` |
-| [`app/api/asistente/route.ts`](../app/api/asistente/route.ts) <br><sub>101 líneas</sub> | — | `dynamic`, `POST` |
+| [`app/api/asistente/execute/route.ts`](../app/api/asistente/execute/route.ts) <br><sub>44 líneas</sub> | — | `dynamic`, `POST` |
+| [`app/api/asistente/route.ts`](../app/api/asistente/route.ts) <br><sub>106 líneas</sub> | — | `dynamic`, `POST` |
 | [`app/api/asistente/transcribir/route.ts`](../app/api/asistente/transcribir/route.ts) <br><sub>39 líneas</sub> | — | `dynamic`, `POST` |
 | [`app/api/reservar-config/route.ts`](../app/api/reservar-config/route.ts) <br><sub>24 líneas</sub> | — | `dynamic`, `GET` |
 | [`app/api/slots/route.ts`](../app/api/slots/route.ts) <br><sub>52 líneas</sub> | — | `dynamic`, `GET` |
@@ -78,8 +81,8 @@
 
 | Archivo | Qué hace | Exporta |
 |---|---|---|
-| [`app/layout.tsx`](../app/layout.tsx) <br><sub>114 líneas</sub> | — | `metadata` |
-| [`app/page.tsx`](../app/page.tsx) <br><sub>866 líneas</sub> | — | `dynamic` |
+| [`app/layout.tsx`](../app/layout.tsx) <br><sub>118 líneas</sub> | — | `generateMetadata` |
+| [`app/page.tsx`](../app/page.tsx) <br><sub>880 líneas</sub> | — | `dynamic` |
 | [`app/reservar/page.tsx`](../app/reservar/page.tsx) <br><sub>176 líneas</sub> | — | `metadata` |
 | [`app/robots.ts`](../app/robots.ts) <br><sub>9 líneas</sub> | — | — |
 | [`app/sitemap.ts`](../app/sitemap.ts) <br><sub>13 líneas</sub> | — | — |
@@ -90,7 +93,7 @@
 |---|---|---|
 | [`components/AdminPageHeader.tsx`](../components/AdminPageHeader.tsx) <br><sub>39 líneas</sub> | — | `AdminPageHeader` |
 | [`components/AdminShell.tsx`](../components/AdminShell.tsx) <br><sub>15 líneas</sub> | — | `AdminShell` |
-| [`components/AdminSidebar.tsx`](../components/AdminSidebar.tsx) <br><sub>259 líneas</sub> | — | `AdminSidebar` |
+| [`components/AdminSidebar.tsx`](../components/AdminSidebar.tsx) <br><sub>268 líneas</sub> | — | `AdminSidebar` |
 | [`components/AgendaCalendario.tsx`](../components/AgendaCalendario.tsx) <br><sub>477 líneas</sub> | — | `CalTurno`, `AgendaCalendario` |
 | [`components/AgendarManualForm.tsx`](../components/AgendarManualForm.tsx) <br><sub>154 líneas</sub> | — | `AgendarManualForm` |
 | [`components/Arrow.tsx`](../components/Arrow.tsx) <br><sub>72 líneas</sub> | Flechas de marca — trazo grueso y redondeado para que se vean firmes | `Arrow`, `ArrowUpRight`, `ArrowLeft` |
@@ -101,6 +104,7 @@
 | [`components/DeleteConfirm.tsx`](../components/DeleteConfirm.tsx) <br><sub>95 líneas</sub> | — | `DeleteConfirm` |
 | [`components/DisponibilidadEditor.tsx`](../components/DisponibilidadEditor.tsx) <br><sub>437 líneas</sub> | — | `DisponibilidadEditor` |
 | [`components/Divider.tsx`](../components/Divider.tsx) <br><sub>73 líneas</sub> | — | `Divider`, `Leaf`, `Sprig` |
+| [`components/EditorMarca.tsx`](../components/EditorMarca.tsx) <br><sub>178 líneas</sub> | — | `EditorMarca` |
 | [`components/FechaNotaAuto.tsx`](../components/FechaNotaAuto.tsx) <br><sub>49 líneas</sub> | — | `FechaNotaAuto` |
 | [`components/InvitarMiembro.tsx`](../components/InvitarMiembro.tsx) <br><sub>84 líneas</sub> | — | `InvitarMiembro` |
 | [`components/MobileCTA.tsx`](../components/MobileCTA.tsx) <br><sub>59 líneas</sub> | — | `MobileCTA` |

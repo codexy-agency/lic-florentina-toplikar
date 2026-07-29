@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { listServices } from "@/lib/store";
+import { listServices, getMarca } from "@/lib/store";
+import { MARCA_DEFECTO, nombreMostrable, partirNombre } from "@/lib/marca";
 import { Nav } from "@/components/Nav";
 import { Reveal, WHATSAPP_URL } from "@/components/Reveal";
 import { WhatsAppCTA } from "@/components/WhatsAppCTA";
@@ -79,9 +80,28 @@ export default async function Home() {
   } catch {
     serviciosLanding = [];
   }
+
+  // Identidad de ESTE consultorio (la configura cada psicóloga en "Mi sitio").
+  let marca = MARCA_DEFECTO;
+  try {
+    marca = await getMarca();
+  } catch {
+    /* sin store: se usan los textos por defecto */
+  }
+  const [nombrePila, nombreResto] = partirNombre(nombreMostrable(marca));
+
+  // Titular del hero: cada palabra emerge de su máscara. La penúltima va en
+  // itálica y con el acento, que es el gesto tipográfico de la marca.
+  const frase = marca.heroTitulo || "Un espacio para cuidar tu salud mental.";
+  const tokens = frase.split(/\s+/).filter(Boolean);
+  const iAcento = tokens.length >= 3 ? Math.max(0, Math.floor(tokens.length / 2) - 1) : -1;
+  const palabrasHero = tokens.map((w, i) => ({
+    w,
+    cls: i === iAcento ? "italic text-[#EBC4D2]" : "",
+  }));
   return (
     <div className="grain relative overflow-x-hidden">
-      <Nav />
+      <Nav nombrePila={nombrePila} nombreResto={nombreResto} />
 
       <main>
       {/* HERO — full-bleed inmersivo: imagen pastel + velo + texto abajo-izquierda */}
@@ -112,21 +132,14 @@ export default async function Home() {
             <div className="hero-rise" style={{ "--d": "0.05s" } as React.CSSProperties}>
               <span className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.22em] text-cream/90">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#E7B9CA]" />
-                Lic. Paulina Pilotti · Psicóloga clínica
+                {nombreMostrable(marca)}
+                {marca.titulo ? ` · ${marca.titulo}` : ""}
               </span>
             </div>
 
             {/* Titular: cada palabra emerge de su máscara */}
             <h1 className="mt-5 text-balance font-serif text-[clamp(2.8rem,7vw,5.4rem)] font-light leading-[1.02] tracking-[-0.02em] text-cream md:mt-6 md:leading-[1]">
-              {[
-                { w: "Un" },
-                { w: "espacio" },
-                { w: "para" },
-                { w: "cuidar", cls: "italic text-[#EBC4D2]" },
-                { w: "tu" },
-                { w: "salud" },
-                { w: "mental.", cls: "" },
-              ].map((x, i, arr) => (
+              {palabrasHero.map((x, i, arr) => (
                 <span key={i}>
                   <span className="hero-mask">
                     <span
@@ -143,9 +156,10 @@ export default async function Home() {
 
             <div className="hero-rise" style={{ "--d": "0.55s" } as React.CSSProperties}>
               <p className="mt-6 max-w-lg text-[16px] leading-relaxed text-cream/85 md:text-[18px]">
-                Terapia con respaldo científico para la ansiedad, el estrés y los
-                momentos de cambio. Con calidez y sin juicios. Consultorio en Viedma
-                y sesiones online a todo el país.
+                {marca.heroSubtitulo ||
+                  `Terapia con respaldo científico para la ansiedad, el estrés y los momentos de cambio. Con calidez y sin juicios.${
+                    marca.ciudad ? ` Consultorio en ${marca.ciudad} y sesiones online.` : " Sesiones online."
+                  }`}
               </p>
             </div>
 
@@ -215,7 +229,7 @@ export default async function Home() {
                   <div aria-hidden className="absolute inset-0 bg-[#D9A7B8] opacity-25 mix-blend-soft-light" />
                   <div className="absolute inset-0 bg-gradient-to-t from-espresso/40 via-transparent to-transparent" />
                   <span className="absolute bottom-5 left-5 rounded-full bg-cream/85 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-sage-deep backdrop-blur">
-                    MP 7321
+                    {marca.matricula || ""}
                   </span>
                 </div>
               </div>
@@ -773,7 +787,7 @@ export default async function Home() {
             <div className="sm:col-span-2 md:col-span-5">
               <Reveal>
                 <a href="#inicio" className="font-serif text-3xl font-light tracking-tight text-espresso">
-                  Paulina<span className="italic text-sage-deep"> Pilotti</span>
+                  {nombrePila}<span className="italic text-sage-deep"> {nombreResto}</span>
                 </a>
                 <p className="mt-4 max-w-sm leading-relaxed text-espresso-soft">
                   Un espacio de terapia humana y con evidencia, para que te
@@ -828,12 +842,12 @@ export default async function Home() {
                   </li>
                   <li>
                     <a
-                      href="https://www.instagram.com/psicoterapia.pauli/"
+                      href={`https://www.instagram.com/${marca.instagram}/`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="group inline-flex items-center gap-1.5 whitespace-nowrap text-espresso transition-colors duration-300 hover:text-sage-deep focus-visible:outline-none"
                     >
-                      <span>@psicoterapia.pauli</span>
+                      <span>@{marca.instagram}</span>
                       <ArrowUpRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                     </a>
                   </li>
@@ -844,7 +858,7 @@ export default async function Home() {
 
           {/* Bottom bar */}
           <div className="mt-14 flex flex-col gap-4 border-t border-[var(--color-line)] pt-7 text-sm text-espresso-soft sm:flex-row sm:items-center sm:justify-between md:mt-20">
-            <p>© 2026 Lic. Paulina Pilotti · MP 7321</p>
+            <p>© {new Date().getFullYear()} {nombreMostrable(marca)}{marca.matricula ? ` · ${marca.matricula}` : ""}</p>
             <a
               href="#inicio"
               className="group inline-flex items-center gap-2 text-espresso-soft transition-colors duration-300 hover:text-espresso"
