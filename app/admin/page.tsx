@@ -168,6 +168,12 @@ export default async function AdminPage({
     .filter((x) => x.estado === "confirmado" && (!x.startsAt || x.startsAt.slice(0, 10) >= hoyAR))
     .sort((a, b) => ((a.startsAt || "") < (b.startsAt || "") ? -1 : 1));
 
+  // Una solicitud pendiente deja de reservar su horario a las 48 h (mismo plazo
+  // que usa el motor de slots). Después de eso el slot se volvió a ofrecer.
+  const VENCE_MS = 48 * 60 * 60 * 1000;
+  const venció = (s: { creadoEn: string }) =>
+    Date.now() - new Date(s.creadoEn).getTime() > VENCE_MS;
+
   // Sesiones ya pasadas sin cerrar: hay que marcarlas realizadas (o no asistió)
   // para que la deuda y las finanzas queden bien.
   const sinCerrar = solicitudes
@@ -345,14 +351,26 @@ export default async function AdminPage({
                   </p>
                 )}
 
-                {/* Slot elegido por el paciente */}
+                {/* Slot elegido por el paciente. A las 48 h sin confirmar el
+                    horario se libera solo: hay que avisarlo, porque el paciente
+                    cree que tiene turno y el slot ya se volvió a ofrecer. */}
                 {x.startsAt ? (
-                  <p className="admin-chip-accent mt-3 inline-flex items-center gap-2 rounded-xl px-3 py-2 text-[14px] font-medium">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
-                    </svg>
-                    Eligió: {fechaHoraAR(x.startsAt)} hs
-                  </p>
+                  <>
+                    <p className={`mt-3 inline-flex items-center gap-2 rounded-xl px-3 py-2 text-[14px] font-medium ${
+                      venció(x) ? "bg-[var(--a-danger-soft)] text-[var(--a-danger)]" : "admin-chip-accent"
+                    }`}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
+                      </svg>
+                      Eligió: {fechaHoraAR(x.startsAt)} hs
+                    </p>
+                    {venció(x) && (
+                      <p className="admin-danger mt-1.5 text-[13px] font-medium">
+                        Pasaron más de 48 h sin confirmar: el horario volvió a ofrecerse.
+                        Confirmá solo si sigue libre, y avisale al paciente.
+                      </p>
+                    )}
+                  </>
                 ) : (
                   x.preferencia && (
                     <p className="admin-muted mt-3 text-[14px]">
@@ -519,6 +537,14 @@ export default async function AdminPage({
                         </p>
                       </div>
                       <div className="mt-4 flex flex-wrap items-center gap-3">
+                        {/* Avisarle al paciente: el sistema NO le manda nada solo,
+                            así que la confirmación se envía desde acá en un toque. */}
+                        <WhatsAppButton
+                          phone={x.contacto}
+                          nombre={x.nombre}
+                          proximo={x.startsAt ? { cuando: `${fechaHoraAR(x.startsAt)} hs`, servicio: x.serviceName } : null}
+                          align="left"
+                        />
                         <form action={reprogramarTurno} className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
                           <input type="hidden" name="id" value={x.id} />
                           <input

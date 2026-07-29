@@ -36,7 +36,7 @@
 
 | Archivo | Qué hace | Exporta |
 |---|---|---|
-| [`lib/assistant/tools.ts`](../lib/assistant/tools.ts) <br><sub>501 líneas</sub> | Herramientas del asistente del panel. Las de LECTURA se ejecutan solas; las de | `WRITE_TOOLS`, `PERMISO_POR_TOOL`, `toolsPermitidas`, `toolPermitida`, `runReadTool`, `WriteResult` |
+| [`lib/assistant/tools.ts`](../lib/assistant/tools.ts) <br><sub>615 líneas</sub> | Herramientas del asistente del panel. Las de LECTURA se ejecutan solas; las de | `WRITE_TOOLS`, `PERMISO_POR_TOOL`, `toolsPermitidas`, `toolPermitida`, `runReadTool`, `WriteResult` |
 
 ## Panel /admin (páginas y acciones)
 
@@ -58,7 +58,7 @@
 | [`app/admin/pacientes/[id]/page.tsx`](../app/admin/pacientes/[id]/page.tsx) <br><sub>337 líneas</sub> | — | `dynamic` |
 | [`app/admin/pacientes/actions.ts`](../app/admin/pacientes/actions.ts) <br><sub>69 líneas</sub> | — | `crearPaciente`, `agregarNota`, `borrarNota`, `editarPaciente`, `guardarFicha` |
 | [`app/admin/pacientes/page.tsx`](../app/admin/pacientes/page.tsx) <br><sub>66 líneas</sub> | — | `dynamic` |
-| [`app/admin/page.tsx`](../app/admin/page.tsx) <br><sub>667 líneas</sub> | — | `dynamic` |
+| [`app/admin/page.tsx`](../app/admin/page.tsx) <br><sub>693 líneas</sub> | — | `dynamic` |
 | [`app/admin/profesionales/actions.ts`](../app/admin/profesionales/actions.ts) <br><sub>59 líneas</sub> | — | `guardarProfesionales` |
 | [`app/admin/profesionales/page.tsx`](../app/admin/profesionales/page.tsx) <br><sub>26 líneas</sub> | — | `dynamic` |
 | [`app/admin/servicios/actions.ts`](../app/admin/servicios/actions.ts) <br><sub>46 líneas</sub> | — | `guardarServicios` |
