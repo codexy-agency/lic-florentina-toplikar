@@ -76,10 +76,22 @@ function vacia(): AuthDB {
   return { users: [], credentials: {}, memberships: [], sesiones: [], throttle: {}, audit: [], soporte: {} };
 }
 
+/** Campos que NUNCA deben persistir en un usuario, aunque estén en el blob.
+ *  `passwordTemporal` se guardaba en texto plano y nadie la borraba: se limpia
+ *  acá, así el próximo write la saca del almacén sin necesidad de migración. */
+function limpiarUsuario(u: AppUser): AppUser {
+  if ("passwordTemporal" in (u as object)) {
+    const copia = { ...u } as AppUser & { passwordTemporal?: string };
+    delete copia.passwordTemporal;
+    return copia;
+  }
+  return u;
+}
+
 function normalizar(raw: Partial<AuthDB> | null | undefined): AuthDB {
   const d = raw || {};
   return {
-    users: Array.isArray(d.users) ? d.users : [],
+    users: Array.isArray(d.users) ? d.users.map(limpiarUsuario) : [],
     credentials: d.credentials && typeof d.credentials === "object" ? d.credentials : {},
     memberships: Array.isArray(d.memberships) ? d.memberships : [],
     sesiones: Array.isArray(d.sesiones) ? d.sesiones : [],

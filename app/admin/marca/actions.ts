@@ -41,6 +41,9 @@ export async function guardarMarca(
       email: s("email"),
       instagram: s("instagram"),
       dominio: s("dominio"),
+      aliasPago: s("aliasPago"),
+      aliasPagoLabel: s("aliasPagoLabel"),
+      linkPago: s("linkPago"),
       paleta,
     });
 

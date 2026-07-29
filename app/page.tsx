@@ -1,9 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { listServices, getMarca } from "@/lib/store";
-import { MARCA_DEFECTO, nombreMostrable, partirNombre } from "@/lib/marca";
+import { MARCA_DEFECTO, emailUrl, instagramUrl, nombreMostrable, partirNombre, whatsappUrl } from "@/lib/marca";
 import { Nav } from "@/components/Nav";
-import { Reveal, WHATSAPP_URL } from "@/components/Reveal";
+import { Reveal } from "@/components/Reveal";
 import { WhatsAppCTA } from "@/components/WhatsAppCTA";
 import { Divider, Leaf } from "@/components/Divider";
 import { VineConnectorH, VineConnectorV } from "@/components/Botanical";
@@ -26,7 +26,7 @@ const SERVICES = [
   },
 ];
 
-const PROCESS = [
+const procesoDe = (ciudad: string) => [
   {
     n: "01",
     title: "Primer contacto",
@@ -40,14 +40,18 @@ const PROCESS = [
   {
     n: "03",
     title: "Proceso terapéutico",
-    body: "Encuentros regulares, presenciales en Viedma u online, con herramientas concretas para tu día a día.",
+    body: `Encuentros regulares, ${
+      ciudad ? `presenciales en ${ciudad} u online` : "online"
+    }, con herramientas concretas para tu día a día.`,
   },
 ];
 
-const FAQ = [
+const faqDe = (ciudad: string) => [
   {
     q: "¿Atendés de forma online?",
-    a: "Sí. Trabajo de manera presencial en Viedma y también online a todo el país. La terapia online tiene la misma efectividad y te permite hacer tu proceso desde donde estés.",
+    a: `Sí.${
+      ciudad ? ` Trabajo de manera presencial en ${ciudad} y también online.` : " Trabajo online."
+    } La terapia online tiene la misma efectividad y te permite hacer tu proceso desde donde estés.`,
   },
   {
     q: "¿Cuánto dura cada sesión?",
@@ -89,6 +93,11 @@ export default async function Home() {
     /* sin store: se usan los textos por defecto */
   }
   const [nombrePila, nombreResto] = partirNombre(nombreMostrable(marca));
+  // Contactos de ESTE consultorio. Son null si el profesional no los cargó, y
+  // en ese caso el canal simplemente no se ofrece.
+  const wa = whatsappUrl(marca);
+  const ig = instagramUrl(marca);
+  const mail = emailUrl(marca);
 
   // Titular del hero: cada palabra emerge de su máscara. La penúltima va en
   // itálica y con el acento, que es el gesto tipográfico de la marca.
@@ -97,11 +106,11 @@ export default async function Home() {
   const iAcento = tokens.length >= 3 ? Math.max(0, Math.floor(tokens.length / 2) - 1) : -1;
   const palabrasHero = tokens.map((w, i) => ({
     w,
-    cls: i === iAcento ? "italic text-[#EBC4D2]" : "",
+    cls: i === iAcento ? "italic text-sage-deep" : "",
   }));
   return (
     <div className="grain relative overflow-x-hidden">
-      <Nav nombrePila={nombrePila} nombreResto={nombreResto} />
+      <Nav nombrePila={nombrePila} nombreResto={nombreResto} whatsapp={wa} />
 
       <main>
       {/* HERO — full-bleed inmersivo: imagen pastel + velo + texto abajo-izquierda */}
@@ -165,8 +174,9 @@ export default async function Home() {
 
             <div className="hero-rise mt-8 flex flex-col items-stretch gap-3 [text-shadow:none] sm:flex-row sm:items-center sm:gap-4 md:mt-9" style={{ "--d": "0.7s" } as React.CSSProperties}>
               <BookingCTA label="Reservar turno" variant="light" />
+              {wa && (
               <a
-                href={WHATSAPP_URL}
+                href={wa}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group inline-flex items-center justify-center gap-2 rounded-full border border-cream/35 bg-cream/5 px-6 py-3 text-[15px] font-medium text-cream backdrop-blur-sm transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-cream/60 hover:bg-cream/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cream/70"
@@ -174,10 +184,11 @@ export default async function Home() {
                 Consultar por WhatsApp
                 <Arrow className="h-[18px] w-[18px] transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5" />
               </a>
+              )}
             </div>
 
             <p className="hero-rise mt-4 text-[13px] text-cream/75 [text-shadow:none]" style={{ "--d": "0.85s" } as React.CSSProperties}>
-              Sesiones de 50 min · Online o presencial en Viedma · Te respondo en menos de 24 h
+              Sesiones de 50 min · {marca.ciudad ? `Online o presencial en ${marca.ciudad}` : "Sesiones online"} · Te respondo en menos de 24 h
             </p>
           </div>
         </div>
@@ -388,7 +399,7 @@ export default async function Home() {
             </div>
 
             <div className="grid gap-8 md:grid-cols-3 md:gap-6">
-              {PROCESS.map((p, i) => (
+              {procesoDe(marca.ciudad).map((p, i) => (
                 <Reveal key={p.n} delay={i * 0.14} from="up" className="h-full">
                   <div className="group relative flex h-full flex-col">
                     {/* Nodo numerado — se asienta sobre la enredadera */}
@@ -438,7 +449,7 @@ export default async function Home() {
           </div>
           <div className="md:col-span-8">
             <div className="divide-y divide-[var(--color-line)]">
-              {FAQ.map((f, i) => (
+              {faqDe(marca.ciudad).map((f, i) => (
                 <Reveal key={f.q} delay={i * 0.09}>
                   <details className="faq group py-6">
                     <summary className="flex cursor-pointer list-none items-start justify-between gap-6 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-deep focus-visible:ring-offset-4 focus-visible:ring-offset-cream">
@@ -469,57 +480,13 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* TESTIMONIOS — prueba social antes del cierre */}
-      <section className="mx-auto max-w-7xl px-5 pb-20 md:px-10 md:pb-32">
-        <Reveal>
-          <div className="mx-auto max-w-2xl text-center">
-            <span className="text-[10px] font-medium uppercase tracking-[0.22em] text-sage-deep">
-              Testimonios
-            </span>
-            <h2 className="mt-5 text-balance font-serif text-4xl font-light leading-tight tracking-tight md:text-5xl">
-              Historias que empiezan con valentía
-            </h2>
-          </div>
-        </Reveal>
-        <div className="mt-12 grid gap-6 md:mt-16 md:grid-cols-3">
-          {[
-            {
-              quote:
-                "Llegué con la ansiedad a mil y sin poder dormir. Hoy tengo herramientas concretas y me entiendo mucho más. Fue la mejor decisión del año.",
-              autor: "M., 28 años · Viedma",
-            },
-            {
-              quote:
-                "Dudaba de hacer terapia online, pero la calidez es la misma que en el consultorio. Te escucha de verdad, sin juzgarte nunca.",
-              autor: "J., 34 años · Online",
-            },
-            {
-              quote:
-                "Me ayudó a poner en palabras cosas que venía cargando hace años. Salgo de cada sesión más liviana y con algo claro para trabajar.",
-              autor: "L., 22 años · Viedma",
-            },
-          ].map((t, i) => (
-            <Reveal key={t.autor} delay={i * 0.12} className="h-full">
-              <figure className="flex h-full flex-col rounded-[2rem] border border-[var(--color-line)] bg-white/40 p-2 shadow-card transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:border-sage/40 hover:shadow-card-hover">
-                <div className="flex h-full flex-col rounded-[calc(2rem-0.5rem)] bg-cream-deep/40 p-7 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] md:p-8">
-                  <span aria-hidden className="font-serif text-6xl font-light italic leading-none text-sage/50">
-                    &ldquo;
-                  </span>
-                  <blockquote className="mt-2 flex-1 leading-relaxed text-espresso-soft">
-                    {t.quote}
-                  </blockquote>
-                  <figcaption className="mt-6 flex items-center gap-3 border-t border-[var(--color-line)] pt-5">
-                    <Leaf className="h-4 w-4 text-sage" />
-                    <span className="text-[12px] font-medium uppercase tracking-[0.14em] text-sage-deep">
-                      {t.autor}
-                    </span>
-                  </figcaption>
-                </div>
-              </figure>
-            </Reveal>
-          ))}
-        </div>
-      </section>
+      {/* TESTIMONIOS — quitados a propósito.
+          Había tres testimonios inventados con iniciales y ciudad ("M., 28
+          años · su ciudad"). En un SaaS eso se publica firmado por CADA cliente:
+          es publicidad engañosa puesta en boca de un profesional de la salud,
+          y encima de pacientes que no existen. No se parametriza: se saca.
+          Cuando haya testimonios reales, van con consentimiento por escrito y
+          cargados por el propio profesional desde su panel. */}
 
       <Divider />
 
@@ -553,7 +520,7 @@ export default async function Home() {
                 <ul className="mt-8 space-y-4">
                   {[
                     {
-                      t: "Online a todo el país o presencial en Viedma",
+                      t: marca.ciudad ? `Online o presencial en ${marca.ciudad}` : "Sesiones online",
                       icon: <><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></>,
                     },
                     {
@@ -630,53 +597,57 @@ export default async function Home() {
         </Reveal>
 
         <div className="mx-auto mt-12 grid max-w-5xl gap-6 md:mt-16 md:grid-cols-3">
-          {/* Mercado Pago */}
-          <Reveal delay={0}>
-            <div className="flex h-full flex-col rounded-[2rem] border border-[var(--color-line)] bg-white/40 p-2 shadow-card transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:border-sage/40 hover:shadow-card-hover">
-              <div className="flex h-full flex-col rounded-[calc(2rem-0.5rem)] bg-cream-deep/40 p-7 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
-                <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-sage-deep">
-                  Tarjeta / dinero en cuenta
-                </span>
-                <h3 className="mt-3 font-serif text-2xl tracking-tight text-espresso">
-                  Mercado Pago
-                </h3>
-                <p className="mt-3 flex-1 leading-relaxed text-espresso-soft">
-                  Pagá con débito, crédito (en cuotas) o saldo de Mercado Pago de
-                  forma segura.
-                </p>
-                <a
-                  href="https://link.mercadopago.com.ar/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-espresso px-5 py-3 text-[14px] font-medium text-cream transition-all duration-300 hover:-translate-y-px hover:shadow-card-hover"
-                >
-                  Pagar con Mercado Pago
-                  <ArrowUpRight className="h-[15px] w-[15px]" />
-                </a>
-              </div>
-            </div>
-          </Reveal>
-
-          {/* Transferencia */}
-          <Reveal delay={0.1}>
-            <div className="flex h-full flex-col rounded-[2rem] border border-[var(--color-line)] bg-white/40 p-2 shadow-card transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:border-sage/40 hover:shadow-card-hover">
-              <div className="flex h-full flex-col rounded-[calc(2rem-0.5rem)] bg-cream-deep/40 p-7 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
-                <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-sage-deep">
-                  Sin comisión
-                </span>
-                <h3 className="mt-3 font-serif text-2xl tracking-tight text-espresso">
-                  Transferencia
-                </h3>
-                <p className="mt-3 flex-1 leading-relaxed text-espresso-soft">
-                  Transferí desde tu banco o billetera al alias. Enviame el
-                  comprobante y listo.
-                </p>
-                <div className="mt-6">
-                  <CopyAlias alias="paulina.pilotti.psi" />
+          {/* Link de pago propio — sólo si el profesional cargó uno. Antes había
+              un link genérico de Mercado Pago que no llevaba a ninguna cuenta. */}
+          {marca.linkPago && (
+            <Reveal delay={0}>
+              <div className="flex h-full flex-col rounded-[2rem] border border-[var(--color-line)] bg-white/40 p-2 shadow-card transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:border-sage/40 hover:shadow-card-hover">
+                <div className="flex h-full flex-col rounded-[calc(2rem-0.5rem)] bg-cream-deep/40 p-7 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
+                  <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-sage-deep">
+                    Tarjeta / dinero en cuenta
+                  </span>
+                  <h3 className="mt-3 font-serif text-2xl tracking-tight text-espresso">
+                    Pago online
+                  </h3>
+                  <p className="mt-3 flex-1 leading-relaxed text-espresso-soft">
+                    Pagá con débito, crédito o saldo en cuenta de forma segura.
+                  </p>
+                  <a
+                    href={marca.linkPago}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-espresso px-5 py-3 text-[14px] font-medium text-cream transition-all duration-300 hover:-translate-y-px hover:shadow-card-hover"
+                  >
+                    Ir al pago
+                    <ArrowUpRight className="h-[15px] w-[15px]" />
+                  </a>
                 </div>
               </div>
-            </div>
-          </Reveal>
+            </Reveal>
+          )}
+
+          {/* Transferencia — sólo si cargó su alias/CBU/CLABE. */}
+          {marca.aliasPago && (
+            <Reveal delay={0.1}>
+              <div className="flex h-full flex-col rounded-[2rem] border border-[var(--color-line)] bg-white/40 p-2 shadow-card transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:border-sage/40 hover:shadow-card-hover">
+                <div className="flex h-full flex-col rounded-[calc(2rem-0.5rem)] bg-cream-deep/40 p-7 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]">
+                  <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-sage-deep">
+                    Sin comisión
+                  </span>
+                  <h3 className="mt-3 font-serif text-2xl tracking-tight text-espresso">
+                    Transferencia
+                  </h3>
+                  <p className="mt-3 flex-1 leading-relaxed text-espresso-soft">
+                    Transferí desde tu banco o billetera al {marca.aliasPagoLabel.toLowerCase()}.
+                    Enviame el comprobante y listo.
+                  </p>
+                  <div className="mt-6">
+                    <CopyAlias alias={marca.aliasPago} label={marca.aliasPagoLabel} />
+                  </div>
+                </div>
+              </div>
+            </Reveal>
+          )}
 
           {/* Valor de referencia */}
           <Reveal delay={0.2}>
@@ -742,8 +713,9 @@ export default async function Home() {
               </p>
               <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
                 <BookingCTA label="Reservar turno" variant="light" />
+                {wa && (
                 <a
-                  href={WHATSAPP_URL}
+                  href={wa}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="group inline-flex items-center justify-center gap-2 rounded-full border border-cream/35 bg-cream/5 px-6 py-3 text-[15px] font-medium text-cream backdrop-blur-sm transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-cream/60 hover:bg-cream/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cream/70"
@@ -751,6 +723,7 @@ export default async function Home() {
                   Consultar por WhatsApp
                   <Arrow className="h-[18px] w-[18px] transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5" />
                 </a>
+                )}
               </div>
               <p className="mt-6 text-[12px] uppercase tracking-[0.18em] text-cream/70">
                 Respondo personalmente cada consulta en menos de 24 horas
@@ -794,7 +767,7 @@ export default async function Home() {
                   reencuentres con tu bienestar.
                 </p>
                 <div className="mt-7">
-                  <WhatsAppCTA label="Agendar consulta" />
+                  <WhatsAppCTA href={wa} label="Agendar consulta" />
                 </div>
               </Reveal>
             </div>
@@ -834,23 +807,37 @@ export default async function Home() {
                   Contacto
                 </p>
                 <ul className="mt-5 space-y-3.5 text-espresso-soft">
+                  {marca.ciudad && (
+                    <li className="flex items-start gap-2.5">
+                      <Leaf className="mt-1 h-3.5 w-3.5 flex-shrink-0 text-sage" /> {marca.ciudad}
+                    </li>
+                  )}
                   <li className="flex items-start gap-2.5">
-                    <Leaf className="mt-1 h-3.5 w-3.5 flex-shrink-0 text-sage" /> Viedma, Río Negro
+                    <Leaf className="mt-1 h-3.5 w-3.5 flex-shrink-0 text-sage" /> Sesiones online
                   </li>
-                  <li className="flex items-start gap-2.5">
-                    <Leaf className="mt-1 h-3.5 w-3.5 flex-shrink-0 text-sage" /> Sesiones online a todo el país
-                  </li>
-                  <li>
-                    <a
-                      href={`https://www.instagram.com/${marca.instagram}/`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group inline-flex items-center gap-1.5 whitespace-nowrap text-espresso transition-colors duration-300 hover:text-sage-deep focus-visible:outline-none"
-                    >
-                      <span>@{marca.instagram}</span>
-                      <ArrowUpRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                    </a>
-                  </li>
+                  {ig && (
+                    <li>
+                      <a
+                        href={ig}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group inline-flex items-center gap-1.5 whitespace-nowrap text-espresso transition-colors duration-300 hover:text-sage-deep focus-visible:outline-none"
+                      >
+                        <span>@{marca.instagram}</span>
+                        <ArrowUpRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                      </a>
+                    </li>
+                  )}
+                  {mail && (
+                    <li>
+                      <a
+                        href={mail}
+                        className="inline-flex items-center gap-1.5 break-all text-espresso transition-colors duration-300 hover:text-sage-deep"
+                      >
+                        {marca.email}
+                      </a>
+                    </li>
+                  )}
                 </ul>
               </Reveal>
             </div>
@@ -873,7 +860,7 @@ export default async function Home() {
       </footer>
 
       {/* Barra de WhatsApp fija (solo mobile) */}
-      <MobileCTA />
+      <MobileCTA whatsapp={wa} />
     </div>
   );
 }

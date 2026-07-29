@@ -59,6 +59,7 @@ function serviceVisual(nombre: string, i: number): { color: string; icon: ReactN
 export function TurnoForm() {
   const [services, setServices] = useState<Service[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
+  const [ciudad, setCiudad] = useState("");
   const [loadingCfg, setLoadingCfg] = useState(true);
 
   const [step, setStep] = useState(1);
@@ -86,6 +87,7 @@ export function TurnoForm() {
         const d = await r.json();
         setServices(d.services ?? []);
         setStaff(d.staff ?? []);
+        setCiudad(typeof d.ciudad === "string" ? d.ciudad : "");
       } catch {
         /* sin config */
       } finally {
@@ -465,7 +467,7 @@ export function TurnoForm() {
                 <div className="mb-5 flex flex-wrap gap-3">
                   {([
                     { v: "online", l: "Online" },
-                    { v: "presencial", l: "Presencial en Viedma" },
+                    { v: "presencial", l: ciudad ? `Presencial en ${ciudad}` : "Presencial" },
                   ] as const).map((m) => (
                     <button
                       key={m.v}

@@ -275,20 +275,18 @@ describe("modo MULTI-tenant: slug bajo el dominio de la plataforma", () => {
 });
 
 describe("TENANTS inválido: se descarta, no se inventan tenants fantasma", () => {
-  it("JSON roto se ignora entero (y avisa por consola)", () => {
+  it("JSON roto LANZA: nunca degrada a single-tenant", () => {
     process.env.TENANTS = "{ esto no es json";
     process.env.PROFESSIONAL_ID = LEGACY;
-    const { errores } = capturandoErrores(() => {
-      assert.equal(esMultiTenant(), false);
-      // OJO (comportamiento real, ver hallazgos): con TENANTS roto el sistema
-      // degrada a single-tenant y sirve PROFESSIONAL_ID, no hace fail-closed.
-      assert.equal(resolveTenantFromHost("ana.com"), LEGACY);
-    });
-    assert.ok(
-      errores.some((e) => e.includes("TENANTS")),
-      "debería avisar que TENANTS no es JSON válido",
-    );
+    // Antes devolvía un mapa vacío, que parecía fail-closed y era fail-OPEN:
+    // sin entradas el sistema se creía single-tenant y servía PROFESSIONAL_ID
+    // en TODOS los hosts, con escritura. Una coma mal puesta en la variable de
+    // entorno alcanzaba para que dos consultorios compartieran datos.
+    assert.throws(() => esMultiTenant(), /TENANTS/);
+    assert.throws(() => resolveTenantFromHost("ana.com"), /TENANTS/);
+    assert.throws(() => resolveTenantFromHost("cualquier-cosa.com"), /TENANTS/);
   });
+
 
   it("valores que no son UUID se descartan entrada por entrada", () => {
     process.env.TENANTS = JSON.stringify({
@@ -317,17 +315,27 @@ describe("TENANTS inválido: se descarta, no se inventan tenants fantasma", () =
     });
   });
 
-  it("un JSON que no es objeto (array, string, número, null) se ignora", () => {
+  it("un JSON válido que NO es objeto también lanza", () => {
     process.env.PROFESSIONAL_ID = LEGACY;
-    // El array de strings parsea como objeto, pero sus valores no son UUID: se
-    // descartan igual. Los escalares ni siquiera llegan a recorrerse.
-    for (const raw of ['["ana.com"]', '"ana.com"', "42", "null", "true"]) {
+    // Antes se ignoraban y el sistema degradaba a single-tenant, sirviendo
+    // PROFESSIONAL_ID en todos los hosts. Un escalar en TENANTS es un error de
+    // configuración: preferimos que el deploy falle a la vista antes que servir
+    // el consultorio equivocado.
+    for (const raw of ['"ana.com"', "42", "null", "true"]) {
       process.env.TENANTS = raw;
-      capturandoErrores(() => {
-        assert.equal(esMultiTenant(), false, `TENANTS=${raw} no debería activar multi`);
-        assert.equal(resolveTenantFromHost("ana.com"), LEGACY, `TENANTS=${raw} debería degradar a single`);
-      });
+      assert.throws(() => esMultiTenant(), /TENANTS/, `TENANTS=${raw} debería lanzar`);
     }
+  });
+
+  it("un array de strings sí es objeto para JS: no lanza, pero no resuelve nada", () => {
+    // Object.entries(["ana.com"]) da [["0","ana.com"]]: pasa la guarda de objeto
+    // y después se descarta por no ser UUID. Queda mapa vacío → single-tenant.
+    process.env.PROFESSIONAL_ID = LEGACY;
+    process.env.TENANTS = '["ana.com"]';
+    capturandoErrores(() => {
+      assert.equal(esMultiTenant(), false);
+      assert.equal(resolveTenantFromHost("ana.com"), LEGACY);
+    });
   });
 
   it("HALLAZGO: un array de UUIDs prende el modo multi y deja el deploy muerto", () => {

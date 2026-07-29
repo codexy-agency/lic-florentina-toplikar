@@ -1,27 +1,38 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { TurnoForm } from "@/components/TurnoForm";
-import { WHATSAPP_URL } from "@/components/Reveal";
+import { getMarca } from "@/lib/store";
+import { MARCA_DEFECTO, iniciales, nombreMostrable, partirNombre, whatsappUrl } from "@/lib/marca";
 import { Arrow, ArrowLeft } from "@/components/Arrow";
 
-export const metadata: Metadata = {
-  title: "Reservá tu turno",
-  description:
-    "Elegí servicio, profesional, día y horario y reservá tu turno con la Lic. Paulina Pilotti. Online a todo el país y presencial en Viedma.",
-  alternates: { canonical: "/reservar" },
-  openGraph: {
-    type: "website",
-    locale: "es_AR",
-    url: "/reservar",
-    title: "Reservá tu turno | Lic. Paulina Pilotti",
-    description: "Elegí servicio, profesional y horario disponible. Reservá en un minuto.",
-  },
-};
+// Los metadatos salen de la marca de ESTE consultorio. Antes eran una constante
+// con el nombre y la ciudad de otra profesional: el link que el psicólogo pega
+// en Instagram mostraba, en la tarjeta de vista previa, a otra persona.
+export async function generateMetadata(): Promise<Metadata> {
+  let m = MARCA_DEFECTO;
+  try {
+    m = await getMarca();
+  } catch {
+    /* sin store: metadatos genéricos */
+  }
+  const quien = [m.titulo, m.nombre].filter(Boolean).join(" ");
+  const donde = m.ciudad ? `Online y presencial en ${m.ciudad}.` : "Sesiones online.";
+  const descripcion = `Elegí servicio, día y horario${quien ? ` y reservá tu turno con ${quien}` : " y reservá tu turno"}. ${donde}`;
+  const titulo = m.nombre ? `Reservá tu turno | ${quien || m.nombre}` : "Reservá tu turno";
+  return {
+    title: "Reservá tu turno",
+    description: descripcion,
+    alternates: { canonical: "/reservar" },
+    openGraph: { type: "website", locale: "es_AR", url: "/reservar", title: titulo, description: descripcion },
+  };
+}
 
-const ESPERAR = [
+const esperarDe = (ciudad: string) => [
   {
     t: "Vos elegís todo",
-    d: "Servicio, modalidad —online o presencial en Viedma— y el horario que mejor te quede.",
+    d: `Servicio, modalidad —${
+      ciudad ? `online o presencial en ${ciudad}` : "online"
+    }— y el horario que mejor te quede.`,
     icon: (
       <>
         <path d="M9 11.5 11 13.5 15.5 9" />
@@ -65,7 +76,20 @@ const TRUST = [
   },
 ];
 
-export default function ReservarPage() {
+export default async function ReservarPage() {
+  let marca = MARCA_DEFECTO;
+  try {
+    marca = await getMarca();
+  } catch {
+    /* sin store: textos genéricos */
+  }
+  const [nombrePila, nombreResto] = partirNombre(nombreMostrable(marca));
+  const wa = whatsappUrl(marca);
+  // Firma: título + nombre + matrícula, salteando lo vacío. El sello de
+  // "matrícula verificada" sólo se muestra si HAY matrícula cargada.
+  const firma = [marca.titulo, marca.nombre].filter(Boolean).join(" ");
+  const credencial = [marca.titulo, marca.matricula].filter(Boolean).join(" · ");
+
   return (
     <div className="grain min-h-[100dvh] bg-[#FBF8F2]">
       {/* Header minimal */}
@@ -73,16 +97,19 @@ export default function ReservarPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4 md:px-8">
           <Link href="/" className="group inline-flex items-center gap-2 font-serif text-[17px] tracking-tight text-espresso">
             <ArrowLeft className="h-4 w-4 transition-transform duration-300 group-hover:-translate-x-0.5" />
-            Paulina<span className="italic text-sage-deep"> Pilotti</span>
+            {nombrePila}
+            {nombreResto && <span className="italic text-sage-deep"> {nombreResto}</span>}
           </Link>
-          <a
-            href={WHATSAPP_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[13px] font-medium text-sage-deep underline-offset-4 transition-colors hover:text-espresso hover:underline"
-          >
-            <span className="inline-flex items-center gap-1.5">¿Dudas? Escribime <Arrow className="h-4 w-4" /></span>
-          </a>
+          {wa && (
+            <a
+              href={wa}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[13px] font-medium text-sage-deep underline-offset-4 transition-colors hover:text-espresso hover:underline"
+            >
+              <span className="inline-flex items-center gap-1.5">¿Dudas? Escribime <Arrow className="h-4 w-4" /></span>
+            </a>
+          )}
         </div>
       </header>
 
@@ -107,7 +134,7 @@ export default function ReservarPage() {
                 </span>
                 <h1 className="mt-5 text-balance font-serif text-[clamp(2.1rem,5vw,3.1rem)] font-light leading-[1.04] tracking-tight">
                   Reservá tu turno
-                  <span className="italic text-[#EBC4D2]"> en un minuto</span>
+                  <span className="italic text-sage-deep"> en un minuto</span>
                 </h1>
                 <p className="mt-4 max-w-sm text-[15px] leading-relaxed text-cream/90">
                   Sin llamados ni idas y vueltas: elegí el horario que mejor te
@@ -118,7 +145,7 @@ export default function ReservarPage() {
                 <ul className="mt-6 flex flex-wrap gap-x-4 gap-y-2.5 lg:hidden">
                   {TRUST.map((x) => (
                     <li key={x.l} className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-cream/90">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-[#EBC4D2]">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-sage-deep">
                         {x.icon}
                       </svg>
                       {x.l}
@@ -128,9 +155,9 @@ export default function ReservarPage() {
 
                 {/* DESKTOP — beneficios desarrollados */}
                 <ul className="mt-8 hidden space-y-4 lg:block">
-                  {ESPERAR.map((x) => (
+                  {esperarDe(marca.ciudad).map((x) => (
                     <li key={x.t} className="flex gap-3.5">
-                      <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-cream/12 text-[#EBC4D2] ring-1 ring-cream/15">
+                      <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-cream/12 text-sage-deep ring-1 ring-cream/15">
                         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
                           {x.icon}
                         </svg>
@@ -144,22 +171,28 @@ export default function ReservarPage() {
                 </ul>
 
                 {/* Firma profesional (en mobile la identidad ya está en el header) */}
-                <div className="mt-7 hidden items-center gap-3 border-t border-cream/15 pt-5 lg:flex">
-                  <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-cream/12 font-serif text-[17px] tracking-tight text-cream ring-1 ring-cream/25">
-                    PP
-                  </span>
-                  <div className="min-w-0">
-                    <p className="flex items-center gap-1.5 text-[14px] font-medium leading-tight">
-                      Lic. Paulina Pilotti
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-[#EBC4D2]" aria-label="Matrícula verificada">
-                        <path d="M9 12.5 11 14.5 15.5 10" /><circle cx="12" cy="12" r="9" />
-                      </svg>
-                    </p>
-                    <p className="mt-0.5 text-[12.5px] text-cream/70">
-                      Psicóloga clínica · MP 7321
-                    </p>
+                {marca.nombre && (
+                  <div className="mt-7 hidden items-center gap-3 border-t border-cream/15 pt-5 lg:flex">
+                    <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-cream/12 text-[15px] font-semibold tracking-tight text-cream ring-1 ring-cream/25">
+                      {iniciales(nombreMostrable(marca))}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="flex items-center gap-1.5 text-[14px] font-medium leading-tight">
+                        {firma}
+                        {/* El sello sólo aparece si hay matrícula cargada: antes se
+                            mostraba siempre, junto a la matrícula de un tercero. */}
+                        {marca.matricula && (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-sage-deep" aria-label="Matrícula declarada">
+                            <path d="M9 12.5 11 14.5 15.5 10" /><circle cx="12" cy="12" r="9" />
+                          </svg>
+                        )}
+                      </p>
+                      {credencial && (
+                        <p className="mt-0.5 text-[12.5px] text-cream/70">{credencial}</p>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </div>

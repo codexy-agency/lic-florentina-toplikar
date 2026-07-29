@@ -92,19 +92,32 @@ export async function actualizarMiembro(formData: FormData) {
 }
 
 /** Genera una contraseña temporal para alguien que la perdió (la entrega el dueño
- *  por su canal). Mientras no haya email transaccional, este es el camino. */
-export async function resetearPassword(formData: FormData): Promise<void> {
-  const s = await requirePermiso("equipo");
-  if (!s.pid) return;
-  const userId = String(formData.get("userId") || "");
-  if (!userId) return;
-  const temporal = "Temp-" + Math.random().toString(36).slice(2, 10) + "-" + Math.random().toString(36).slice(2, 6);
-  await cambiarPassword(userId, temporal, s.userId ?? undefined, s.pid);
-  await mutarAuth((d) => {
-    const u = d.users.find((x) => x.id === userId);
-    if (u) (u as { passwordTemporal?: string }).passwordTemporal = temporal;
-  });
-  revalidatePath("/admin/equipo");
+ *  por su canal). Mientras no haya email transaccional, este es el camino.
+ *
+ *  La contraseña se devuelve al formulario y se muestra UNA vez. Antes se
+ *  guardaba en el usuario (`passwordTemporal`) y no la borraba nadie: quedaba en
+ *  texto plano para siempre, en la misma fila que los hashes de toda la
+ *  plataforma, y visible para cualquiera con permiso `equipo`. */
+export async function resetearPassword(
+  _prev: EquipoState | null,
+  formData: FormData
+): Promise<EquipoState> {
+  try {
+    const s = await requirePermiso("equipo");
+    if (!s.pid) return { ok: false, error: "Consultorio no resuelto." };
+    const userId = String(formData.get("userId") || "");
+    if (!userId) return { ok: false, error: "Falta el usuario." };
+    if (userId === s.userId) {
+      return { ok: false, error: "Para cambiar tu propia contraseña usá Mi cuenta." };
+    }
+    const temporal =
+      "Temp-" + Math.random().toString(36).slice(2, 10) + "-" + Math.random().toString(36).slice(2, 6);
+    await cambiarPassword(userId, temporal, s.userId ?? undefined, s.pid);
+    revalidatePath("/admin/equipo");
+    return { ok: true, mensaje: temporal };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No se pudo generar la contraseña." };
+  }
 }
 
 /** El cliente decide si el equipo de Codexy puede entrar a ayudarlo. */

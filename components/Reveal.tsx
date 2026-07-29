@@ -2,9 +2,6 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
-export const WHATSAPP_URL =
-  "https://wa.me/542920612515?utm_source=web&utm_medium=cta";
-
 type Dir = "up" | "left" | "right" | "scale" | "none";
 
 const OFFSET: Record<Dir, string> = {

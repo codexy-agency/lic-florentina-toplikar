@@ -46,8 +46,14 @@ export default async function PacienteDetalle({
   params: Promise<{ id: string }>;
 }) {
   const sesion = await requireAdmin("pacientes");
-  // La historia clínica es dato de salud: solo se LEE si la persona tiene el
-  // permiso. Sin él, ni siquiera se consulta (no llega al servidor de render).
+  // La historia clínica es dato de salud: solo se RENDERIZA si la persona tiene
+  // el permiso, y sin él no se pide con listNotas().
+  //
+  // Ojo con lo que esto NO garantiza: getPaciente() ya hizo un read() del blob
+  // del consultorio, que incluye db.notasClinicas de todos los pacientes. El
+  // dato está en memoria del servidor; lo que el permiso corta es que salga
+  // hacia el navegador. La garantía fuerte llega cuando las notas vivan en su
+  // propia tabla (ver docs/planes).
   const verNotas = sesion.puede("notas_clinicas");
   const { id } = await params;
   const paciente = await getPaciente(id);
@@ -268,23 +274,37 @@ export default async function PacienteDetalle({
                 Resumen
               </h2>
             </div>
-            {/* Ficha */}
-            <div className="admin-card rounded-2xl p-5">
-              <h3 className="admin-kicker text-[12px]">Ficha</h3>
-              <form action={guardarFicha} className="mt-3">
-                <input type="hidden" name="id" value={id} />
-                <textarea
-                  name="notas"
-                  rows={5}
-                  defaultValue={paciente.notas}
-                  placeholder="Datos fijos: obra social, motivo de consulta, contacto de emergencia…"
-                  className="admin-input w-full resize-y px-3 py-2.5 text-[14px] leading-relaxed"
-                />
-                <button className="admin-btn-ghost mt-3 rounded-full px-4 py-2 text-[13px] font-medium">
-                  Guardar ficha
-                </button>
-              </form>
-            </div>
+            {/* Ficha — datos ADMINISTRATIVOS.
+                Está detrás del permiso de historia clínica igual que las notas:
+                el campo es libre y el placeholder invitaba a escribir el motivo
+                de consulta, así que en la práctica era historia clínica en el
+                único lugar que la secretaria podía leer y sobrescribir. */}
+            {verNotas ? (
+              <div className="admin-card rounded-2xl p-5">
+                <h3 className="admin-kicker text-[12px]">Ficha</h3>
+                <p className="admin-faint mt-1 text-[12px]">Datos administrativos, no clínicos.</p>
+                <form action={guardarFicha} className="mt-3">
+                  <input type="hidden" name="id" value={id} />
+                  <textarea
+                    name="notas"
+                    rows={5}
+                    defaultValue={paciente.notas}
+                    placeholder="Obra social y número de afiliado, contacto de emergencia, preferencias de horario…"
+                    className="admin-input w-full resize-y px-3 py-2.5 text-[14px] leading-relaxed"
+                  />
+                  <button className="admin-btn-ghost mt-3 rounded-full px-4 py-2 text-[13px] font-medium">
+                    Guardar ficha
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <div className="admin-empty rounded-2xl p-5">
+                <h3 className="admin-kicker text-[12px]">Ficha</h3>
+                <p className="admin-muted mt-2 text-[13px] leading-relaxed">
+                  La ficha del paciente la ven los profesionales del consultorio.
+                </p>
+              </div>
+            )}
 
             {/* Turnos */}
             <div className="admin-card rounded-2xl p-5">

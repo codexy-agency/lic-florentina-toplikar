@@ -4,6 +4,7 @@ import { listSolicitudes, stats, getFinanzas } from "@/lib/store";
 import { horaAR, fechaHoraAR } from "@/lib/scheduling/slots";
 import { sendTelegram } from "@/lib/telegram";
 import { safeEqual } from "@/lib/auth";
+import { esMultiTenant } from "@/lib/tenant";
 
 const AR = "America/Argentina/Buenos_Aires";
 const money = (n?: number) => "$" + (n ?? 0).toLocaleString("es-AR");
@@ -90,6 +91,20 @@ async function cmdFinanzas(): Promise<string> {
 
 // ── Webhook entrante de Telegram ──
 export async function POST(req: Request) {
+  // APAGADO EN MULTI-TENANT, a propósito.
+  //
+  // TELEGRAM_ALLOWED_CHAT_IDS es una lista blanca GLOBAL, pero el webhook llega
+  // a un único host para todo el despliegue: los comandos resuelven siempre el
+  // mismo consultorio. Con dos clientes, cualquier chat de la lista recibiría
+  // nombre y teléfono de pacientes ajenos, y la facturación de otro.
+  //
+  // El bot es una función del sitio de UNA psicóloga (modo single-tenant) y ahí
+  // sigue funcionando. Para que ande en SaaS hace falta vincular chat -> tenant,
+  // que es un rediseño, no un parche. Mientras tanto: cerrado.
+  if (esMultiTenant()) {
+    return NextResponse.json({ ok: false }, { status: 404 });
+  }
+
   // Verificación del secreto (Telegram lo envía en este header si registramos el
   // webhook con secret_token). Sin esto, cualquiera podría postear updates falsos.
   const secret = process.env.TELEGRAM_WEBHOOK_SECRET;

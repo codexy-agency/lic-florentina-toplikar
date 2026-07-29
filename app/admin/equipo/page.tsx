@@ -5,7 +5,8 @@ import { listarEquipo } from "@/lib/accounts";
 import { PERMISOS, PERMISO_LABEL, ROL_LABEL, ROLES, tienePermiso, type Rol } from "@/lib/permisos";
 import { InvitarMiembro } from "@/components/InvitarMiembro";
 import { IconoCheck, IconoChevron, IconoX } from "@/components/iconos";
-import { quitarAcceso, actualizarMiembro, resetearPassword, ultimosAccesos, alternarSoporte, estadoSoporte } from "./actions";
+import { quitarAcceso, actualizarMiembro, ultimosAccesos, alternarSoporte, estadoSoporte } from "./actions";
+import { ResetPassword } from "@/components/ResetPassword";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +64,6 @@ export default async function EquipoPage() {
 
           {activos.map(({ user, membership }) => {
             const esYo = user.id === sesion.userId;
-            const temporal = (user as { passwordTemporal?: string }).passwordTemporal;
             return (
               <div key={membership.id} className="admin-card rounded-2xl p-4 sm:p-5">
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
@@ -99,13 +99,6 @@ export default async function EquipoPage() {
                     );
                   })}
                 </div>
-
-                {temporal && (
-                  <p className="mt-3 rounded-xl bg-[var(--a-accent-soft)] px-3 py-2 text-[13px] text-[var(--a-accent-ink)]">
-                    Contraseña temporal: <strong className="font-mono">{temporal}</strong> — pasásela por un canal
-                    seguro y pedile que la cambie al entrar.
-                  </p>
-                )}
 
                 {/* Editar */}
                 <details className="group mt-3">
@@ -147,13 +140,8 @@ export default async function EquipoPage() {
                 </details>
 
                 {!esYo && (
-                  <div className="mt-3 flex flex-wrap gap-2 border-t border-[var(--a-border)] pt-3">
-                    <form action={resetearPassword}>
-                      <input type="hidden" name="userId" value={user.id} />
-                      <button className="admin-btn-ghost rounded-full px-4 py-1.5 text-[12.5px] font-medium">
-                        Generar contraseña temporal
-                      </button>
-                    </form>
+                  <div className="mt-3 flex flex-wrap items-start gap-2 border-t border-[var(--a-border)] pt-3">
+                    <ResetPassword userId={user.id} nombre={user.nombre} />
                     <form action={quitarAcceso}>
                       <input type="hidden" name="userId" value={user.id} />
                       <button className="admin-faint rounded-full px-4 py-1.5 text-[12.5px] font-medium transition-colors hover:text-[var(--a-danger)]">

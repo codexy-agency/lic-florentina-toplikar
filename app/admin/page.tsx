@@ -110,7 +110,10 @@ export default async function AdminPage({
 }: {
   searchParams: Promise<{ vista?: string }>;
 }) {
-  await requireAdmin("agenda");
+  const sesion = await requireAdmin("agenda");
+  // El motivo que el paciente escribe al reservar es dato de salud: lo ve quien
+  // puede ver la historia clínica, no cualquiera que administre la agenda.
+  const verMotivo = sesion.puede("notas_clinicas");
   const vista = (await searchParams).vista === "calendario" ? "calendario" : "lista";
   const [solicitudes, pacientes, services, staff, sched, s] = await Promise.all([
     listSolicitudes(),
@@ -380,7 +383,7 @@ export default async function AdminPage({
                   )
                 )}
 
-                {x.motivo && (
+                {x.motivo && verMotivo && (
                   <p className="admin-muted mt-2 text-[14px]">
                     <span className="text-[var(--a-accent-ink)]">Motivo:</span> {x.motivo}
                   </p>

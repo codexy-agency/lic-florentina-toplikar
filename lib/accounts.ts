@@ -10,7 +10,7 @@ import {
 } from "./accounts-store";
 import { hashPassword, verifyPassword, necesitaRehash, DUMMY_HASH, validarPassword } from "./passwords";
 import { permisosPorRol, normalizarPermisos, esRolValido, type Permiso, type Rol, tienePermiso } from "./permisos";
-import { esEmailDeSoporte, puedeSoporte, ROL_SOPORTE } from "./soporte";
+import { esEmailDeSoporte, puedeSoporte, ROL_SOPORTE, TTL_SOPORTE_SEG } from "./soporte";
 
 // Anti-fuerza-bruta POR CUENTA (además del rate-limit por IP del endpoint).
 const MAX_INTENTOS = 8;
@@ -21,6 +21,9 @@ export interface LoginOk {
   user: AppUser;
   membership: Membership;
   sessionId: string;
+  /** true si entró por el camino de soporte de Codexy (sin membresía).
+   *  El llamador lo usa para darle a la cookie el TTL corto. */
+  soporte?: boolean;
 }
 export interface LoginError {
   ok: false;
@@ -122,6 +125,7 @@ export async function login(
         creadoEn: new Date().toISOString(),
       },
       sessionId,
+      soporte: true,
     };
   }
 
@@ -176,7 +180,11 @@ export async function sesionActiva(sessionId: string, userId: string, profession
   if (db.memberships.some((m) => m.userId === userId && m.professionalId === professionalId && m.activo)) return true;
   // Sesión de soporte: sin membresía, pero con email habilitado y permiso del cliente.
   const u = db.users.find((x) => x.id === userId && x.activo);
-  return !!u && esEmailDeSoporte(u.email) && (await soporteHabilitado(professionalId));
+  if (!u || !esEmailDeSoporte(u.email)) return false;
+  // El TTL corto se valida ACÁ, no en la cookie: el maxAge del navegador es una
+  // sugerencia, y si alguien copió el token seguiría siendo válido sin esto.
+  if (Date.parse(s.creadoEn) + TTL_SOPORTE_SEG * 1000 < Date.now()) return false;
+  return soporteHabilitado(professionalId);
 }
 
 export async function revocarSesion(sessionId: string): Promise<void> {

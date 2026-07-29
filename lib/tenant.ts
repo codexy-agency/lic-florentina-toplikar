@@ -35,12 +35,25 @@ function tenantMap(): Record<string, string> {
   try {
     parsed = JSON.parse(raw);
   } catch {
-    // JSON inválido: se trata como mapa vacío. En modo multi-tenant esto hace
-    // fail-closed (404) en vez de servir el tenant por defecto.
-    console.error("[tenant] TENANTS no es JSON válido; se ignora.");
-    return out;
+    // LANZAR, no devolver vacío.
+    //
+    // Devolver un mapa vacío parecía fail-closed y era exactamente lo contrario:
+    // sin entradas, esMultiTenant() da false, y resolveTenantFromHost() cae al
+    // comportamiento single-tenant y devuelve PROFESSIONAL_ID para CUALQUIER
+    // host, con escritura incluida. Es decir: una coma mal puesta en la variable
+    // de entorno hacía que todos los dominios sirvieran (y escribieran) el
+    // mismo consultorio.
+    //
+    // Con TENANTS seteada, un JSON que no parsea es un error de configuración,
+    // no un modo de operación. Preferimos que el despliegue falle a la vista.
+    throw new Error(
+      "TENANTS no es JSON válido. Con la variable seteada no se puede continuar: " +
+        "un mapa vacío degradaría a single-tenant y serviría el mismo consultorio en todos los hosts."
+    );
   }
-  if (!parsed || typeof parsed !== "object") return out;
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error("TENANTS tiene que ser un objeto JSON { host: professional_id }.");
+  }
   for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
     const key = String(k).trim().toLowerCase().replace(/\.$/, "");
     const val = String(v ?? "").trim();

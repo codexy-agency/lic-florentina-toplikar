@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getBookingConfig } from "@/lib/store";
+import { getBookingConfig, getMarca } from "@/lib/store";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
 
 export const dynamic = "force-dynamic";
@@ -15,9 +15,19 @@ export async function GET(req: Request) {
       );
     }
     const { services, staff } = await getBookingConfig();
-    return NextResponse.json({ ok: true, services, staff });
+    // La ciudad va en la respuesta porque el selector de modalidad la nombra
+    // ("Presencial en …"). Estaba escrita a mano en el componente, así que el
+    // reservador de cada consultorio ofrecía la ciudad de otra profesional.
+    // Sólo se expone la ciudad: nada más de la marca hace falta acá.
+    let ciudad = "";
+    try {
+      ciudad = (await getMarca()).ciudad;
+    } catch {
+      ciudad = "";
+    }
+    return NextResponse.json({ ok: true, services, staff, ciudad });
   } catch (e) {
     console.error("[api/reservar-config]", e);
-    return NextResponse.json({ ok: false, services: [], staff: [] }, { status: 500 });
+    return NextResponse.json({ ok: false, services: [], staff: [], ciudad: "" }, { status: 500 });
   }
 }

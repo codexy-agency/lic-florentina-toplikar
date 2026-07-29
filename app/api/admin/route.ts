@@ -4,6 +4,7 @@ import { tenantDelRequest } from "@/lib/session";
 import { esMultiTenant } from "@/lib/tenant";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
 import { login, tieneCuentas, revocarSesion } from "@/lib/accounts";
+import { TTL_SOPORTE_SEG } from "@/lib/soporte";
 import { cookies } from "next/headers";
 
 // POST /api/admin  → login (body: { email, password })
@@ -48,6 +49,7 @@ export async function POST(req: Request) {
     }
 
     let claims: { pid?: string; uid?: string; sid?: string };
+    let maxAge = 60 * 60 * 12; // 12 h para una sesión normal
 
     // ¿Este consultorio ya tiene cuentas individuales?
     const conCuentas = pid ? await tieneCuentas(pid) : false;
@@ -64,6 +66,9 @@ export async function POST(req: Request) {
         );
       }
       claims = { pid: pid!, uid: r.user.id, sid: r.sessionId };
+      // Una sesión de soporte de Codexy dura 1 h, no 12: es acceso a la cuenta
+      // de otra persona y no tiene por qué quedar abierta todo el día.
+      if (r.soporte) maxAge = TTL_SOPORTE_SEG;
     } else {
       // VENTANA DE TRANSICIÓN: mientras el consultorio no tenga ninguna cuenta,
       // se acepta la contraseña del consultorio (ADMIN_PASSWORDS/ADMIN_PASSWORD)
@@ -80,7 +85,7 @@ export async function POST(req: Request) {
       secure: process.env.NODE_ENV === "production", // HTTPS en Vercel; http en local
       sameSite: "lax",
       path: "/",
-      maxAge: 60 * 60 * 12, // 12 h
+      maxAge,
     });
     return res;
   } catch (e) {

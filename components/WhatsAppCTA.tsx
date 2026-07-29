@@ -1,17 +1,22 @@
 "use client";
 
-import { WHATSAPP_URL } from "./Reveal";
 import { ArrowUpRight } from "./Arrow";
 
 export function WhatsAppCTA({
+  href,
   label = "Agendar consulta",
   variant = "dark",
   className = "",
 }: {
+  /** Link de WhatsApp del consultorio. Si es null, el botón no se muestra:
+   *  vale más no ofrecer el canal que mandar la consulta al teléfono de otro. */
+  href: string | null;
   label?: string;
   variant?: "dark" | "light";
   className?: string;
 }) {
+  if (!href) return null;
+
   const base =
     variant === "dark"
       ? "bg-espresso text-cream"
@@ -20,7 +25,7 @@ export function WhatsAppCTA({
 
   return (
     <a
-      href={WHATSAPP_URL}
+      href={href}
       target="_blank"
       rel="noopener noreferrer"
       className={`group relative inline-flex items-center justify-center gap-3 overflow-hidden rounded-full pl-6 pr-2 py-2 text-[15px] font-medium tracking-tight transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-px hover:shadow-[0_16px_40px_-14px_rgba(124,138,111,0.55)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-deep focus-visible:ring-offset-2 focus-visible:ring-offset-cream ${base} ${className}`}

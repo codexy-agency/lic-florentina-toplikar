@@ -67,7 +67,7 @@ export interface Service {
 export interface Staff {
   id: string;
   nombre: string;
-  titulo?: string; // ej. "Psicóloga · MP 7321"
+  titulo?: string; // ej. "Psicóloga · MP 0000"
   bio?: string;
   serviceIds: string[]; // qué servicios ofrece
   color?: string; // acento del avatar, ej "#C9A227"

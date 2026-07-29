@@ -40,6 +40,13 @@ export interface Marca {
   instagram: string;
   /** Dominio propio (para SEO y links absolutos). Ej: "anagomez.com" */
   dominio: string;
+  /** Cómo le pagan los PACIENTES a este profesional. Se muestra en el sitio.
+   *  Alias/CBU en Argentina, CLABE en México, lo que sea en formato libre. */
+  aliasPago: string;
+  /** Etiqueta del dato de arriba: "Alias", "CBU", "CLABE"… */
+  aliasPagoLabel: string;
+  /** Link de pago propio (Mercado Pago, Stripe, PayPal). Opcional. */
+  linkPago: string;
   paleta: PaletaMarca;
 }
 
@@ -95,6 +102,9 @@ export const MARCA_DEFECTO: Marca = {
   email: "",
   instagram: "",
   dominio: "",
+  aliasPago: "",
+  aliasPagoLabel: "Alias",
+  linkPago: "",
   paleta: PALETA_DEFECTO,
 };
 
@@ -106,6 +116,19 @@ function color(v: unknown, porDefecto: string): string {
 }
 
 const txt = (v: unknown, max = 300) => String(v ?? "").trim().slice(0, max);
+
+/** Sólo acepta http(s). El valor lo escribe el cliente y termina en un href del
+ *  sitio público: sin este filtro un `javascript:` sería XSS almacenado. */
+function soloHttps(v: unknown): string {
+  const s = txt(v, 300);
+  if (!s) return "";
+  try {
+    const u = new URL(s);
+    return u.protocol === "https:" || u.protocol === "http:" ? u.toString() : "";
+  } catch {
+    return "";
+  }
+}
 
 /** Normaliza lo que venga de la base o de un formulario. Nunca lanza. */
 export function normalizarMarca(raw: unknown): Marca {
@@ -123,6 +146,9 @@ export function normalizarMarca(raw: unknown): Marca {
     email: txt(m.email, 120),
     instagram: txt(m.instagram, 80).replace(/^@/, ""),
     dominio: txt(m.dominio, 120).replace(/^https?:\/\//, "").replace(/\/$/, ""),
+    aliasPago: txt(m.aliasPago, 80),
+    aliasPagoLabel: txt(m.aliasPagoLabel, 20) || MARCA_DEFECTO.aliasPagoLabel,
+    linkPago: soloHttps(m.linkPago),
     paleta: {
       acento: color(p.acento, PALETA_DEFECTO.acento),
       acentoOscuro: color(p.acentoOscuro, PALETA_DEFECTO.acentoOscuro),
@@ -151,6 +177,32 @@ export function partirNombre(nombre: string): [string, string] {
   const partes = (nombre || "").trim().split(/\s+/);
   if (partes.length < 2) return [partes[0] || "", ""];
   return [partes[0], partes.slice(1).join(" ")];
+}
+
+/** Link de WhatsApp del consultorio, o null si el profesional no lo cargó.
+ *
+ *  Devuelve null a propósito, en vez de caer a un número por defecto: antes
+ *  había un wa.me fijo en el código y CADA consulta de CADA cliente iba al
+ *  teléfono de otra persona. La regla del sitio público es: campo vacío =
+ *  sección oculta, nunca un valor heredado. */
+export function whatsappUrl(m: Marca, utm = true): string | null {
+  const digitos = (m.whatsapp || "").replace(/[^0-9]/g, "");
+  if (digitos.length < 8) return null; // ni un número de teléfono plausible
+  return `https://wa.me/${digitos}${utm ? "?utm_source=web&utm_medium=cta" : ""}`;
+}
+
+/** mailto del consultorio, o null. Mismo criterio que whatsappUrl. */
+export function emailUrl(m: Marca): string | null {
+  const e = (m.email || "").trim();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) ? `mailto:${e}` : null;
+}
+
+/** Perfil de Instagram, o null. */
+export function instagramUrl(m: Marca): string | null {
+  const u = (m.instagram || "").trim().replace(/^@/, "");
+  if (!u) return null;
+  if (/^https?:\/\//i.test(u)) return soloHttps(u) || null;
+  return `https://www.instagram.com/${u}/`;
 }
 
 /** Monograma para el avatar del topbar: dos letras como mucho. */

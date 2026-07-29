@@ -60,7 +60,10 @@ export async function editarPaciente(formData: FormData) {
 }
 
 export async function guardarFicha(formData: FormData) {
-  await auth();
+  // La ficha va con el permiso de historia clínica, no con el de pacientes: es
+  // un campo libre donde de hecho se escribe información clínica. Si sólo
+  // pidiéramos "pacientes", el rol asistente podría leerla y sobrescribirla.
+  await requirePermiso("notas_clinicas");
   const id = String(formData.get("id") || "");
   const notas = String(formData.get("notas") || "").trim().slice(0, 2000);
   if (id) await updatePacienteFicha(id, notas);

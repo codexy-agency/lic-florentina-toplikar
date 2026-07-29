@@ -43,7 +43,7 @@ export function EditorMarca({ inicial }: { inicial: Marca }) {
             </label>
             <label className="block">
               <span className={label}>Ciudad</span>
-              <input name="ciudad" defaultValue={inicial.ciudad} maxLength={60} placeholder="Viedma" className={field} />
+              <input name="ciudad" defaultValue={inicial.ciudad} maxLength={60} placeholder="Tu ciudad" className={field} />
             </label>
           </div>
         </section>
@@ -74,7 +74,10 @@ export function EditorMarca({ inicial }: { inicial: Marca }) {
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <label className="block">
               <span className={label}>WhatsApp</span>
-              <input name="whatsapp" type="tel" defaultValue={inicial.whatsapp} maxLength={40} placeholder="+54 9 2920 …" className={field} />
+              <input name="whatsapp" type="tel" defaultValue={inicial.whatsapp} maxLength={40} placeholder="+54 9 11 5555 5555" className={field} />
+              <span className="admin-faint mt-1 block text-[12px]">
+                Con código de país. Si lo dejás vacío, tu sitio no muestra el botón de WhatsApp.
+              </span>
             </label>
             <label className="block">
               <span className={label}>Email</span>
@@ -87,6 +90,50 @@ export function EditorMarca({ inicial }: { inicial: Marca }) {
             <label className="block">
               <span className={label}>Dominio propio <span className="admin-faint normal-case">(opcional)</span></span>
               <input name="dominio" defaultValue={inicial.dominio} maxLength={120} placeholder="anagomez.com" className={field} />
+            </label>
+          </div>
+        </section>
+
+        {/* Cómo te pagan los pacientes */}
+        <section className="admin-card rounded-2xl p-5">
+          <h3 className="admin-kicker text-[13px]">Cómo te pagan</h3>
+          <p className="admin-muted mt-1 text-[13px]">
+            Se muestra en tu sitio, en la sección de medios de pago. Lo que dejes vacío no aparece.
+          </p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <label className="block">
+              <span className={label}>Tipo de dato</span>
+              <select name="aliasPagoLabel" defaultValue={inicial.aliasPagoLabel} className={field}>
+                <option value="Alias">Alias (Argentina)</option>
+                <option value="CBU">CBU (Argentina)</option>
+                <option value="CVU">CVU (Argentina)</option>
+                <option value="CLABE">CLABE (México)</option>
+                <option value="Cuenta">Cuenta</option>
+              </select>
+            </label>
+            <label className="block sm:col-span-2">
+              <span className={label}>Tu {inicial.aliasPagoLabel.toLowerCase()}</span>
+              <input
+                name="aliasPago"
+                defaultValue={inicial.aliasPago}
+                maxLength={80}
+                placeholder="ana.gomez.psi"
+                className={`${field} font-mono`}
+              />
+            </label>
+            <label className="block sm:col-span-3">
+              <span className={label}>Link de pago <span className="admin-faint normal-case">(opcional)</span></span>
+              <input
+                name="linkPago"
+                type="url"
+                defaultValue={inicial.linkPago}
+                maxLength={300}
+                placeholder="https://link.mercadopago.com.ar/tuusuario"
+                className={field}
+              />
+              <span className="admin-faint mt-1 block text-[12px]">
+                Tu link de Mercado Pago, Stripe o PayPal para que paguen con tarjeta.
+              </span>
             </label>
           </div>
         </section>

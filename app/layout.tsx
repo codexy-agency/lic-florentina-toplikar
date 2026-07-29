@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import { headers } from "next/headers";
 import { getMarca } from "@/lib/store";
+import { baseDePlataforma, baseDelRequest } from "@/lib/sitio";
 import { cssDeMarca, nombreMostrable, type Marca } from "@/lib/marca";
 
 const fraunces = Fraunces({
@@ -17,7 +19,16 @@ const jakarta = Plus_Jakarta_Sans({
   display: "swap",
 });
 
-const SITE_URL = "https://paulinapilotti.com";
+// La base sale del host real o del dominio propio del consultorio. Antes era una
+// constante con el dominio de una psicóloga, usada como fallback de metadataBase
+// y del JSON-LD: todos los suscriptores publicaban ese canonical.
+async function baseDelSitio(m: Marca | null): Promise<string> {
+  try {
+    return await baseDelRequest(await headers(), m);
+  } catch {
+    return baseDePlataforma();
+  }
+}
 
 /** Metadatos POR CONSULTORIO: el titulo del navegador, el SEO y las tarjetas al
  *  compartir el link salen de la marca que cada psicologo configura en el panel. */
@@ -31,7 +42,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const nombre = m && m.nombre ? m.nombre : "Consultorio de psicología";
   const titulo = m && m.titulo ? m.titulo : "Psicología clínica";
   const ciudad = m && m.ciudad ? m.ciudad : "";
-  const base = m && m.dominio ? `https://${m.dominio}` : SITE_URL;
+  const base = await baseDelSitio(m);
   const tituloCompleto = ciudad
     ? `${nombre} | ${titulo} en ${ciudad} y online`
     : `${nombre} | ${titulo}`;
@@ -60,11 +71,10 @@ export async function generateMetadata(): Promise<Metadata> {
 /** Datos estructurados (Google) DE ESTE consultorio.
  *  Estaban hardcodeados: cada suscriptor publicaba el nombre, la ciudad y el
  *  Instagram de otra profesional, que además es lo que Google indexa. */
-function jsonLdDe(m: Marca | null) {
+function jsonLdDe(m: Marca | null, url: string) {
   const nombre = m?.nombre || "Consultorio de psicología";
   const titulo = m?.titulo || "";
   const ciudad = m?.ciudad || "";
-  const url = m?.dominio ? `https://${m.dominio}` : SITE_URL;
   const ig = m?.instagram?.trim();
 
   return {
@@ -102,6 +112,7 @@ export default async function RootLayout({
     marca = null;
   }
   const css = marca ? cssDeMarca(marca) : "";
+  const base = await baseDelSitio(marca);
   return (
     <html
       lang="es"
@@ -110,7 +121,7 @@ export default async function RootLayout({
       <head>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdDe(marca)) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdDe(marca, base)) }}
         />
         {/* Paleta del consultorio: pisa los tokens por defecto. */}
         {css && <style dangerouslySetInnerHTML={{ __html: css }} />}

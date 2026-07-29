@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-export function CopyAlias({ alias }: { alias: string }) {
+export function CopyAlias({ alias, label = "Alias" }: { alias: string; label?: string }) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -19,7 +19,7 @@ export function CopyAlias({ alias }: { alias: string }) {
     <button
       onClick={copy}
       className="group inline-flex items-center gap-2.5 rounded-full border border-[var(--color-line)] bg-cream px-4 py-2.5 text-[14px] font-medium text-espresso transition-all duration-300 hover:border-sage/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage/40"
-      aria-label={`Copiar alias ${alias}`}
+      aria-label={`Copiar ${label.toLowerCase()} ${alias}`}
     >
       <span className="font-mono tracking-tight">{alias}</span>
       <span className="text-sage-deep">

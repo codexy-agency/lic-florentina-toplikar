@@ -20,7 +20,16 @@ const EASE = "ease-[cubic-bezier(0.32,0.72,0,1)]";
  * 2. Scrolleando hacia abajo: se esconde para dar espacio de lectura.
  * 3. Scrolleando hacia arriba: reaparece "espejado" (espresso sobre crema → crema sobre espresso).
  */
-export function Nav({ nombrePila = "", nombreResto = "" }: { nombrePila?: string; nombreResto?: string }) {
+export function Nav({
+  nombrePila = "",
+  nombreResto = "",
+  whatsapp = null,
+}: {
+  nombrePila?: string;
+  nombreResto?: string;
+  /** Link de WhatsApp del consultorio. null = no se ofrece el canal. */
+  whatsapp?: string | null;
+}) {
   const [open, setOpen] = useState(false);
   const [atTop, setAtTop] = useState(true);
   const [hidden, setHidden] = useState(false);
@@ -69,7 +78,7 @@ export function Nav({ nombrePila = "", nombreResto = "" }: { nombrePila?: string
             href="#inicio"
             className="font-serif text-[17px] tracking-tight text-cream transition-colors duration-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cream/70 focus-visible:ring-offset-2 focus-visible:ring-offset-espresso"
           >
-            {nombrePila}<span className="text-[#E7B9CA]"> {nombreResto}</span>
+            {nombrePila}<span className="text-sage"> {nombreResto}</span>
           </a>
 
           <div className="hidden items-center gap-7 md:flex">
@@ -142,7 +151,7 @@ export function Nav({ nombrePila = "", nombreResto = "" }: { nombrePila?: string
           <div onClick={() => setOpen(false)}>
             <BookingCTA label="Reservar turno" variant="dark" />
           </div>
-          <WhatsAppCTA label="Consulta por WhatsApp" variant="light" />
+          <WhatsAppCTA href={whatsapp} label="Consulta por WhatsApp" variant="light" />
         </div>
       </div>
     </>
