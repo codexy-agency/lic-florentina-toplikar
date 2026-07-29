@@ -1,9 +1,9 @@
 import { NextResponse, after } from "next/server";
-import { cookies } from "next/headers";
+import { sesionValida } from "@/lib/session";
 import { listSolicitudes, stats, getFinanzas } from "@/lib/store";
 import { horaAR, fechaHoraAR } from "@/lib/scheduling/slots";
 import { sendTelegram } from "@/lib/telegram";
-import { verifyToken, SESSION_COOKIE, safeEqual } from "@/lib/auth";
+import { safeEqual } from "@/lib/auth";
 
 const AR = "America/Argentina/Buenos_Aires";
 const money = (n?: number) => "$" + (n ?? 0).toLocaleString("es-AR");
@@ -143,8 +143,7 @@ export async function POST(req: Request) {
 // ── Registro del webhook (solo admin logueada) ──
 // GET /api/telegram?setup=1  → registra el webhook contra este dominio.
 export async function GET(req: Request) {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
-  if (!(await verifyToken(token))) {
+  if (!(await sesionValida())) {
     return NextResponse.json({ ok: false, error: "No autorizado" }, { status: 401 });
   }
   const url = new URL(req.url);

@@ -62,9 +62,11 @@ const FAQ = [
   },
 ];
 
-// ISR: la landing se regenera cada 10 min para reflejar precios del catálogo
-// (los turnos vienen del mismo origen que el reservador → nunca se desfasan).
-export const revalidate = 600;
+// MULTI-TENANT: la landing depende del consultorio (host), así que NO se puede
+// cachear una versión y servirla a todos — mostraría el catálogo de otro
+// profesional. Se renderiza por request (el contenido es liviano y el store ya
+// está detrás de una sola lectura).
+export const dynamic = "force-dynamic";
 
 const money = (n?: number) => (n ? "$" + n.toLocaleString("es-AR") : null);
 

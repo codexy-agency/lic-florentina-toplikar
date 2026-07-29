@@ -1,5 +1,8 @@
 "use server";
 
+import { sesionValida } from "@/lib/session";
+import { SESSION_COOKIE } from "@/lib/auth";
+
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -10,15 +13,14 @@ import {
   listServices,
   listStaff,
 } from "@/lib/store";
-import { SESSION_COOKIE, verifyToken } from "@/lib/auth";
+
 import { arLocalToIso, endFromStart } from "@/lib/scheduling/slots";
 
 // Defensa en profundidad: además del proxy que protege /admin, re-verificamos la
 // sesión dentro de cada Server Action (las CVEs de bypass de middleware hacen que
 // valga la pena no depender solo del proxy).
 async function auth() {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
-  if (!(await verifyToken(token))) throw new Error("No autorizado");
+  if (!(await sesionValida())) throw new Error("No autorizado");
 }
 
 export async function aceptarSolicitud(formData: FormData) {

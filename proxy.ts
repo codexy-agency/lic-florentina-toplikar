@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { verifyToken, SESSION_COOKIE } from "@/lib/auth";
-import { resolveTenantFromHost, TENANT_HEADER } from "@/lib/tenant";
+import { resolveTenantFromHost, TENANT_HEADER, esMultiTenant } from "@/lib/tenant";
 
 // (1) Resuelve el TENANT (professional_id) por host y lo propaga en un header de
 //     request para que el store lea/escriba los datos de ESE psicólogo.
@@ -19,11 +19,24 @@ export async function proxy(req: NextRequest) {
   if (pid) headers.set(TENANT_HEADER, pid);
   else headers.delete(TENANT_HEADER);
 
+  // FAIL-CLOSED: en modo multi-tenant, un host que no resuelve a NINGÚN
+  // consultorio no se sirve. Nunca degradamos al tenant por defecto: eso sería
+  // entregar (y dejar escribir) la historia clínica de otra persona por un simple
+  // error de configuración, un alias de Vercel o un preview deployment.
+  if (!pid && esMultiTenant()) {
+    return new NextResponse("Consultorio no encontrado.", {
+      status: 404,
+      headers: { "content-type": "text/plain; charset=utf-8" },
+    });
+  }
+
   if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
     const token = req.cookies.get(SESSION_COOKIE)?.value;
     let ok = false;
     try {
-      ok = await verifyToken(token);
+      // La sesión debe pertenecer a ESTE consultorio: un token emitido en el host
+      // de otro psicólogo no vale acá (replay cross-tenant).
+      ok = await verifyToken(token, pid ?? undefined);
     } catch {
       // Falta ADMIN_SECRET u otro error: tratamos como NO autenticado (a login),
       // en vez de romper toda la zona /admin con un 500.

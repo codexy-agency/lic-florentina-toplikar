@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { verifyToken, SESSION_COOKIE } from "@/lib/auth";
+import { sesionValida } from "@/lib/session";
+
 import { transcribe, aiConfigured } from "@/lib/openai";
 
 export const dynamic = "force-dynamic";
 
 // POST (multipart) { audio } → { ok, text } : voz → texto para el asistente.
 export async function POST(req: Request) {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
-  if (!(await verifyToken(token))) {
+  if (!(await sesionValida())) {
     return NextResponse.json({ ok: false, error: "No autorizado" }, { status: 401 });
   }
   if (!aiConfigured()) {

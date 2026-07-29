@@ -21,7 +21,7 @@ import {
 } from "./supabase";
 import { endFromStart, nowIsoAR } from "./scheduling/slots";
 import { headers } from "next/headers";
-import { TENANT_HEADER } from "./tenant";
+import { TENANT_HEADER, esMultiTenant, esTenantConocido } from "./tenant";
 
 export type { Service, Staff } from "./scheduling/types";
 
@@ -150,13 +150,28 @@ function normalize(raw: Partial<DB> & { scheduling?: Partial<Scheduling> }): DB 
  *  build/scripts), cae al tenant por defecto (env PROFESSIONAL_ID = la demo).
  *  Es la ÚNICA fuente de scoping de datos entre psicólogos. */
 async function currentTenantId(): Promise<string | undefined> {
+  let pid: string | null = null;
   try {
-    const pid = (await headers()).get(TENANT_HEADER);
-    if (pid) return pid;
+    pid = (await headers()).get(TENANT_HEADER);
   } catch {
-    /* fuera de un contexto de request: usar el tenant por defecto */
+    /* fuera de un contexto de request (build/script): se evalúa abajo */
   }
-  return PROFESSIONAL_ID;
+
+  if (pid) {
+    // El header lo pone el proxy, pero validamos igual: si por un bypass llegara
+    // un id arbitrario, NO debe convertirse en un selector de base de datos.
+    if (!esTenantConocido(pid)) {
+      throw new Error("Consultorio inválido: el acceso a los datos fue bloqueado.");
+    }
+    return pid;
+  }
+
+  // Sin tenant resuelto. En multi-tenant NO se degrada al tenant por defecto:
+  // servir datos de otra persona por un error de config es la peor falla posible.
+  if (esMultiTenant()) {
+    throw new Error("Consultorio no resuelto: el acceso a los datos fue bloqueado.");
+  }
+  return PROFESSIONAL_ID; // single-tenant: comportamiento histórico
 }
 
 // ── Persistencia en ARCHIVO (local / fallback) — un archivo por tenant ──

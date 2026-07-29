@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { verifyToken, SESSION_COOKIE } from "@/lib/auth";
+import { sesionValida } from "@/lib/session";
+
 import { WRITE_TOOLS, runWriteTool } from "@/lib/assistant/tools";
 
 export const dynamic = "force-dynamic";
 
 // POST { tool, input } → ejecuta una acción de escritura YA confirmada por la usuaria.
 export async function POST(req: Request) {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
-  if (!(await verifyToken(token))) {
+  if (!(await sesionValida())) {
     return NextResponse.json({ ok: false, error: "No autorizado" }, { status: 401 });
   }
   let tool = "";

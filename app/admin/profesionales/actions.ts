@@ -1,17 +1,17 @@
 "use server";
 
+import { sesionValida } from "@/lib/session";
+
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
 import { randomUUID } from "crypto";
 import { saveStaff } from "@/lib/store";
-import { verifyToken, SESSION_COOKIE } from "@/lib/auth";
+
 import type { Staff } from "@/lib/scheduling/types";
 
 type Entrada = Partial<Staff> & { nombre: string };
 
 export async function guardarProfesionales(list: Entrada[]) {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
-  if (!(await verifyToken(token))) throw new Error("No autorizado");
+  if (!(await sesionValida())) throw new Error("No autorizado");
 
   const staff: Staff[] = (list || [])
     .filter((s) => s.nombre && s.nombre.trim())

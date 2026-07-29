@@ -1,36 +1,111 @@
-// Resolución de tenant (multi-tenant Fase 0). Módulo EDGE-SAFE: lo usa el proxy
-// (middleware). NO importar acá next/headers ni el cliente de Supabase (pesados /
-// no válidos en el edge). currentTenantId() (que sí lee el header) vive en el store.
+// Resolución de tenant (multi-tenant). Módulo EDGE-SAFE: lo usa el proxy
+// (middleware). NO importar acá next/headers ni el cliente de Supabase.
+//
+// SEGURIDAD (datos clínicos, Ley 25.326): el tenant define QUÉ historia clínica
+// se lee y se escribe. Reglas duras:
+//  - FAIL-CLOSED en modo multi-tenant: host no mapeado ⇒ NO se sirve nada (nunca
+//    se degrada al tenant por defecto, que sería servir datos de otra persona).
+//  - Sin lookup "adivinado": el slug solo se acepta bajo el dominio de la
+//    plataforma, así `ana.otrodominio.com` NO puede resolver al tenant `ana`.
+//  - El id resuelto siempre es un UUID validado y presente en el mapa.
 
 /** Header interno que el proxy setea con el professional_id del tenant resuelto.
  *  El proxy lo SOBREESCRIBE/BORRA siempre → el cliente no lo puede falsificar. */
 export const TENANT_HEADER = "x-tenant-pid";
 
-/** Mapa de tenants para la Fase 0: host o slug → professional_id (UUID).
- *  Se configura con la env var TENANTS (JSON). Ej:
- *    TENANTS={"otro.codexy.app":"uuid-otro","otro":"uuid-otro"}
- *  Vacío / ausente = solo existe el tenant por defecto (env PROFESSIONAL_ID). */
-function tenantMap(): Record<string, string> {
-  try {
-    const raw = process.env.TENANTS;
-    if (!raw) return {};
-    const m = JSON.parse(raw);
-    return m && typeof m === "object" ? (m as Record<string, string>) : {};
-  } catch {
-    return {};
-  }
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function esUuid(v: string | null | undefined): boolean {
+  return !!v && UUID_RE.test(v);
 }
 
-/** Resuelve el professional_id a partir del host. Prueba primero el host completo
- *  (dominio propio) y después el primer label (subdominio slug.codexy.app).
- *  Devuelve null si el host no matchea ningún tenant → se usa el tenant por defecto. */
+/** Dominio de la plataforma (ej. "codexy.app"): habilita `slug.codexy.app`. */
+function platformDomain(): string {
+  return (process.env.PLATFORM_DOMAIN || "").trim().toLowerCase().replace(/^\.+|\.+$/g, "");
+}
+
+/** Mapa host/slug → professional_id (UUID) desde la env TENANTS (JSON).
+ *  Claves normalizadas a minúsculas; valores validados como UUID (una entrada
+ *  mal escrita se DESCARTA en vez de convertirse en un tenant fantasma). */
+function tenantMap(): Record<string, string> {
+  const out: Record<string, string> = Object.create(null); // sin Object.prototype
+  const raw = process.env.TENANTS;
+  if (!raw || !raw.trim()) return out;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    // JSON inválido: se trata como mapa vacío. En modo multi-tenant esto hace
+    // fail-closed (404) en vez de servir el tenant por defecto.
+    console.error("[tenant] TENANTS no es JSON válido; se ignora.");
+    return out;
+  }
+  if (!parsed || typeof parsed !== "object") return out;
+  for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+    const key = String(k).trim().toLowerCase().replace(/\.$/, "");
+    const val = String(v ?? "").trim();
+    if (key && esUuid(val)) out[key] = val.toLowerCase();
+    else if (key) console.error(`[tenant] entrada inválida en TENANTS: '${key}' (el valor debe ser un UUID).`);
+  }
+  return out;
+}
+
+/** ¿Hay más de un psicólogo en este despliegue? Si TENANTS está vacío, el sistema
+ *  corre en SINGLE-TENANT (comportamiento histórico: todo va a PROFESSIONAL_ID).
+ *  Apenas se configura TENANTS, se activa el modo estricto (fail-closed). */
+export function esMultiTenant(): boolean {
+  return Object.keys(tenantMap()).length > 0;
+}
+
+/** professional_id por defecto: SOLO válido en modo single-tenant. */
+export function tenantPorDefecto(): string | undefined {
+  const pid = (process.env.PROFESSIONAL_ID || "").trim().toLowerCase();
+  return pid || undefined;
+}
+
+/** Normaliza el host: saca puerto, punto final, espacios, mayúsculas, y pasa a
+ *  punycode/IDNA (para que un host unicode no evada el mapa). "" si es inválido. */
+export function normalizarHost(host: string | null | undefined): string {
+  if (!host) return "";
+  let h = String(host).split(",")[0].trim().toLowerCase();
+  h = h.split(":")[0].replace(/\.$/, "");
+  if (!h) return "";
+  try {
+    h = new URL(`http://${h}`).hostname; // IDNA → punycode
+  } catch {
+    return "";
+  }
+  // Solo caracteres de hostname válidos tras la normalización.
+  return /^[a-z0-9.-]+$/.test(h) ? h : "";
+}
+
+/** Resuelve el professional_id del request a partir del host.
+ *  - Match EXACTO por host (dominio propio o subdominio completo).
+ *  - Match por slug SOLO si el host es exactamente `<slug>.<PLATFORM_DOMAIN>`.
+ *  - Single-tenant (sin TENANTS): siempre el tenant por defecto.
+ *  Devuelve null si no se puede resolver ⇒ el proxy corta el request. */
 export function resolveTenantFromHost(host: string | null): string | null {
-  if (!host) return null;
-  const h = host.split(":")[0].trim().toLowerCase();
-  if (!h) return null;
   const map = tenantMap();
+  const multi = Object.keys(map).length > 0;
+  if (!multi) return tenantPorDefecto() ?? null; // single-tenant: comportamiento histórico
+
+  const h = normalizarHost(host);
+  if (!h) return null;
   if (map[h]) return map[h];
-  const slug = h.split(".")[0];
-  if (slug && map[slug]) return map[slug];
+
+  const dom = platformDomain();
+  if (dom && h.endsWith(`.${dom}`)) {
+    const resto = h.slice(0, -(dom.length + 1));
+    // Un ÚNICO label extra: `ana.codexy.app` sí, `a.b.codexy.app` no.
+    if (resto && !resto.includes(".") && map[resto]) return map[resto];
+  }
   return null;
+}
+
+/** ¿Este professional_id es un tenant conocido de este despliegue? */
+export function esTenantConocido(pid: string | null | undefined): boolean {
+  if (!esUuid(pid)) return false;
+  const v = String(pid).toLowerCase();
+  if (v === tenantPorDefecto()) return true;
+  return Object.values(tenantMap()).includes(v);
 }

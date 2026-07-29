@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { checkPassword, makeToken, SESSION_COOKIE } from "@/lib/auth";
+import { tenantDelRequest } from "@/lib/session";
+import { esMultiTenant } from "@/lib/tenant";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
 
 // POST /api/admin  → login (body: { password })
@@ -33,14 +35,20 @@ export async function POST(req: Request) {
     } catch {
       password = "";
     }
-    if (!checkPassword(password)) {
+    // El login es POR CONSULTORIO: la contraseña se valida contra el tenant de
+    // este host y el token queda atado a él (no sirve en el panel de otro).
+    const pid = await tenantDelRequest();
+    if (esMultiTenant() && !pid) {
+      return NextResponse.json({ ok: false, error: "Consultorio no encontrado." }, { status: 404 });
+    }
+    if (!checkPassword(password, pid ?? undefined)) {
       return NextResponse.json(
         { ok: false, error: "Contraseña incorrecta." },
         { status: 401 }
       );
     }
     const res = NextResponse.json({ ok: true });
-    res.cookies.set(SESSION_COOKIE, await makeToken(), {
+    res.cookies.set(SESSION_COOKIE, await makeToken(pid ?? undefined), {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", // HTTPS en Vercel; http en local
       sameSite: "lax",

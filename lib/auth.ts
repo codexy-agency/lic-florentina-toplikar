@@ -64,40 +64,77 @@ async function sign(value: string): Promise<string> {
     .join("");
 }
 
-export function checkPassword(input: string) {
-  if (!PASSWORD || PASSWORD.length < 6) {
-    throw new Error("ADMIN_PASSWORD sin configurar (mínimo 6 caracteres).");
+/** Contraseña del TENANT. En multi-tenant cada psicólogo tiene la suya:
+ *    ADMIN_PASSWORDS={"<professional_id>":"<passphrase>"}
+ *  Si no hay entrada para ese tenant, se rechaza (NO cae a la global: una clave
+ *  compartida sería una llave maestra de todas las historias clínicas). */
+function passwordDeTenant(pid?: string): string | undefined {
+  const raw = process.env.ADMIN_PASSWORDS;
+  if (raw && raw.trim() && pid) {
+    try {
+      const map = JSON.parse(raw) as Record<string, unknown>;
+      const v = map && typeof map === "object" ? map[pid] ?? map[pid.toLowerCase()] : undefined;
+      const pass = typeof v === "string" ? v.trim() : "";
+      return pass || undefined;
+    } catch {
+      console.error("[auth] ADMIN_PASSWORDS no es JSON válido.");
+      return undefined;
+    }
   }
-  if (IS_PROD && WEAK_VALUES.has(PASSWORD.toLowerCase())) {
-    throw new Error(
-      "ADMIN_PASSWORD inseguro en producción (valor de demo conocido). " +
-        "Cambialo por una passphrase fuerte y única en Vercel."
-    );
-  }
-  return safeEqual(input, PASSWORD);
+  return PASSWORD; // single-tenant / despliegue histórico
 }
 
-// Token de sesión con vencimiento (TTL). payload = "ok.<version>.<emitido>".
-const TTL_MS = 1000 * 60 * 60 * 12; // 12 horas
+/** Valida la contraseña CONTRA EL TENANT del request. */
+export function checkPassword(input: string, pid?: string) {
+  const pass = passwordDeTenant(pid);
+  if (!pass || pass.length < 6) {
+    throw new Error(
+      "No hay contraseña configurada para este consultorio (ADMIN_PASSWORD / ADMIN_PASSWORDS)."
+    );
+  }
+  if (IS_PROD && WEAK_VALUES.has(pass.toLowerCase())) {
+    throw new Error(
+      "Contraseña insegura en producción (valor de demo conocido). " +
+        "Cambiala por una passphrase fuerte y única en Vercel."
+    );
+  }
+  return safeEqual(input, pass);
+}
 
-export async function makeToken(): Promise<string> {
-  const payload = `ok.${SESSION_VERSION}.${Date.now()}`;
+// Token de sesión con vencimiento (TTL). payload = "ok.<version>.<tenant>.<emitido>".
+// El TENANT va DENTRO de lo firmado: una cookie emitida para el consultorio A no
+// puede reusarse en el panel de B (replay cross-tenant).
+const TTL_MS = 1000 * 60 * 60 * 12; // 12 horas
+const SIN_TENANT = "-";
+
+export async function makeToken(pid?: string): Promise<string> {
+  const payload = `ok.${SESSION_VERSION}.${pid || SIN_TENANT}.${Date.now()}`;
   return `${payload}.${await sign(payload)}`;
 }
 
-export async function verifyToken(token: string | undefined): Promise<boolean> {
+/** Verifica firma, versión, vencimiento y —si se pasa `expectedPid`— que la
+ *  sesión pertenezca a ESE tenant. Tokens con formato viejo (sin tenant) se
+ *  rechazan: obligan a re-loguear, que es el lado seguro. */
+export async function verifyToken(
+  token: string | undefined,
+  expectedPid?: string
+): Promise<boolean> {
   if (!token) return false;
   const i = token.lastIndexOf(".");
   if (i < 0) return false;
   const payload = token.slice(0, i);
   const sig = token.slice(i + 1);
   if (!safeEqual(sig, await sign(payload))) return false;
-  // Formato esperado: ok.<version>.<timestamp>
+  // Formato esperado: ok.<version>.<tenant>.<timestamp>
   const parts = payload.split(".");
-  if (parts[0] !== "ok") return false;
+  if (parts.length !== 4 || parts[0] !== "ok") return false;
   // Versión rotada en Vercel ⇒ token viejo inválido (revocación global).
   if (parts[1] !== SESSION_VERSION) return false;
-  const ts = Number(parts[2]);
+  const tokenPid = parts[2];
+  if (expectedPid !== undefined) {
+    if (!safeEqual(tokenPid, expectedPid || SIN_TENANT)) return false;
+  }
+  const ts = Number(parts[3]);
   if (!Number.isFinite(ts) || Date.now() - ts > TTL_MS) return false;
   return true;
 }

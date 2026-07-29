@@ -1,9 +1,10 @@
 "use server";
 
+import { sesionValida } from "@/lib/session";
+
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
 import { saveDisponibilidad, getScheduling, setExceptions } from "@/lib/store";
-import { verifyToken, SESSION_COOKIE } from "@/lib/auth";
+
 import { randomUUID } from "crypto";
 import type {
   AvailabilityRule,
@@ -20,8 +21,7 @@ interface Payload {
 
 export async function guardarDisponibilidad(payload: Payload) {
   // Defensa en profundidad (además del middleware)
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
-  if (!(await verifyToken(token))) throw new Error("No autorizado");
+  if (!(await sesionValida())) throw new Error("No autorizado");
 
   const slotDurationMin = clampInt(payload.config.slotDurationMin, 10, 240, 50);
   const config: SchedulingConfig = {
@@ -63,8 +63,7 @@ export async function guardarDisponibilidad(payload: Payload) {
  * Resuelve la confusión de "lo bloqueé pero sigue apareciendo el horario".
  */
 export async function setBloqueos(dates: string[]) {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
-  if (!(await verifyToken(token))) throw new Error("No autorizado");
+  if (!(await sesionValida())) throw new Error("No autorizado");
 
   const limpias = [
     ...new Set((dates || []).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d))),

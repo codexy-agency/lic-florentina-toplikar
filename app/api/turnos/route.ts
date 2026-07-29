@@ -10,6 +10,7 @@ import {
 } from "@/lib/store";
 import { getAvailableSlots, endFromStart } from "@/lib/scheduling/slots";
 import { notificarTurno } from "@/lib/telegram";
+import { tenantDelRequest } from "@/lib/session";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
 import type { Modalidad } from "@/lib/scheduling/types";
 
@@ -185,9 +186,12 @@ export async function POST(req: Request) {
 
     // after(): mantiene viva la ejecución para que la notificación a Telegram
     // salga DESPUÉS de responder, en vez de cortarse al congelar la lambda.
+    // El tenant se resuelve ACÁ (dentro del request): el aviso tiene que ir al
+    // chat de ESTE consultorio, nunca al de otro.
+    const pidNotif = (await tenantDelRequest()) ?? undefined;
     after(async () => {
       try {
-        await notificarTurno(solicitud);
+        await notificarTurno(solicitud, pidNotif);
       } catch {
         /* notificación best-effort */
       }

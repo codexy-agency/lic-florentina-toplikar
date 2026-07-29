@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { sesionValida } from "@/lib/session";
 import { getFinanzas } from "@/lib/store";
-import { verifyToken, SESSION_COOKIE } from "@/lib/auth";
+
 import { isoToArLocal } from "@/lib/scheduling/slots";
 
 export const dynamic = "force-dynamic";
@@ -27,8 +27,7 @@ function cell(v: string | number): string {
 /** Exporta los movimientos del período a CSV (para pasarle a la contadora).
  *  Una fila por movimiento: turnos + ingresos/egresos cargados a mano. */
 export async function GET(req: Request) {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
-  if (!(await verifyToken(token))) {
+  if (!(await sesionValida())) {
     return new NextResponse("No autorizado", { status: 401 });
   }
 

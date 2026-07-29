@@ -3,6 +3,7 @@
 // Si faltan, no rompe nada (modo demo).
 import type { Solicitud } from "./store";
 import { fechaHoraAR } from "./scheduling/slots";
+import { esMultiTenant } from "./tenant";
 
 const API = "https://api.telegram.org";
 
@@ -52,11 +53,33 @@ export async function sendTelegram(
   }
 }
 
-/** Avisa a la profesional cada turno nuevo. */
-export async function notificarTurno(s: Solicitud): Promise<void> {
-  const chatId = process.env.TELEGRAM_CHAT_ID;
+/** Chat de Telegram de ESTE consultorio. En multi-tenant hay que mapear cada
+ *  profesional a SU chat: TELEGRAM_CHAT_IDS={"<professional_id>":"<chat_id>"}.
+ *  Si el tenant no tiene chat propio, NO se notifica (fail-closed): mandar los
+ *  datos del paciente al chat de otra persona sería una cesión indebida. */
+function chatDeTenant(pid?: string): string | undefined {
+  const raw = process.env.TELEGRAM_CHAT_IDS;
+  if (raw && raw.trim()) {
+    if (!pid) return undefined;
+    try {
+      const map = JSON.parse(raw) as Record<string, unknown>;
+      const v = map?.[pid] ?? map?.[pid.toLowerCase()];
+      const chat = v == null ? "" : String(v).trim();
+      return chat || undefined;
+    } catch {
+      console.error("[telegram] TELEGRAM_CHAT_IDS no es JSON válido.");
+      return undefined;
+    }
+  }
+  // Sin mapa por tenant: solo válido en single-tenant (un solo consultorio).
+  return esMultiTenant() ? undefined : process.env.TELEGRAM_CHAT_ID;
+}
+
+/** Avisa a la profesional cada turno nuevo (al chat de SU consultorio). */
+export async function notificarTurno(s: Solicitud, pid?: string): Promise<void> {
+  const chatId = chatDeTenant(pid);
   if (!process.env.TELEGRAM_BOT_TOKEN || !chatId) {
-    console.log("[telegram] sin credenciales — turno no notificado (modo demo)");
+    console.log("[telegram] sin chat configurado para este consultorio — turno no notificado");
     return;
   }
   const horario = s.startsAt ? fechaHoraAR(s.startsAt) : s.preferencia || "a coordinar";

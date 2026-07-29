@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { verifyToken, SESSION_COOKIE } from "@/lib/auth";
+import { sesionValida } from "@/lib/session";
 import { aiChat, aiConfigured, type OAIMessage } from "@/lib/openai";
 import { TOOLS, WRITE_TOOLS, runReadTool, describeWriteTool, buildSystemPrompt } from "@/lib/assistant/tools";
 
 export const dynamic = "force-dynamic";
 
 async function isAdmin(): Promise<boolean> {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
-  return verifyToken(token);
+  return sesionValida();
 }
 
 function parseArgs(raw: string): Record<string, unknown> {
