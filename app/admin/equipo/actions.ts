@@ -1,8 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requirePermiso } from "@/lib/session";
-import { crearMiembro, revocarAcceso, cambiarPassword, setSoporteHabilitado, soporteHabilitado } from "@/lib/accounts";
+import { hayCupo, requirePermiso } from "@/lib/session";
+import { crearMiembro, revocarAcceso, cambiarPassword, setSoporteHabilitado, soporteHabilitado, listarEquipo } from "@/lib/accounts";
 import { esRolValido, PERMISOS, type Permisos, type Rol } from "@/lib/permisos";
 import { leerAuth, mutarAuth, logAudit } from "@/lib/accounts-store";
 
@@ -26,6 +26,9 @@ export async function invitarMiembro(
     const rol = String(formData.get("rol") || "asistente");
     if (!esRolValido(rol)) return { ok: false, error: "Rol inválido." };
     await exigirOwnerParaOwner(rol, s.rol);
+
+    const cupo = await hayCupo(s.pid, "miembros", (await listarEquipo(s.pid)).filter((m) => m.membership.activo).length);
+    if (!cupo.ok) return { ok: false, error: cupo.motivo };
 
     const res = await crearMiembro({
       email: String(formData.get("email") || ""),

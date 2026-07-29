@@ -1,6 +1,6 @@
 "use server";
 
-import { requirePermiso } from "@/lib/session";
+import { requireEscritura } from "@/lib/session";
 
 import { revalidatePath } from "next/cache";
 import { setPago, addMovimientoManual, removeMovimientoManual } from "@/lib/store";
@@ -8,7 +8,7 @@ import { setPago, addMovimientoManual, removeMovimientoManual } from "@/lib/stor
 import { arLocalToIso } from "@/lib/scheduling/slots";
 
 async function auth() {
-  return requirePermiso("finanzas");
+  return requireEscritura("finanzas");
 }
 
 export async function agregarMovimiento(formData: FormData) {

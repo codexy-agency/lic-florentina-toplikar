@@ -2,7 +2,8 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { readToken, SESSION_COOKIE } from "./auth";
 import { TENANT_HEADER, esMultiTenant, esTenantConocido } from "./tenant";
-import { sesionActiva, permisosDe } from "./accounts";
+import { sesionActiva, permisosDe, suscripcionDe } from "./accounts";
+import { dentroDelLimite, puedeEscribir, type Limites, type Suscripcion } from "./planes";
 import { tienePermiso, type Permiso, type Rol } from "./permisos";
 
 /** Sesión resuelta: quién es y qué puede hacer en ESTE consultorio. */
@@ -111,6 +112,61 @@ export async function requirePermiso(p: Permiso): Promise<Sesion> {
   const s = await requireSesion();
   if (!s.puede(p)) throw new Error("No tenés permiso para hacer esto.");
   return s;
+}
+
+/** Exige permiso Y que la suscripción permita escribir.
+ *
+ *  Va aparte de `requirePermiso` a propósito: el permiso es "quién sos", la
+ *  suscripción es "cómo está la cuenta". Mezclarlos haría que un problema de
+ *  facturación se reporte como falta de permisos.
+ *
+ *  Se usa sólo en las acciones que CREAN o MODIFICAN. Leer, buscar y exportar
+ *  quedan siempre abiertos: son historias clínicas de pacientes en tratamiento,
+ *  y no se le corta a un profesional el acceso a sus propios registros por una
+ *  factura. La regla está también en docs/planes. */
+export async function requireEscritura(p: Permiso): Promise<Sesion> {
+  const s = await requirePermiso(p);
+  if (!s.pid) return s;
+  const sus = await suscripcionDe(s.pid);
+  if (!puedeEscribir(sus)) {
+    throw new Error(
+      "Tu cuenta está en modo solo lectura. Podés consultar y exportar todo; " +
+        "para volver a cargar datos, escribinos y lo resolvemos."
+    );
+  }
+  return s;
+}
+
+/** ¿Le queda cupo a este consultorio para agregar uno más de `recurso`?
+ *
+ *  Se pregunta desde la acción que crea, no desde el store: el límite es de la
+ *  plataforma (qué plan pagás) y el store guarda dominio (qué cargaste). Meter
+ *  planes dentro del store mezclaría las dos cosas.
+ *
+ *  Devuelve el motivo redactado para el usuario cuando no hay cupo. */
+export async function hayCupo(
+  pid: string,
+  recurso: keyof Limites,
+  usoActual: number
+): Promise<{ ok: true } | { ok: false; motivo: string }> {
+  const sus = await suscripcionDe(pid);
+  const r = dentroDelLimite(sus, recurso, usoActual);
+  if (r.ok) return { ok: true };
+  return {
+    ok: false,
+    motivo: `${r.motivo} Ya tenés ${usoActual}. Escribinos y lo ampliamos en el momento.`,
+  };
+}
+
+/** Estado de suscripción del consultorio actual, para mostrarlo en el panel. */
+export async function suscripcionActual(): Promise<Suscripcion | null> {
+  const pid = await tenantDelRequest();
+  if (!pid) return null;
+  try {
+    return await suscripcionDe(pid);
+  } catch {
+    return null;
+  }
 }
 
 /** Versión booleana para route handlers (que responden 401/403 en vez de lanzar). */

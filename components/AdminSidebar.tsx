@@ -122,7 +122,7 @@ function Fondo() {
   );
 }
 
-export function AdminSidebar({ marca }: { marca: MarcaSidebar }) {
+export function AdminSidebar({ marca, deCodexy }: { marca: MarcaSidebar; deCodexy?: boolean }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   // El topbar mobile se oculta al bajar y reaparece al subir (más lugar para el contenido).
@@ -178,6 +178,40 @@ export function AdminSidebar({ marca }: { marca: MarcaSidebar }) {
 
   const footer = (
     <div className="space-y-1 border-t border-white/10 pt-4">
+      <Link
+        href="/admin/plan"
+        className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[14px] font-medium transition-colors ${
+          isActive(path, "/admin/plan")
+            ? "bg-white/[0.14] text-cream"
+            : "text-cream/70 hover:bg-white/[0.08] hover:text-cream"
+        }`}
+      >
+        <span className={isActive(path, "/admin/plan") ? "text-[var(--a-accent-on-dark)]" : "text-cream/55"}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" />
+          </svg>
+        </span>
+        Mi plan
+      </Link>
+      {/* Sólo para el equipo de Codexy. El servidor decide: acá no se puede
+          forzar mostrándolo desde el cliente, la página tiene su propia puerta. */}
+      {deCodexy && (
+        <Link
+          href="/admin/codexy"
+          className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[14px] font-medium transition-colors ${
+            isActive(path, "/admin/codexy")
+              ? "bg-white/[0.14] text-cream"
+              : "text-cream/70 hover:bg-white/[0.08] hover:text-cream"
+          }`}
+        >
+          <span className={isActive(path, "/admin/codexy") ? "text-[var(--a-accent-on-dark)]" : "text-cream/55"}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 3v18h18" /><rect x="7" y="12" width="3" height="6" /><rect x="13" y="8" width="3" height="10" />
+            </svg>
+          </span>
+          Codexy
+        </Link>
+      )}
       <a
         href="/reservar"
         target="_blank"

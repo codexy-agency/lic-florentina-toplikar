@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sesionValida, puede } from "@/lib/session";
 import { aiChat, aiConfigured, type OAIMessage } from "@/lib/openai";
+import { topeAsistente } from "@/lib/assistant/tope";
 import { WRITE_TOOLS, runReadTool, describeWriteTool, buildSystemPrompt, toolsPermitidas, toolPermitida } from "@/lib/assistant/tools";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +22,22 @@ export async function POST(req: Request) {
   if (!sesion || !sesion.puede("asistente_ia")) {
     return NextResponse.json({ type: "error", error: "No autorizado" }, { status: 401 });
   }
+
+  // TOPE DE USO. El asistente es el único costo variable del producto: cada
+  // mensaje puede disparar hasta 6 llamadas a OpenAI, con una única API key
+  // global. Sin esto, un consultorio (o un bucle en el cliente) puede gastar sin
+  // techo y sin que el gasto sea atribuible a nadie.
+  //
+  // El bucket lleva el pid Y el usuario: el cupo es del consultorio, pero una
+  // sola persona no puede consumirlo todo.
+  const cupo = await topeAsistente(sesion);
+  if (!cupo.ok) {
+    return NextResponse.json(
+      { type: "error", error: cupo.motivo },
+      { status: 429, headers: cupo.retryAfter ? { "Retry-After": String(cupo.retryAfter) } : undefined }
+    );
+  }
+
   if (!aiConfigured()) {
     return NextResponse.json({
       type: "error",

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requirePermiso } from "@/lib/session";
+import { requireEscritura, requirePermiso } from "@/lib/session";
 import { saveMarca, getMarca } from "@/lib/store";
 import { PALETAS, PALETA_DEFECTO } from "@/lib/marca";
 
@@ -12,7 +12,7 @@ export async function guardarMarca(
   formData: FormData
 ): Promise<MarcaState> {
   try {
-    await requirePermiso("configuracion");
+    await requireEscritura("configuracion");
     const s = (k: string) => String(formData.get(k) || "");
 
     // Si eligió una paleta predefinida, usamos esa; si no, los colores sueltos.
@@ -57,6 +57,7 @@ export async function guardarMarca(
 }
 
 export async function marcaActual() {
+  // Lectura: no pasa por el gate de suscripción. Consultar siempre se puede.
   await requirePermiso("configuracion");
   return getMarca();
 }

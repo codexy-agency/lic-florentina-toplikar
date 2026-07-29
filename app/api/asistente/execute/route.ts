@@ -3,6 +3,8 @@ import { puede } from "@/lib/session";
 
 import { WRITE_TOOLS, runWriteTool, toolPermitida } from "@/lib/assistant/tools";
 import { sesionValida } from "@/lib/session";
+import { suscripcionDe } from "@/lib/accounts";
+import { puedeEscribir } from "@/lib/planes";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +34,15 @@ export async function POST(req: Request) {
   const sesion = await sesionValida();
   if (!sesion || !toolPermitida(tool, sesion.puede)) {
     return NextResponse.json({ ok: false, result: "No tenés permiso para hacer eso." }, { status: 403 });
+  }
+  // El asistente escribe en el store salteándose las server actions, así que el
+  // gate de suscripción hay que aplicarlo también acá: si no, el modo solo
+  // lectura se puede evitar pidiéndole al asistente que lo haga.
+  if (sesion.pid && !puedeEscribir(await suscripcionDe(sesion.pid))) {
+    return NextResponse.json(
+      { ok: false, result: "Tu cuenta está en modo solo lectura: podés consultar, no cargar datos." },
+      { status: 402 }
+    );
   }
   try {
     const res = await runWriteTool(tool, input);

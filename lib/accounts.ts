@@ -11,6 +11,7 @@ import {
 import { hashPassword, verifyPassword, necesitaRehash, DUMMY_HASH, validarPassword } from "./passwords";
 import { permisosPorRol, normalizarPermisos, esRolValido, type Permiso, type Rol, tienePermiso } from "./permisos";
 import { esEmailDeSoporte, puedeSoporte, ROL_SOPORTE, TTL_SOPORTE_SEG } from "./soporte";
+import { normalizarSuscripcion, suscripcionPorDefecto, type Suscripcion } from "./planes";
 
 // Anti-fuerza-bruta POR CUENTA (además del rate-limit por IP del endpoint).
 const MAX_INTENTOS = 8;
@@ -59,6 +60,68 @@ export async function setSoporteHabilitado(
     professionalId,
     accion: habilitado ? "soporte_habilitado" : "soporte_deshabilitado",
   });
+}
+
+// ─────────────────────────── Suscripción ───────────────────────────
+// Lo que Codexy le cobra al psicólogo. Se lee mucho (una vez por request) y se
+// escribe poco (cuando entra un pago), así que vive en el mismo blob de
+// identidad, con el patrón del toggle de soporte.
+
+/** Suscripción de un consultorio. Si no tiene registro, arranca en prueba: un
+ *  consultorio sin dato administrativo casi siempre es uno recién creado, y no
+ *  se deja a nadie afuera de su agenda por eso. */
+export async function suscripcionDe(professionalId: string): Promise<Suscripcion> {
+  const db = await leerAuth();
+  const s = db.suscripciones?.[professionalId];
+  return s ? normalizarSuscripcion(s) : suscripcionPorDefecto();
+}
+
+/** Escribe la suscripción. La usa el panel de Codexy (y, más adelante, el
+ *  webhook de la pasarela: mismos campos, sin tocar nada más). */
+export async function setSuscripcion(
+  professionalId: string,
+  cambios: Partial<Omit<Suscripcion, "actualizadoEn">>,
+  porUserId?: string
+): Promise<Suscripcion> {
+  const actualizada = await mutarAuth((d) => {
+    const previa = d.suscripciones[professionalId]
+      ? normalizarSuscripcion(d.suscripciones[professionalId])
+      : suscripcionPorDefecto();
+    const nueva = normalizarSuscripcion({
+      ...previa,
+      ...cambios,
+      actualizadoEn: new Date().toISOString(),
+    });
+    d.suscripciones[professionalId] = nueva;
+    return nueva;
+  });
+  await logAudit({
+    userId: porUserId,
+    professionalId,
+    accion: "suscripcion_cambiada",
+    meta: { plan: actualizada.plan, estado: actualizada.estado, moneda: actualizada.moneda },
+  });
+  return actualizada;
+}
+
+/** Todos los consultorios con suscripción, para el panel de Codexy. */
+export async function listarSuscripciones(): Promise<
+  { professionalId: string; suscripcion: Suscripcion; miembros: number }[]
+> {
+  const db = await leerAuth();
+  const pids = new Set<string>([
+    ...Object.keys(db.suscripciones || {}),
+    ...db.memberships.filter((m) => m.activo).map((m) => m.professionalId),
+  ]);
+  return [...pids]
+    .map((pid) => ({
+      professionalId: pid,
+      suscripcion: db.suscripciones?.[pid]
+        ? normalizarSuscripcion(db.suscripciones[pid])
+        : suscripcionPorDefecto(),
+      miembros: db.memberships.filter((m) => m.professionalId === pid && m.activo).length,
+    }))
+    .sort((a, b) => a.professionalId.localeCompare(b.professionalId));
 }
 
 /** Login por email + contraseña, siempre dentro de UN consultorio. */

@@ -1,6 +1,6 @@
 "use server";
 
-import { requirePermiso } from "@/lib/session";
+import { requireEscritura } from "@/lib/session";
 
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
@@ -11,7 +11,7 @@ import type { Service } from "@/lib/scheduling/types";
 type Entrada = Partial<Service> & { nombre: string };
 
 export async function guardarServicios(list: Entrada[]) {
-  await requirePermiso("servicios");
+  await requireEscritura("servicios");
 
   const services: Service[] = (list || [])
     .filter((s) => s.nombre && s.nombre.trim())

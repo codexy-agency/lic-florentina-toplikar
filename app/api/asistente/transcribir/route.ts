@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { puede } from "@/lib/session";
+import { sesionValida } from "@/lib/session";
+import { topeAsistente } from "@/lib/assistant/tope";
 
 import { transcribe, aiConfigured } from "@/lib/openai";
 
@@ -7,8 +8,19 @@ export const dynamic = "force-dynamic";
 
 // POST (multipart) { audio } → { ok, text } : voz → texto para el asistente.
 export async function POST(req: Request) {
-  if (!(await puede("asistente_ia"))) {
+  const sesion = await sesionValida();
+  if (!sesion || !sesion.puede("asistente_ia")) {
     return NextResponse.json({ ok: false, error: "No autorizado" }, { status: 401 });
+  }
+  // Mismo tope que el chat: transcribir cuesta plata y no tenía ninguno.
+  // Se usa `puede()` no, `sesionValida()` sí, porque el tope necesita el pid y
+  // el usuario, y `puede()` los descarta.
+  const cupo = await topeAsistente(sesion);
+  if (!cupo.ok) {
+    return NextResponse.json(
+      { ok: false, error: cupo.motivo },
+      { status: 429, headers: cupo.retryAfter ? { "Retry-After": String(cupo.retryAfter) } : undefined }
+    );
   }
   if (!aiConfigured()) {
     return NextResponse.json({ ok: false, error: "Falta OPENAI_API_KEY." });

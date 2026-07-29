@@ -1,18 +1,29 @@
 import { AdminSidebar } from "./AdminSidebar";
-import { sesionValida } from "@/lib/session";
+import { sesionValida, suscripcionActual } from "@/lib/session";
+import { esDeCodexy } from "@/app/admin/codexy/actions";
+import { AvisoSuscripcion } from "./EstadoSuscripcion";
+import { soporteUrl } from "@/lib/codexy";
 import { getMarca } from "@/lib/store";
 import { iniciales, nombreMostrable, partirNombre } from "@/lib/marca";
 
 /** Layout del panel: sidebar fijo a la izquierda (desktop) / drawer (mobile),
  *  y el contenido aprovechando el ancho. */
 export async function AdminShell({ children }: { children: React.ReactNode }) {
-  const [sesion, marca] = await Promise.all([sesionValida(), getMarca()]);
+  const [sesion, marca, suscripcion, deCodexy] = await Promise.all([
+    sesionValida(),
+    getMarca(),
+    suscripcionActual(),
+    esDeCodexy(),
+  ]);
   const nombre = nombreMostrable(marca);
   const [pila, apellido] = partirNombre(nombre);
 
   return (
     <div className="admin-shell md:pl-[252px]">
-      <AdminSidebar marca={{ pila, apellido, iniciales: iniciales(nombre) }} />
+      <AdminSidebar
+        marca={{ pila, apellido, iniciales: iniciales(nombre) }}
+        deCodexy={deCodexy}
+      />
       {/* Sesión de soporte: el cliente TIENE que ver que alguien de Codexy está
           adentro de su consultorio. Nunca es silencioso. */}
       {sesion?.soporte && (
@@ -25,6 +36,9 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
         </div>
       )}
       <main className="mx-auto w-full max-w-6xl px-4 pb-16 pt-6 md:px-10 md:pt-12">
+        {/* Estado de la cuenta. Sólo aparece si hay algo que decir: al día y sin
+            nada por vencer, no molesta. */}
+        <AvisoSuscripcion s={suscripcion} soporte={soporteUrl("Hola, quiero hablar de mi plan en Codexy.") ?? undefined} />
         {children}
       </main>
     </div>

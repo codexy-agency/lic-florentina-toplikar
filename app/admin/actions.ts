@@ -1,6 +1,6 @@
 "use server";
 
-import { requirePermiso } from "@/lib/session";
+import { requireEscritura } from "@/lib/session";
 import { SESSION_COOKIE } from "@/lib/auth";
 
 import { revalidatePath } from "next/cache";
@@ -20,7 +20,7 @@ import { arLocalToIso, endFromStart } from "@/lib/scheduling/slots";
 // sesión dentro de cada Server Action (las CVEs de bypass de middleware hacen que
 // valga la pena no depender solo del proxy).
 async function auth() {
-  return requirePermiso("agenda");
+  return requireEscritura("agenda");
 }
 
 export async function aceptarSolicitud(formData: FormData) {

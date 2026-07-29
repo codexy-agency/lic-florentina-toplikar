@@ -1,6 +1,6 @@
 "use server";
 
-import { requirePermiso } from "@/lib/session";
+import { requireEscritura } from "@/lib/session";
 
 import { revalidatePath } from "next/cache";
 import { saveDisponibilidad, getScheduling, setExceptions } from "@/lib/store";
@@ -21,7 +21,7 @@ interface Payload {
 
 export async function guardarDisponibilidad(payload: Payload) {
   // Defensa en profundidad (además del middleware)
-  await requirePermiso("disponibilidad");
+  await requireEscritura("disponibilidad");
 
   const slotDurationMin = clampInt(payload.config.slotDurationMin, 10, 240, 50);
   const config: SchedulingConfig = {
@@ -63,7 +63,7 @@ export async function guardarDisponibilidad(payload: Payload) {
  * Resuelve la confusión de "lo bloqueé pero sigue apareciendo el horario".
  */
 export async function setBloqueos(dates: string[]) {
-  await requirePermiso("disponibilidad");
+  await requireEscritura("disponibilidad");
 
   const limpias = [
     ...new Set((dates || []).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d))),

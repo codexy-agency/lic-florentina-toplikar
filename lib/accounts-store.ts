@@ -15,6 +15,7 @@ import { randomUUID } from "crypto";
 import path from "path";
 import { getServiceClient, supabaseConfigurado } from "./supabase";
 import type { Permisos, Rol } from "./permisos";
+import type { Suscripcion } from "./planes";
 
 export interface AppUser {
   id: string;
@@ -70,10 +71,16 @@ interface AuthDB {
   audit: AuditEntry[];
   /** Acceso de soporte de Codexy por consultorio. Ausente = habilitado. */
   soporte: Record<string, boolean>;
+  /** Suscripción por consultorio: qué plan tiene y si está al día.
+   *  Va acá y no en el blob de dominio porque es dato de la PLATAFORMA, no del
+   *  consultorio: lo escribe Codexy, no el psicólogo. */
+  suscripciones: Record<string, Suscripcion>;
+  /** Consumo del asistente IA: "<pid>:<AAAA-MM>" -> mensajes. Se poda a 3 meses. */
+  usoAsistente: Record<string, number>;
 }
 
 function vacia(): AuthDB {
-  return { users: [], credentials: {}, memberships: [], sesiones: [], throttle: {}, audit: [], soporte: {} };
+  return { users: [], credentials: {}, memberships: [], sesiones: [], throttle: {}, audit: [], soporte: {}, suscripciones: {}, usoAsistente: {} };
 }
 
 /** Campos que NUNCA deben persistir en un usuario, aunque estén en el blob.
@@ -98,6 +105,8 @@ function normalizar(raw: Partial<AuthDB> | null | undefined): AuthDB {
     throttle: d.throttle && typeof d.throttle === "object" ? d.throttle : {},
     audit: Array.isArray(d.audit) ? d.audit : [],
     soporte: d.soporte && typeof d.soporte === "object" ? d.soporte : {},
+    suscripciones: d.suscripciones && typeof d.suscripciones === "object" ? d.suscripciones : {},
+    usoAsistente: d.usoAsistente && typeof d.usoAsistente === "object" ? d.usoAsistente : {},
   };
 }
 
