@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --test --experimental-strip-types \"tests/*.test.ts\"",
+    "diagnostico:pacientes": "node scripts/diagnostico-pacientes.mjs",
+    "cuenta:crear": "node scripts/crear-cuenta.mjs"
   },
   "dependencies": {
     "@splinetool/react-spline": "^4.1.0",

@@ -13,6 +13,24 @@
 | [BITACORA.md](BITACORA.md) | Registro cronológico: qué se hizo, cuándo y por qué. | Al cerrar cada bloque de trabajo |
 | [decisiones/](decisiones/) | **ADRs**: una decisión técnica por archivo, con contexto y consecuencias. Son **inmutables** (si una decisión se revierte, se escribe un ADR nuevo que la supersede). | Cada decisión estructural |
 
+## Tests
+
+```bash
+npm test
+```
+
+140 tests con el runner nativo de Node (sin dependencias). Cubren lo más delicado:
+hashing de contraseñas y permisos, **aislamiento entre consultorios**, motor de
+turnos y la regla de deuda. **Si tocás lógica de negocio o seguridad, corré esto
+antes de commitear.**
+
+Otras herramientas:
+
+```bash
+npm run diagnostico:pacientes   # detecta fichas fusionadas o turnos huérfanos
+npm run cuenta:crear -- --email x@y.com --nombre "Nombre" --rol owner --pid <uuid>
+```
+
 ## Reglas
 
 1. **Nada de secretos acá.** Ni contraseñas, ni tokens, ni claves. Solo placeholders.

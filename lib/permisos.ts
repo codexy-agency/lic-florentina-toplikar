@@ -74,9 +74,19 @@ export function permisosPorRol(rol: Rol): Record<Permiso, boolean> {
   }
 }
 
-/** ¿Esta membresía tiene el permiso? El owner siempre puede todo (no se puede
- *  auto-limitar y quedar afuera de su propio consultorio). */
+/** Roles que pueden acceder a la HISTORIA CLÍNICA. Es un invariante DURO: no se
+ *  puede otorgar con un toggle desde la UI de equipo ni con un update en la base.
+ *  Motivo: es dato de salud (Ley 25.326) y aplica need-to-know — quien hace tareas
+ *  administrativas no necesita leer la evolución clínica de un paciente. */
+const ROLES_CON_HISTORIA_CLINICA: ReadonlySet<Rol> = new Set<Rol>(["owner", "profesional"]);
+
+/** ¿Esta membresía tiene el permiso?
+ *  - El owner siempre puede todo (no se puede auto-limitar y quedar afuera).
+ *  - `notas_clinicas` está blindado por rol: ni un permiso explícito en true se lo
+ *    otorga a un rol administrativo.
+ *  - Para el resto, un permiso explícito gana sobre el default del rol. */
 export function tienePermiso(rol: Rol, permisos: Permisos | null | undefined, p: Permiso): boolean {
+  if (p === "notas_clinicas" && !ROLES_CON_HISTORIA_CLINICA.has(rol)) return false;
   if (rol === "owner") return true;
   if (permisos && typeof permisos[p] === "boolean") return permisos[p] as boolean;
   return permisosPorRol(rol)[p];
