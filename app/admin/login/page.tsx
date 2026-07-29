@@ -11,16 +11,18 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const password = new FormData(e.currentTarget).get("password");
+    const fd = new FormData(e.currentTarget);
     const res = await fetch("/api/admin", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ email: fd.get("email") || "", password: fd.get("password") }),
     });
     if (res.ok) {
       window.location.href = "/admin";
     } else {
-      setError("Contraseña incorrecta. Probá de nuevo.");
+      // Mensaje único y genérico: no revelamos si el email existe o no.
+      const data = await res.json().catch(() => ({}));
+      setError(data?.error || "No pudimos iniciar sesión. Revisá los datos.");
       setLoading(false);
     }
   }
@@ -60,6 +62,26 @@ export default function LoginPage() {
             </p>
 
             <form onSubmit={onSubmit} className="mt-6">
+              <label className="mb-4 block">
+                <span className="mb-1.5 block text-[12px] font-medium uppercase tracking-[0.14em] text-sage-deep">
+                  Email
+                </span>
+                <div className="relative">
+                  <span aria-hidden className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-espresso-soft/55">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-10 6L2 7" />
+                    </svg>
+                  </span>
+                  <input
+                    type="email"
+                    name="email"
+                    autoComplete="username"
+                    autoFocus
+                    placeholder="tu@email.com"
+                    className="w-full rounded-2xl border border-[var(--color-line)] bg-white px-4 py-3.5 pl-11 text-[15px] text-espresso placeholder:text-espresso-soft/40 transition-colors focus:border-sage/60 focus:outline-none focus:ring-2 focus:ring-sage/30"
+                  />
+                </div>
+              </label>
               <label className="block">
                 <span className="mb-1.5 block text-[12px] font-medium uppercase tracking-[0.14em] text-sage-deep">
                   Contraseña
@@ -74,7 +96,7 @@ export default function LoginPage() {
                     type={show ? "text" : "password"}
                     name="password"
                     required
-                    autoFocus
+                    autoComplete="current-password"
                     placeholder="••••••••"
                     className="w-full rounded-2xl border border-[var(--color-line)] bg-white px-4 py-3.5 pl-11 pr-12 text-[15px] text-espresso placeholder:text-espresso-soft/40 transition-colors focus:border-sage/60 focus:outline-none focus:ring-2 focus:ring-sage/30"
                   />

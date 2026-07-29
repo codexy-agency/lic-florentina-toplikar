@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
-import { checkPassword, makeToken, SESSION_COOKIE } from "@/lib/auth";
+import { checkPassword, makeToken, readToken, SESSION_COOKIE } from "@/lib/auth";
 import { tenantDelRequest } from "@/lib/session";
 import { esMultiTenant } from "@/lib/tenant";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
+import { login, tieneCuentas, revocarSesion } from "@/lib/accounts";
+import { cookies } from "next/headers";
 
-// POST /api/admin  → login (body: { password })
+// POST /api/admin  → login (body: { email, password })
 // DELETE /api/admin → logout
 export async function POST(req: Request) {
   try {
@@ -30,25 +32,50 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "Solicitud inválida." }, { status: 413 });
     }
     let password = "";
+    let email = "";
     try {
-      password = String((JSON.parse(raw) || {}).password || "");
+      const body = JSON.parse(raw) || {};
+      password = String(body.password || "");
+      email = String(body.email || "");
     } catch {
       password = "";
     }
-    // El login es POR CONSULTORIO: la contraseña se valida contra el tenant de
-    // este host y el token queda atado a él (no sirve en el panel de otro).
+    // El login es POR CONSULTORIO: se valida contra el tenant de este host y el
+    // token queda atado a él (no sirve en el panel de otro).
     const pid = await tenantDelRequest();
     if (esMultiTenant() && !pid) {
       return NextResponse.json({ ok: false, error: "Consultorio no encontrado." }, { status: 404 });
     }
-    if (!checkPassword(password, pid ?? undefined)) {
-      return NextResponse.json(
-        { ok: false, error: "Contraseña incorrecta." },
-        { status: 401 }
-      );
+
+    let claims: { pid?: string; uid?: string; sid?: string };
+
+    // ¿Este consultorio ya tiene cuentas individuales?
+    const conCuentas = pid ? await tieneCuentas(pid) : false;
+
+    if (conCuentas) {
+      // Camino normal: email + contraseña, con bloqueo por intentos POR CUENTA.
+      const r = await login(email, password, pid!, { userAgent: req.headers.get("user-agent") || undefined });
+      if (!r.ok) {
+        return NextResponse.json(
+          { ok: false, error: r.error },
+          r.retryAfter
+            ? { status: 429, headers: { "Retry-After": String(r.retryAfter) } }
+            : { status: 401 }
+        );
+      }
+      claims = { pid: pid!, uid: r.user.id, sid: r.sessionId };
+    } else {
+      // VENTANA DE TRANSICIÓN: mientras el consultorio no tenga ninguna cuenta,
+      // se acepta la contraseña del consultorio (ADMIN_PASSWORDS/ADMIN_PASSWORD)
+      // para no dejar a nadie afuera. Se apaga sola al crear la primera cuenta.
+      if (!checkPassword(password, pid ?? undefined)) {
+        return NextResponse.json({ ok: false, error: "Contraseña incorrecta." }, { status: 401 });
+      }
+      claims = { pid: pid ?? undefined };
     }
+
     const res = NextResponse.json({ ok: true });
-    res.cookies.set(SESSION_COOKIE, await makeToken(pid ?? undefined), {
+    res.cookies.set(SESSION_COOKIE, await makeToken(claims), {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", // HTTPS en Vercel; http en local
       sameSite: "lax",
@@ -67,6 +94,15 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE() {
+  // Revocar la sesión del lado servidor (no alcanza con borrar la cookie: si
+  // alguien la copió, seguiría siendo válida hasta el TTL).
+  try {
+    const token = (await cookies()).get(SESSION_COOKIE)?.value;
+    const claims = await readToken(token);
+    if (claims && claims.sid !== "-") await revocarSesion(claims.sid);
+  } catch {
+    /* logout best-effort */
+  }
   const res = NextResponse.json({ ok: true });
   // Flags simétricos al login para que el borrado sea consistente.
   res.cookies.set(SESSION_COOKIE, "", {

@@ -101,40 +101,64 @@ export function checkPassword(input: string, pid?: string) {
   return safeEqual(input, pass);
 }
 
-// Token de sesión con vencimiento (TTL). payload = "ok.<version>.<tenant>.<emitido>".
-// El TENANT va DENTRO de lo firmado: una cookie emitida para el consultorio A no
-// puede reusarse en el panel de B (replay cross-tenant).
+// Token de sesión v2. payload = "v2.<version>.<tenant>.<userId>.<sessionId>.<emitido>"
+//
+// Van DENTRO de la firma:
+//  - el TENANT  → una cookie del consultorio A no sirve en el panel de B.
+//  - el USUARIO → se sabe QUIÉN hizo cada cosa (trazabilidad).
+//  - la SESIÓN  → se puede revocar UNA sesión sin echar a todos.
+//
+// Los tokens de formato viejo se rechazan: obligan a re-loguear (lado seguro).
 const TTL_MS = 1000 * 60 * 60 * 12; // 12 horas
-const SIN_TENANT = "-";
+const VACIO = "-";
+const V2 = "v2";
 
-export async function makeToken(pid?: string): Promise<string> {
-  const payload = `ok.${SESSION_VERSION}.${pid || SIN_TENANT}.${Date.now()}`;
+export interface TokenClaims {
+  /** professional_id del consultorio */
+  pid: string;
+  /** id del usuario; "-" si es una sesión de la ventana legacy (sin cuentas aún) */
+  uid: string;
+  /** id de sesión (para revocación individual); "-" en legacy */
+  sid: string;
+  emitido: number;
+}
+
+export async function makeToken(claims: { pid?: string; uid?: string; sid?: string }): Promise<string> {
+  const payload = [
+    V2,
+    SESSION_VERSION,
+    claims.pid || VACIO,
+    claims.uid || VACIO,
+    claims.sid || VACIO,
+    Date.now(),
+  ].join(".");
   return `${payload}.${await sign(payload)}`;
 }
 
-/** Verifica firma, versión, vencimiento y —si se pasa `expectedPid`— que la
- *  sesión pertenezca a ESE tenant. Tokens con formato viejo (sin tenant) se
- *  rechazan: obligan a re-loguear, que es el lado seguro. */
-export async function verifyToken(
+/** Verifica firma, versión y vencimiento y devuelve los claims. null = inválido.
+ *  Solo criptografía: sin I/O, para poder correr en el edge (proxy). */
+export async function readToken(
   token: string | undefined,
   expectedPid?: string
-): Promise<boolean> {
-  if (!token) return false;
+): Promise<TokenClaims | null> {
+  if (!token) return null;
   const i = token.lastIndexOf(".");
-  if (i < 0) return false;
+  if (i < 0) return null;
   const payload = token.slice(0, i);
   const sig = token.slice(i + 1);
-  if (!safeEqual(sig, await sign(payload))) return false;
-  // Formato esperado: ok.<version>.<tenant>.<timestamp>
-  const parts = payload.split(".");
-  if (parts.length !== 4 || parts[0] !== "ok") return false;
-  // Versión rotada en Vercel ⇒ token viejo inválido (revocación global).
-  if (parts[1] !== SESSION_VERSION) return false;
-  const tokenPid = parts[2];
-  if (expectedPid !== undefined) {
-    if (!safeEqual(tokenPid, expectedPid || SIN_TENANT)) return false;
-  }
-  const ts = Number(parts[3]);
-  if (!Number.isFinite(ts) || Date.now() - ts > TTL_MS) return false;
-  return true;
+  if (!safeEqual(sig, await sign(payload))) return null;
+
+  const p = payload.split(".");
+  if (p.length !== 6 || p[0] !== V2) return null;
+  if (p[1] !== SESSION_VERSION) return null; // versión rotada = revocación global
+  const pid = p[2];
+  if (expectedPid !== undefined && !safeEqual(pid, expectedPid || VACIO)) return null;
+  const emitido = Number(p[5]);
+  if (!Number.isFinite(emitido) || Date.now() - emitido > TTL_MS) return null;
+  return { pid, uid: p[3], sid: p[4], emitido };
+}
+
+/** Atajo booleano (lo usa el proxy en el edge). */
+export async function verifyToken(token: string | undefined, expectedPid?: string): Promise<boolean> {
+  return (await readToken(token, expectedPid)) !== null;
 }

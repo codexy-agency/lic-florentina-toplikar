@@ -6,7 +6,7 @@ import { TOOLS, WRITE_TOOLS, runReadTool, describeWriteTool, buildSystemPrompt }
 export const dynamic = "force-dynamic";
 
 async function isAdmin(): Promise<boolean> {
-  return sesionValida();
+  return (await sesionValida()) !== null;
 }
 
 function parseArgs(raw: string): Record<string, unknown> {

@@ -1,0 +1,200 @@
+// Almacén de IDENTIDAD (cuentas, membresías, sesiones, auditoría).
+//
+// Va SEPARADO de lib/store.ts a propósito:
+//  - La identidad es CROSS-TENANT ("¿a qué consultorios pertenece este email?"),
+//    y el store de dominio guarda un blob POR consultorio: no puede responder eso.
+//  - El login no debe tocar (ni bloquear con su lock optimista) el documento que
+//    contiene la historia clínica.
+//
+// Adaptador dual, igual que el store de dominio:
+//  - Modo ARCHIVO  → data/auth.json (un único archivo global). Dev/local.
+//  - Modo SUPABASE → tablas dedicadas con service_role (ver migración 0006).
+
+import { promises as fs } from "fs";
+import { randomUUID } from "crypto";
+import path from "path";
+import { getServiceClient, supabaseConfigurado } from "./supabase";
+import type { Permisos, Rol } from "./permisos";
+
+export interface AppUser {
+  id: string;
+  email: string; // siempre en minúsculas
+  nombre: string;
+  activo: boolean;
+  creadoEn: string;
+}
+
+export interface Membership {
+  id: string;
+  userId: string;
+  professionalId: string; // el consultorio (tenant)
+  rol: Rol;
+  permisos: Permisos;
+  activo: boolean;
+  creadoEn: string;
+}
+
+export interface Sesion {
+  id: string;
+  userId: string;
+  professionalId: string;
+  creadoEn: string;
+  revocadaEn?: string;
+  userAgent?: string;
+}
+
+export interface AuditEntry {
+  id: string;
+  ts: string;
+  userId?: string;
+  professionalId?: string;
+  accion: string;
+  entidad?: string;
+  entidadId?: string;
+  /** NUNCA guardar acá contenido clínico (motivo de consulta, notas). */
+  meta?: Record<string, unknown>;
+}
+
+interface Throttle {
+  intentos: number;
+  bloqueadoHasta?: string;
+  ultimoIntento: string;
+}
+
+interface AuthDB {
+  users: AppUser[];
+  credentials: Record<string, { hash: string; actualizadoEn: string }>;
+  memberships: Membership[];
+  sesiones: Sesion[];
+  throttle: Record<string, Throttle>;
+  audit: AuditEntry[];
+}
+
+function vacia(): AuthDB {
+  return { users: [], credentials: {}, memberships: [], sesiones: [], throttle: {}, audit: [] };
+}
+
+function normalizar(raw: Partial<AuthDB> | null | undefined): AuthDB {
+  const d = raw || {};
+  return {
+    users: Array.isArray(d.users) ? d.users : [],
+    credentials: d.credentials && typeof d.credentials === "object" ? d.credentials : {},
+    memberships: Array.isArray(d.memberships) ? d.memberships : [],
+    sesiones: Array.isArray(d.sesiones) ? d.sesiones : [],
+    throttle: d.throttle && typeof d.throttle === "object" ? d.throttle : {},
+    audit: Array.isArray(d.audit) ? d.audit : [],
+  };
+}
+
+export const normalizarEmail = (e: string) => (e || "").trim().toLowerCase();
+
+// ───────────────────────────── Modo ARCHIVO ─────────────────────────────
+const AUTH_PATH = path.join(process.cwd(), "data", "auth.json");
+
+async function fileRead(): Promise<AuthDB> {
+  try {
+    return normalizar(JSON.parse(await fs.readFile(AUTH_PATH, "utf-8")));
+  } catch {
+    return vacia();
+  }
+}
+
+async function fileWrite(db: AuthDB): Promise<void> {
+  await fs.mkdir(path.dirname(AUTH_PATH), { recursive: true });
+  const tmp = `${AUTH_PATH}.${randomUUID()}.tmp`;
+  await fs.writeFile(tmp, JSON.stringify(db, null, 2), "utf-8");
+  await fs.rename(tmp, AUTH_PATH); // atómico en el mismo FS
+}
+
+// ──────────────────────────── Modo SUPABASE ────────────────────────────
+// Tabla única `auth_state` con un blob (mismo patrón probado que app_state) para
+// no depender de que las tablas relacionales estén aplicadas. La migración 0006
+// crea las tablas normalizadas; este adaptador usa el blob mientras tanto y se
+// puede cambiar por dentro sin tocar los llamadores.
+const AUTH_ROW = "identidad";
+
+async function sbRead(): Promise<{ db: AuthDB; rev: number }> {
+  const sb = getServiceClient();
+  const { data, error } = await sb
+    .from("auth_state")
+    .select("data, rev")
+    .eq("id", AUTH_ROW)
+    .maybeSingle();
+  if (error) {
+    console.error("[accounts] sbRead:", error.message);
+    throw error;
+  }
+  if (!data) return { db: vacia(), rev: 0 };
+  return { db: normalizar((data.data ?? {}) as Partial<AuthDB>), rev: Number(data.rev) || 0 };
+}
+
+async function sbWrite(db: AuthDB, rev: number): Promise<boolean> {
+  const sb = getServiceClient();
+  if (rev === 0) {
+    const { error } = await sb.from("auth_state").insert({ id: AUTH_ROW, data: db, rev: 1 });
+    if (error) {
+      if ((error as { code?: string }).code === "23505") return false; // ya existía
+      console.error("[accounts] sbWrite insert:", error.message);
+      throw error;
+    }
+    return true;
+  }
+  const { data, error } = await sb
+    .from("auth_state")
+    .update({ data: db, rev: rev + 1, updated_at: new Date().toISOString() })
+    .eq("id", AUTH_ROW)
+    .eq("rev", rev)
+    .select("rev");
+  if (error) {
+    console.error("[accounts] sbWrite update:", error.message);
+    throw error;
+  }
+  return Array.isArray(data) && data.length > 0;
+}
+
+// ─────────────────────────── Lectura / mutación ───────────────────────────
+export async function leerAuth(): Promise<AuthDB> {
+  if (supabaseConfigurado) return (await sbRead()).db;
+  return fileRead();
+}
+
+let cola: Promise<unknown> = Promise.resolve();
+
+/** Mutación serializada con lock optimista (mismo patrón que el store de dominio). */
+export function mutarAuth<T>(fn: (db: AuthDB) => T | Promise<T>): Promise<T> {
+  const next = cola.then(async () => {
+    if (supabaseConfigurado) {
+      for (let intento = 0; intento < 10; intento++) {
+        if (intento > 0) {
+          await new Promise((r) => setTimeout(r, 25 * 2 ** Math.min(intento, 5) + Math.random() * 40));
+        }
+        const { db, rev } = await sbRead();
+        const res = await fn(db);
+        if (await sbWrite(db, rev)) return res;
+      }
+      throw new Error("No se pudo guardar la cuenta: conflicto de concurrencia.");
+    }
+    const db = await fileRead();
+    const res = await fn(db);
+    await fileWrite(db);
+    return res;
+  });
+  cola = next.catch(() => {});
+  return next;
+}
+
+// ───────────────────────────── Auditoría ─────────────────────────────
+const AUDIT_MAX = 5000; // tope para que el blob no crezca sin fin
+
+/** Registra una acción. `meta` NUNCA debe llevar contenido clínico. */
+export async function logAudit(e: Omit<AuditEntry, "id" | "ts">): Promise<void> {
+  try {
+    await mutarAuth((db) => {
+      db.audit.unshift({ ...e, id: randomUUID(), ts: new Date().toISOString() });
+      if (db.audit.length > AUDIT_MAX) db.audit.length = AUDIT_MAX;
+    });
+  } catch (err) {
+    // La auditoría nunca debe tumbar la operación principal.
+    console.error("[accounts] logAudit:", err);
+  }
+}
