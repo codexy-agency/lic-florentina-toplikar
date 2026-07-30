@@ -48,7 +48,8 @@ export async function POST(req: Request) {
     }
     // Anti-flood: máx. 8 reservas cada 10 min por IP. Frena spam de turnos
     // falsos y abuso del notificador antes de tocar la base.
-    const rl = rateLimit(`turnos:${clientIp(req)}`, 8, 10 * 60_000);
+    const pidRl = (await tenantDelRequest()) ?? "-";
+    const rl = rateLimit(`turnos:${pidRl}:${clientIp(req)}`, 8, 10 * 60_000);
     if (!rl.ok) {
       return NextResponse.json(
         { ok: false, error: "Demasiadas solicitudes. Probá de nuevo en unos minutos." },
@@ -108,7 +109,10 @@ export async function POST(req: Request) {
     // muchos slots aunque rote de IP. Normalizamos con la MISMA lógica que el
     // store (últimos 10 dígitos / email) para que no se evada cambiando el
     // formato del teléfono (+54 9…, 0…, con guiones, etc.).
-    const rlC = rateLimit(`turnos-c:${contactoKey(contacto) || contacto.toLowerCase()}`, 4, 30 * 60_000);
+    // Con el consultorio adelante. Sin eso, un paciente que reserva con Ana le
+    // consumía el cupo del formulario de Juan si usa el mismo teléfono, y eso
+    // pasa seguido: mucha gente prueba dos psicólogos a la vez.
+    const rlC = rateLimit(`turnos-c:${pidRl}:${contactoKey(contacto) || contacto.toLowerCase()}`, 4, 30 * 60_000);
     if (!rlC.ok) {
       return NextResponse.json(
         { ok: false, error: "Ya tenés varias solicitudes en curso. Te contactamos pronto." },

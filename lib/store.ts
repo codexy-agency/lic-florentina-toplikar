@@ -20,6 +20,7 @@ import {
   PROFESSIONAL_ID,
 } from "./supabase";
 import { endFromStart, nowIsoAR } from "./scheduling/slots";
+import { cache } from "react";
 import { headers } from "next/headers";
 import { TENANT_HEADER, esMultiTenant, esTenantConocido } from "./tenant";
 import { avisarSinEsperar } from "./alertas";
@@ -179,9 +180,23 @@ function mergeConfig(stored: Partial<SchedulingConfig>): SchedulingConfig {
   return config;
 }
 
-/** Aplica defaults/migraciones a un objeto crudo (de archivo o de Supabase). */
+/** Aplica defaults/migraciones a un objeto crudo (de archivo o de Supabase).
+ *
+ *  Arranca de `{...raw}` y PISA las claves conocidas, en vez de construir un
+ *  objeto nuevo con ocho claves fijas.
+ *
+ *  La diferencia importa durante un deploy. Next drena las instancias viejas
+ *  mientras las nuevas ya atienden: si la versión nueva agrega un campo al blob
+ *  y en esa ventana una instancia vieja hace un ciclo leer-modificar-escribir,
+ *  el objeto reconstruido no incluye el campo nuevo y lo BORRA. Sin error, sin
+ *  log, sin forma de enterarse. En un documento con historia clínica eso no es
+ *  un bug de esquema, es pérdida de datos.
+ *
+ *  Conservar lo desconocido es la opción segura: un campo de más no rompe nada,
+ *  uno de menos sí. */
 function normalize(raw: Partial<DB> & { scheduling?: Partial<Scheduling> }): DB {
   return {
+    ...raw,
     solicitudes: raw.solicitudes ?? [],
     pacientes: raw.pacientes ?? [],
     notasClinicas: raw.notasClinicas ?? [],
@@ -316,12 +331,30 @@ async function sbWrite(db: DB, rev: number, pid?: string): Promise<boolean> {
 }
 
 // Lectura (no mutante): resuelve el tenant del request y despacha a Supabase o archivo.
-async function read(): Promise<DB> {
+/** Lectura del consultorio actual, MEMOIZADA POR REQUEST.
+ *
+ *  Cada operación de dominio (listSolicitudes, getPacientesResumen, stats,
+ *  getMarca…) llamaba a read() por su cuenta, y read() baja el documento
+ *  completo del consultorio. El panel de Agenda dispara seis en un Promise.all,
+ *  más dos del layout y una del AdminShell: nueve descargas y nueve parseos del
+ *  MISMO blob para pintar una pantalla. Con 150 pacientes y sus notas eso son
+ *  decenas de MB por pageview.
+ *
+ *  `cache()` de React deduplica por request: la primera llamada va a la base y
+ *  las ocho siguientes reciben la misma promesa. No es un caché entre requests
+ *  —no hay riesgo de servirle a alguien el blob de otro— y no cambia la
+ *  semántica: dentro de un mismo render, todas las lecturas ya veían el mismo
+ *  estado igual.
+ *
+ *  IMPORTANTE: las MUTACIONES no pasan por acá. mutate() hace su propia lectura
+ *  fresca dentro de la sección crítica, que es lo que necesita el lock optimista
+ *  para no escribir sobre una versión vieja. */
+const read = cache(async function read(): Promise<DB> {
   assertBackendConfigOk();
   const pid = await currentTenantId();
   if (supabaseConfigurado) return (await sbRead(pid)).db;
   return fileRead(pid);
-}
+});
 
 // Cola: serializa las mutaciones (read-modify-write) para que no se pisen DENTRO
 // de una instancia. Entre instancias serverless, el rev (optimistic lock) evita

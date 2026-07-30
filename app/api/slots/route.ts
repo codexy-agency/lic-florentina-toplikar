@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getScheduling, getBusy, listServices } from "@/lib/store";
 import { getAvailableSlots } from "@/lib/scheduling/slots";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
+import { tenantDelRequest } from "@/lib/session";
 import type { Modalidad } from "@/lib/scheduling/types";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +12,10 @@ export async function GET(req: Request) {
   try {
     // Endpoint público que lee el estado completo: lo limitamos para que un loop
     // anónimo no sature las lambdas ni infle las lecturas de Supabase.
-    const rl = rateLimit(`slots:${clientIp(req)}`, 60, 60_000);
+    // El bucket lleva el consultorio: una IP puede visitar dos sitios distintos,
+    // y sin el pid el tráfico de un cliente le consume el cupo al otro.
+    const pidRl = (await tenantDelRequest()) ?? "-";
+    const rl = rateLimit(`slots:${pidRl}:${clientIp(req)}`, 60, 60_000);
     if (!rl.ok) {
       return NextResponse.json(
         { ok: false, dias: [] },

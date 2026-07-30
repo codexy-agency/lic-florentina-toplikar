@@ -16,6 +16,7 @@ import path from "path";
 import { getServiceClient, supabaseConfigurado } from "./supabase";
 import type { Permisos, Rol } from "./permisos";
 import type { Suscripcion } from "./planes";
+import { podar } from "./poda";
 import { avisarSinEsperar } from "./alertas";
 
 export interface AppUser {
@@ -195,6 +196,7 @@ export function mutarAuth<T>(fn: (db: AuthDB) => T | Promise<T>): Promise<T> {
         }
         const { db, rev } = await sbRead();
         const res = await fn(db);
+        podar(db);
         if (await sbWrite(db, rev)) return res;
       }
       // 10 intentos agotados sobre la fila única de identidad: alguien no puede
@@ -206,6 +208,7 @@ export function mutarAuth<T>(fn: (db: AuthDB) => T | Promise<T>): Promise<T> {
     }
     const db = await fileRead();
     const res = await fn(db);
+    podar(db);
     await fileWrite(db);
     return res;
   });
@@ -214,14 +217,13 @@ export function mutarAuth<T>(fn: (db: AuthDB) => T | Promise<T>): Promise<T> {
 }
 
 // ───────────────────────────── Auditoría ─────────────────────────────
-const AUDIT_MAX = 5000; // tope para que el blob no crezca sin fin
 
 /** Registra una acción. `meta` NUNCA debe llevar contenido clínico. */
 export async function logAudit(e: Omit<AuditEntry, "id" | "ts">): Promise<void> {
   try {
     await mutarAuth((db) => {
       db.audit.unshift({ ...e, id: randomUUID(), ts: new Date().toISOString() });
-      if (db.audit.length > AUDIT_MAX) db.audit.length = AUDIT_MAX;
+      // La poda por consultorio corre sola en mutarAuth.
     });
   } catch (err) {
     // La auditoría nunca debe tumbar la operación principal.

@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { getBookingConfig, getMarca } from "@/lib/store";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
+import { tenantDelRequest } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 // GET /api/reservar-config → servicios activos + profesionales activas (para el wizard)
 export async function GET(req: Request) {
   try {
-    const rl = rateLimit(`reservar-config:${clientIp(req)}`, 60, 60_000);
+    // Con el consultorio adelante: si no, el tráfico de un cliente frena al otro.
+    const pidRl = (await tenantDelRequest()) ?? "-";
+    const rl = rateLimit(`reservar-config:${pidRl}:${clientIp(req)}`, 60, 60_000);
     if (!rl.ok) {
       return NextResponse.json(
         { ok: false, services: [], staff: [] },

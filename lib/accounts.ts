@@ -202,23 +202,38 @@ export async function login(
     return { ok: false, error: "Email o contraseña incorrectos." };
   }
 
-  // 4) Éxito: limpiar throttle, crear sesión y rehashear si el costo quedó viejo.
+  // 4) Éxito: limpiar throttle, crear sesión, auditar y rehashear si el costo
+  //    quedó viejo. TODO en una sola mutación.
+  //
+  //    Antes eran dos ciclos read-modify-write completos sobre la fila única de
+  //    identidad —uno para la sesión y otro para el registro de auditoría—, así
+  //    que cada login duplicaba la contención sobre el recurso más caliente de
+  //    la plataforma. El tope de sesiones tampoco va más acá: la poda por
+  //    consultorio la hace mutarAuth (el de antes era global y un consultorio
+  //    activo deslogueaba a otro).
   const sessionId = randomUUID();
+  const ahora = new Date().toISOString();
   await mutarAuth(async (d) => {
     delete d.throttle[clave];
     d.sesiones.unshift({
       id: sessionId,
       userId: user.id,
       professionalId,
-      creadoEn: new Date().toISOString(),
+      creadoEn: ahora,
       userAgent: meta?.userAgent?.slice(0, 200),
     });
-    if (d.sesiones.length > 500) d.sesiones.length = 500;
+    d.audit.unshift({
+      id: randomUUID(),
+      ts: ahora,
+      userId: user.id,
+      professionalId,
+      accion: "login",
+      meta: { email },
+    });
     if (necesitaRehash(hash)) {
-      d.credentials[user.id] = { hash: await hashPassword(password), actualizadoEn: new Date().toISOString() };
+      d.credentials[user.id] = { hash: await hashPassword(password), actualizadoEn: ahora };
     }
   });
-  await logAudit({ userId: user.id, professionalId, accion: "login", meta: { email } });
   return { ok: true, user, membership, sessionId };
 }
 

@@ -19,7 +19,9 @@ export async function POST(req: Request) {
     }
     // Anti-fuerza-bruta: la contraseña es la única puerta a los datos de
     // pacientes. Máx. 6 intentos cada 5 min por IP.
-    const rl = rateLimit(`login:${clientIp(req)}`, 6, 5 * 60_000);
+    // Por consultorio: el anti-fuerza-bruta de un panel no puede bloquear el
+    // login de otro cliente que comparta salida a internet (oficina, coworking).
+    const rl = rateLimit(`login:${(await tenantDelRequest()) ?? "-"}:${clientIp(req)}`, 6, 5 * 60_000);
     if (!rl.ok) {
       return NextResponse.json(
         { ok: false, error: "Demasiados intentos. Esperá unos minutos." },
