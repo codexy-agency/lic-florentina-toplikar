@@ -3,7 +3,31 @@
 import Link from "next/link";
 import { useState } from "react";
 import { WhatsAppButton } from "./WhatsAppButton";
-import type { PacienteResumen } from "@/lib/store";
+
+/** Lo MÍNIMO que esta lista necesita de un paciente.
+ *
+ *  A propósito NO es `PacienteResumen`, que extiende `Paciente` y por lo tanto
+ *  arrastra `notas` — la ficha, que el propio producto trata como dato clínico
+ *  (app/admin/pacientes/[id]/page.tsx la esconde detrás de `notas_clinicas`).
+ *
+ *  Esto es un componente cliente: TODO lo que recibe por props se serializa en
+ *  el payload que baja al navegador, aunque la pantalla no lo pinte. Pasarle el
+ *  objeto entero mandaba la ficha de cada paciente al navegador de alguien que
+ *  no tiene permiso para verla —incluida una sesión de soporte de Codexy, que
+ *  tiene `pacientes` pero no `notas_clinicas`—, y sin dejar rastro.
+ *
+ *  El tipo angosto es la defensa: si mañana alguien vuelve a pasar el objeto
+ *  completo, TypeScript no se queja (sobra estructura), pero cualquier campo
+ *  nuevo que se agregue a Paciente NO llega acá solo. La proyección explícita
+ *  del servidor es la que corta de verdad. */
+export interface PacienteEnLista {
+  id: string;
+  nombre: string;
+  contacto: string;
+  deuda: number;
+  tienePendiente: boolean;
+  proximoTurno?: string;
+}
 
 const money = (n: number) => "$" + (n || 0).toLocaleString("es-AR");
 
@@ -28,7 +52,7 @@ const FILTROS = [
 ] as const;
 type FiltroKey = (typeof FILTROS)[number]["k"];
 
-export function PacientesList({ pacientes }: { pacientes: PacienteResumen[] }) {
+export function PacientesList({ pacientes }: { pacientes: PacienteEnLista[] }) {
   const [q, setQ] = useState("");
   const [filtro, setFiltro] = useState<FiltroKey>("todos");
 

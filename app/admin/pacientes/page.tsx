@@ -10,7 +10,29 @@ export const dynamic = "force-dynamic";
 
 export default async function PacientesPage() {
   await requireAdmin("pacientes");
-  const pacientes = await getPacientesResumen();
+
+  // PROYECCIÓN EXPLÍCITA antes del límite servidor→cliente.
+  //
+  // getPacientesResumen() devuelve el Paciente completo, y ahí adentro va
+  // `notas`: la ficha, que este mismo producto trata como dato clínico y esconde
+  // detrás de `notas_clinicas` en la pantalla de detalle.
+  //
+  // PacientesList es un componente cliente, así que todo lo que reciba se
+  // serializa en el payload que baja al navegador —lo pinte o no—. Pasarle el
+  // objeto entero le entregaba la ficha de cada paciente a cualquiera con
+  // permiso `pacientes`: una secretaria, o una sesión de soporte de Codexy, a
+  // la que el panel le promete justamente lo contrario.
+  //
+  // Se copian a mano los seis campos que la lista usa. Es el mismo patrón que
+  // ya usa el dashboard antes de pasarle datos al calendario.
+  const pacientes = (await getPacientesResumen()).map((p) => ({
+    id: p.id,
+    nombre: p.nombre,
+    contacto: p.contacto,
+    deuda: p.deuda,
+    tienePendiente: p.tienePendiente,
+    proximoTurno: p.proximoTurno,
+  }));
   const field =
     "admin-input w-full px-3 py-2.5 text-[14px] text-espresso";
   return (

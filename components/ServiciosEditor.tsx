@@ -8,7 +8,16 @@ import type { Service } from "@/lib/scheduling/types";
 
 type Row = Service;
 
-export function ServiciosEditor({ initial }: { initial: Service[] }) {
+export function ServiciosEditor({
+  initial,
+  conProfesional = [],
+}: {
+  initial: Service[];
+  /** ids de servicios que YA tienen al menos un profesional activo que los ofrece.
+   *  Los que no están acá no aparecen en el reservador, y eso hay que decirlo. */
+  conProfesional?: string[];
+}) {
+  const asignados = new Set(conProfesional);
   const [rows, setRows] = useState<Row[]>(initial);
   const [estado, setEstado] = useState<"idle" | "guardando" | "ok" | "error">("idle");
 
@@ -101,6 +110,21 @@ export function ServiciosEditor({ initial }: { initial: Service[] }) {
               itemLabel={s.nombre ? `"${s.nombre}"` : "este servicio"}
             />
           </div>
+
+          {/* Servicio huérfano: activo pero sin nadie que lo dé. El reservador no
+              lo muestra, y sin este aviso el profesional no tiene forma de
+              enterarse: lo carga, no aparece, y no sabe por qué. */}
+          {s.activo && s.nombre.trim() && !asignados.has(s.id) && (
+            <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl bg-[var(--a-accent-soft)] px-3 py-2 text-[12.5px] text-[var(--a-accent-ink)]">
+              <span>Todavía no aparece en tu reservador: nadie lo ofrece.</span>
+              <a
+                href="/admin/profesionales"
+                className="font-semibold underline underline-offset-2"
+              >
+                Asignárselo a un profesional
+              </a>
+            </p>
+          )}
 
           {/* Campos */}
           <div className="mt-4 space-y-4">

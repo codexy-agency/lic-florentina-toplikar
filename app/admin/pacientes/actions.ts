@@ -1,6 +1,7 @@
 "use server";
 
 import { hayCupo, requireEscritura } from "@/lib/session";
+import { logAudit } from "@/lib/accounts-store";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -48,10 +49,21 @@ export async function agregarNota(formData: FormData) {
 }
 
 export async function borrarNota(formData: FormData) {
-  await requireEscritura("notas_clinicas");
+  const s = await requireEscritura("notas_clinicas");
   const id = String(formData.get("id") || "");
   const patientId = String(formData.get("patientId") || "");
-  if (id) await removeNota(id);
+  if (!id) return;
+  await removeNota(id);
+  // Borrar una evolución clínica es irreversible y no dejaba ningún rastro.
+  // Se registra QUÉ se borró y quién, nunca el contenido.
+  await logAudit({
+    userId: s.userId ?? undefined,
+    professionalId: s.pid ?? undefined,
+    accion: "nota_borrada",
+    entidad: "nota_clinica",
+    entidadId: id,
+    meta: { patientId },
+  });
   revalidatePath(`/admin/pacientes/${patientId}`);
 }
 

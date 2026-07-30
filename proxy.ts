@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { verifyToken, SESSION_COOKIE } from "@/lib/auth";
-import { resolveTenantFromHost, TENANT_HEADER, esMultiTenant } from "@/lib/tenant";
+import { resolveTenantFromHost, TENANT_HEADER, esMultiTenant, esHostDePlataforma } from "@/lib/tenant";
 
 // (1) Resuelve el TENANT (professional_id) por host y lo propaga en un header de
 //     request para que el store lea/escriba los datos de ESE psicólogo.
@@ -18,6 +18,40 @@ export async function proxy(req: NextRequest) {
   const headers = new Headers(req.headers);
   if (pid) headers.set(TENANT_HEADER, pid);
   else headers.delete(TENANT_HEADER);
+
+  // SITIO DE LA PLATAFORMA: el dominio propio de Codexy (y su www), donde se
+  // vende el producto. No es un consultorio, así que NO lleva header de tenant:
+  // si una página de marketing intentara leer datos de un consultorio, el store
+  // lanza en vez de servir los de cualquiera.
+  //
+  // Se reescribe a /plataforma/* para que las rutas del sitio comercial vivan en
+  // su propia carpeta y no se mezclen con las del sitio de un psicólogo.
+  if (!pid && esHostDePlataforma(req.headers.get("host"))) {
+    // El health check se consulta contra el dominio de la plataforma: pasa igual.
+    if (pathname.startsWith("/api/health")) {
+      return NextResponse.next({ request: { headers } });
+    }
+    // El panel no vive acá: cada profesional entra por SU dominio. Mandar /admin
+    // del apex a la landing evita además que alguien busque la puerta de atrás.
+    if (pathname.startsWith("/admin") || pathname.startsWith("/api")) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/plataforma";
+      return NextResponse.redirect(url);
+    }
+    const url = req.nextUrl.clone();
+    url.pathname = `/plataforma${pathname === "/" ? "" : pathname}`;
+    return NextResponse.rewrite(url, { request: { headers } });
+  }
+
+  // Nadie llega a /plataforma por la puerta del frente: es un destino interno de
+  // la reescritura de arriba. Sin esto, el sitio de un psicólogo serviría la
+  // landing comercial de Codexy en /plataforma.
+  if (pathname.startsWith("/plataforma")) {
+    return new NextResponse("No encontrado.", {
+      status: 404,
+      headers: { "content-type": "text/plain; charset=utf-8" },
+    });
+  }
 
   // FAIL-CLOSED: en modo multi-tenant, un host que no resuelve a NINGÚN
   // consultorio no se sirve. Nunca degradamos al tenant por defecto: eso sería

@@ -111,7 +111,7 @@ export async function resetearPassword(
     const userId = String(formData.get("userId") || "");
     if (!userId) return { ok: false, error: "Falta el usuario." };
     if (userId === s.userId) {
-      return { ok: false, error: "Para cambiar tu propia contraseña usá Mi cuenta." };
+      return { ok: false, error: "Para cambiar tu propia contraseña andá a Mi cuenta (está abajo en el menú)." };
     }
     const temporal =
       "Temp-" + Math.random().toString(36).slice(2, 10) + "-" + Math.random().toString(36).slice(2, 6);

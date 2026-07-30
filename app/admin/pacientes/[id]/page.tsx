@@ -8,6 +8,7 @@ import {
 } from "@/lib/store";
 import { fechaHoraAR } from "@/lib/scheduling/slots";
 import { AdminShell } from "@/components/AdminShell";
+import { BorrarNota } from "@/components/BorrarNota";
 import { ArrowLeft } from "@/components/Arrow";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { FechaNotaAuto } from "@/components/FechaNotaAuto";
@@ -243,13 +244,7 @@ export default async function PacienteDetalle({
                       <span className="admin-chip inline-flex items-center gap-2 rounded-full px-3 py-1 text-[12px] font-medium">
                         {fechaHoraAR(n.fecha)} hs
                       </span>
-                      <form action={borrarNota}>
-                        <input type="hidden" name="id" value={n.id} />
-                        <input type="hidden" name="patientId" value={id} />
-                        <button className="admin-danger text-[12px] transition-colors">
-                          Eliminar
-                        </button>
-                      </form>
+                      <BorrarNota id={n.id} patientId={id} cuando={fechaHoraAR(n.fecha)} />
                     </div>
                     {n.titulo && (
                       <p className="mt-3 text-[16px] font-semibold tracking-tight text-espresso">

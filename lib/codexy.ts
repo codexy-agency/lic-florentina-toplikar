@@ -34,27 +34,39 @@ export const CODEXY = {
 
 // ─────────────────────────── Paleta de Codexy ───────────────────────────
 //
-// Es DELIBERADAMENTE distinta de las paletas de los consultorios (rosas, verdes
-// salvia, terracota…). Aquellas son cálidas y suaves porque hablan a un paciente
-// que está por pedir ayuda. Esta habla a un profesional que evalúa una
-// herramienta de trabajo: tiene que leerse seria, técnica y confiable.
+// GRAFITO Y COBRE. Es DELIBERADAMENTE distinta de las paletas de los
+// consultorios (rosa empolvado, salvia, terracota…). Aquellas son cálidas y
+// suaves porque le hablan a un paciente que está por pedir ayuda. Ésta le habla
+// a un profesional que evalúa una herramienta de trabajo: precisión de taller,
+// no de startup.
 //
-// Índigo profundo como base, no azul corporativo: el azul saturado es el color
-// de todos los SaaS de gestión y no distingue nada. El acento ámbar aparece muy
-// poco, sólo en la acción principal.
+// Por qué cobre y no el índigo que había antes:
+//
+//  1. El panel de Codexy ENVUELVE la marca del cliente. Un psicólogo lo abre con
+//     su rosa o su verde al lado, y el índigo peleaba con la paleta Océano.
+//     El cobre convive con las seis sin discutir.
+//  2. No colisiona con ningún color que el producto ya tenga significando algo:
+//     el vino es "acento del panel", el verde es "hecho", el rojo es "cuidado".
+//     El cobre queda libre para significar "Codexy".
+//  3. Ninguna agencia de IA lo usa. Están todas en azul.
+//
+// Cambiar la identidad es cambiar este objeto: la landing lee de acá.
 export const PALETA_CODEXY = {
-  /** Fondo oscuro de la marca. */
-  tinta: "#161B2E",
-  /** Un paso más claro, para superficies sobre la tinta. */
-  tintaSuave: "#212843",
-  /** Acento principal: índigo legible sobre claro y sobre oscuro. */
-  indigo: "#4B5FCF",
-  /** Índigo oscuro para texto sobre fondo claro (contraste AA). */
-  indigoProfundo: "#33409B",
-  /** Acento cálido, con cuentagotas: sólo la acción principal. */
-  ambar: "#E0A24B",
-  /** Fondo claro de la marca: gris muy leve con un punto de azul, no blanco puro. */
-  papel: "#F7F8FB",
-  /** Texto sobre papel. */
-  grafito: "#1C2033",
+  /** Casi negro cálido: el fondo oscuro de la marca. */
+  grafito: "#1B1A18",
+  /** Un paso más claro: la acción principal y los fondos de sección oscura. */
+  tinta: "#2B2A28",
+  /** Superficie sobre la tinta. */
+  tintaSuave: "#3A3835",
+  /** Acento. Con cuentagotas: sólo lo que hay que mirar. */
+  cobre: "#B8672F",
+  /** Cobre oscurecido, para texto sobre fondo claro (contraste AA). */
+  cobreProfundo: "#96502A",
+  /** Fondo claro: neutro CÁLIDO, no gris azulado. */
+  cal: "#F4F3F1",
+  calSuave: "#EAE8E4",
+  linea: "#E0DED9",
+  lineaFuerte: "#C5C2BB",
+  /** Texto secundario. */
+  apagado: "#6E6A63",
 } as const;

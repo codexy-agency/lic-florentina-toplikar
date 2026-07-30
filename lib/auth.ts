@@ -4,7 +4,10 @@
 // Fail-closed: sin secreto configurado, NO se firma ni se valida nada
 // (antes había un fallback conocido que permitía forjar la sesión).
 const COOKIE = "pp_admin";
-const PASSWORD = process.env.ADMIN_PASSWORD;
+/** Contraseña global del despliegue. Se lee en cada llamada, no al importar el
+ *  módulo: una constante capturada al arranque hace que el valor dependa del
+ *  orden de carga, que es difícil de razonar y de testear. */
+const passwordGlobal = () => process.env.ADMIN_PASSWORD;
 const SECRET = process.env.ADMIN_SECRET;
 // Versión de sesión rotable: cambiarla en Vercel invalida TODOS los tokens ya
 // emitidos (revocación de emergencia ante robo de cookie) sin tocar ADMIN_SECRET.
@@ -64,24 +67,60 @@ async function sign(value: string): Promise<string> {
     .join("");
 }
 
-/** Contraseña del TENANT. En multi-tenant cada psicólogo tiene la suya:
+/** ¿Este despliegue atiende a más de un consultorio?
+ *
+ *  Se mira `TENANTS` directamente en vez de importar `esMultiTenant()` de
+ *  lib/tenant.ts, y es a propósito: acá la pregunta se responde MÁS ESTRICTO.
+ *  `esMultiTenant()` exige que haya al menos una entrada *válida*; esto alcanza
+ *  con que la variable esté seteada.
+ *
+ *  La diferencia importa justo en el caso feo: si TENANTS está pero su contenido
+ *  no sirve, `esMultiTenant()` diría "no" y habilitaría la contraseña global en
+ *  un despliegue que claramente quiso ser multi-tenant. Para decidir si entregar
+ *  una llave que abre historias clínicas, el criterio conservador es el correcto. */
+function despliegueMultiTenant(): boolean {
+  const t = process.env.TENANTS;
+  return !!t && !!t.trim();
+}
+
+/** Contraseña del TENANT (sólo para la ventana de transición: un consultorio
+ *  que todavía no creó su primera cuenta individual).
+ *
  *    ADMIN_PASSWORDS={"<professional_id>":"<passphrase>"}
- *  Si no hay entrada para ese tenant, se rechaza (NO cae a la global: una clave
- *  compartida sería una llave maestra de todas las historias clínicas). */
+ *
+ *  EN MULTI-TENANT NUNCA CAE A LA GLOBAL. El comentario decía eso y el código
+ *  hacía lo contrario: bastaba con no tener seteada ADMIN_PASSWORDS —o tenerla
+ *  sin entrada para ese consultorio, o con el JSON roto— para que ADMIN_PASSWORD
+ *  volviera a funcionar en TODOS los consultorios a la vez. Y esa sesión entra
+ *  por la ventana legacy, que da rol `owner` con `puede: () => true`: una sola
+ *  cadena abría todas las historias clínicas del despliegue.
+ *
+ *  Ahora en multi-tenant se devuelve undefined si no hay entrada propia, y
+ *  checkPassword lanza. Fail-closed: preferimos que un consultorio no pueda
+ *  entrar (y nos llame) antes que abrirlos todos. */
 function passwordDeTenant(pid?: string): string | undefined {
+  const multi = despliegueMultiTenant();
   const raw = process.env.ADMIN_PASSWORDS;
-  if (raw && raw.trim() && pid) {
+
+  if (raw && raw.trim()) {
+    if (!pid) return multi ? undefined : passwordGlobal();
     try {
       const map = JSON.parse(raw) as Record<string, unknown>;
       const v = map && typeof map === "object" ? map[pid] ?? map[pid.toLowerCase()] : undefined;
       const pass = typeof v === "string" ? v.trim() : "";
-      return pass || undefined;
+      if (pass) return pass;
+      // Hay mapa pero este consultorio no está: en multi-tenant se rechaza.
+      return multi ? undefined : passwordGlobal();
     } catch {
       console.error("[auth] ADMIN_PASSWORDS no es JSON válido.");
-      return undefined;
+      // JSON roto en multi-tenant: NO se degrada a la global.
+      return multi ? undefined : passwordGlobal();
     }
   }
-  return PASSWORD; // single-tenant / despliegue histórico
+
+  // Sin ADMIN_PASSWORDS. En single-tenant es el despliegue histórico y está
+  // bien; en multi-tenant sería la llave maestra, así que no se entrega.
+  return multi ? undefined : passwordGlobal();
 }
 
 /** Valida la contraseña CONTRA EL TENANT del request. */

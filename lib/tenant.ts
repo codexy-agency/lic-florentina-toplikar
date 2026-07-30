@@ -115,6 +115,25 @@ export function resolveTenantFromHost(host: string | null): string | null {
   return null;
 }
 
+/** ¿Este host es el sitio de la PLATAFORMA (donde Codexy vende), y no el de un
+ *  consultorio?
+ *
+ *  Sólo el dominio exacto y su `www`. Un subdominio NO: `ana.codexy.app` es un
+ *  consultorio y tiene que resolverse por el mapa de tenants como siempre.
+ *
+ *  Existe para que el sitio comercial pueda vivir en el mismo despliegue sin
+ *  aflojar el fail-closed: proxy.ts sigue devolviendo 404 a cualquier host que no
+ *  sea ni un consultorio ni éste. Y como en el sitio de plataforma NO se setea el
+ *  header de tenant, cualquier intento accidental de leer datos de un consultorio
+ *  desde una página de marketing lanza en vez de servir los de otro. */
+export function esHostDePlataforma(host: string | null | undefined): boolean {
+  const dom = platformDomain();
+  if (!dom) return false;
+  const h = normalizarHost(host);
+  if (!h) return false;
+  return h === dom || h === `www.${dom}`;
+}
+
 /** ¿Este professional_id es un tenant conocido de este despliegue? */
 export function esTenantConocido(pid: string | null | undefined): boolean {
   if (!esUuid(pid)) return false;

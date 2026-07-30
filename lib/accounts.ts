@@ -413,6 +413,18 @@ export async function revocarAcceso(
 }
 
 /** Cambia la contraseña de una persona (la propia, o la de otro si sos owner). */
+/** ¿Ésta es la contraseña actual de este usuario?
+ *
+ *  Para el cambio de contraseña propio. Verifica SIEMPRE contra un hash —el
+ *  señuelo si el usuario no existe— para que el tiempo de respuesta no revele
+ *  nada, igual que el login. */
+export async function verificarPasswordActual(userId: string, password: string): Promise<boolean> {
+  const db = await leerAuth();
+  const hash = db.credentials[userId]?.hash;
+  const ok = await verifyPassword(password, hash || DUMMY_HASH);
+  return !!hash && ok;
+}
+
 export async function cambiarPassword(
   userId: string,
   nueva: string,

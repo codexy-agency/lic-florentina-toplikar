@@ -213,6 +213,21 @@ export function AdminSidebar({ marca, deCodexy }: { marca: MarcaSidebar; deCodex
         </Link>
       )}
       <Link
+        href="/admin/cuenta"
+        className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[14px] font-medium transition-colors ${
+          isActive(path, "/admin/cuenta")
+            ? "bg-white/[0.14] text-cream"
+            : "text-cream/70 hover:bg-white/[0.08] hover:text-cream"
+        }`}
+      >
+        <span className={isActive(path, "/admin/cuenta") ? "text-[var(--a-accent-on-dark)]" : "text-cream/55"}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" />
+          </svg>
+        </span>
+        Mi cuenta
+      </Link>
+      <Link
         href="/admin/ayuda"
         className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[14px] font-medium transition-colors ${
           isActive(path, "/admin/ayuda")

@@ -21,6 +21,7 @@ import {
   normalizarHost,
   resolveTenantFromHost,
   esTenantConocido,
+  esHostDePlataforma,
 } from "../lib/tenant.ts";
 
 // UUIDs de juguete, pero con forma real (el código valida el formato).
@@ -396,5 +397,68 @@ describe("esTenantConocido", () => {
     delete process.env.PROFESSIONAL_ID;
     assert.equal(esTenantConocido(LEGACY), false);
     assert.equal(esTenantConocido(ANA), false);
+  });
+});
+
+describe("host de plataforma (el sitio donde Codexy vende)", () => {
+  beforeEach(() => {
+    process.env.TENANTS = JSON.stringify({ "ana.codexy.app": ANA, "beto.com.ar": BETO });
+    process.env.PLATFORM_DOMAIN = "codexy.app";
+    process.env.PROFESSIONAL_ID = LEGACY;
+  });
+
+  it("reconoce el dominio exacto y su www", () => {
+    assert.equal(esHostDePlataforma("codexy.app"), true);
+    assert.equal(esHostDePlataforma("www.codexy.app"), true);
+    assert.equal(esHostDePlataforma("CODEXY.APP"), true);
+    assert.equal(esHostDePlataforma("codexy.app:3000"), true);
+  });
+
+  it("un SUBDOMINIO no es la plataforma: es un consultorio", () => {
+    // Si esto se aflojara, el sitio de una psicóloga serviría la landing
+    // comercial de Codexy en vez del suyo.
+    assert.equal(esHostDePlataforma("ana.codexy.app"), false);
+    assert.equal(esHostDePlataforma("cualquiera.codexy.app"), false);
+    assert.equal(esHostDePlataforma("www.ana.codexy.app"), false);
+  });
+
+  it("un dominio parecido no cuela", () => {
+    for (const h of [
+      "codexy.app.ar",       // sufijo agregado
+      "micodexy.app",        // prefijo pegado
+      "codexy.appp",
+      "codexy-app.com",
+      "notcodexy.app",
+      "evil.com",
+      "",
+    ]) {
+      assert.equal(esHostDePlataforma(h), false, `no debería ser plataforma: "${h}"`);
+    }
+  });
+
+  it("sin PLATFORM_DOMAIN configurado, NINGÚN host es la plataforma", () => {
+    delete process.env.PLATFORM_DOMAIN;
+    assert.equal(esHostDePlataforma("codexy.app"), false);
+    assert.equal(esHostDePlataforma("cualquier.cosa"), false);
+  });
+
+  it("el dominio de plataforma NO resuelve a ningún consultorio", () => {
+    // Es lo que hace que el sitio comercial no pueda leer datos de nadie: sin
+    // tenant resuelto, el store lanza en vez de servir los de cualquiera.
+    assert.equal(resolveTenantFromHost("codexy.app"), null);
+    assert.equal(resolveTenantFromHost("www.codexy.app"), null);
+  });
+
+  it("los consultorios siguen resolviendo igual", () => {
+    assert.equal(resolveTenantFromHost("ana.codexy.app"), ANA);
+    assert.equal(resolveTenantFromHost("beto.com.ar"), BETO);
+  });
+
+  it("si alguien mapea el apex como consultorio, GANA el consultorio", () => {
+    // El orden importa: proxy.ts pregunta primero por el tenant y sólo si no hay
+    // considera la plataforma. Así, mapear el apex a un consultorio sigue
+    // funcionando (es lo que pasa en single-tenant o en una demo).
+    process.env.TENANTS = JSON.stringify({ "codexy.app": ANA });
+    assert.equal(resolveTenantFromHost("codexy.app"), ANA);
   });
 });

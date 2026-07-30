@@ -833,13 +833,30 @@ export async function listServices(soloActivos = false): Promise<Service[]> {
 
 export async function saveServices(services: Service[]): Promise<void> {
   await mutate((db) => {
+    // Qué servicios son NUEVOS: los que no existían antes de este guardado.
+    //
+    // Se los asigna a todos los profesionales activos. Sin esto nacían
+    // huérfanos: getBookingConfig() sólo publica los servicios que alguien
+    // ofrece, así que el profesional cargaba un servicio, no aparecía en su
+    // reservador, y no tenía forma de enterarse. El editor de Profesionales
+    // asigna los servicios que existían al crear al profesional, y nada volvía
+    // a tocar esa lista.
+    //
+    // Sólo los nuevos: reasignar todo en cada guardado pisaría las decisiones
+    // que el profesional tomó a mano (un servicio que da uno y el otro no).
+    const previos = new Set(db.services.map((s) => s.id));
+    const nuevos = services.filter((s) => !previos.has(s.id)).map((s) => s.id);
+
     db.services = services;
+
     // Integridad referencial: al borrar un servicio, sacamos su id de cada
     // staff.serviceIds para no acumular referencias muertas.
     const ids = new Set(services.map((s) => s.id));
     db.staff = db.staff.map((st) => ({
       ...st,
-      serviceIds: st.serviceIds.filter((id) => ids.has(id)),
+      serviceIds: st.activo
+        ? [...new Set([...st.serviceIds, ...nuevos])].filter((id) => ids.has(id))
+        : st.serviceIds.filter((id) => ids.has(id)),
     }));
   });
 }

@@ -97,9 +97,27 @@ function limpiarUsuario(u: AppUser): AppUser {
   return u;
 }
 
+/** Igual que normalize() en lib/store.ts, y por la misma razón: arranca de
+ *  `{...raw}` y PISA lo conocido, en vez de reconstruir con claves fijas.
+ *
+ *  Acá el descuido costaba caro. Durante un deploy conviven instancias vieja y
+ *  nueva; si la vieja hace un ciclo leer-modificar-escribir, todo lo que su
+ *  versión no conozca desaparece del blob. Las tres claves nuevas —`soporte`,
+ *  `suscripciones` y `usoAsistente`— son justamente las que no se pueden
+ *  perder:
+ *
+ *   - borrar `soporte` REACTIVA el acceso de soporte en los consultorios que lo
+ *     habían apagado (ausente = habilitado, ver soporteHabilitado);
+ *   - borrar `suscripciones` deja a todos los clientes de vuelta en "prueba", y
+ *     no hay forma de reconstruir quién pagó;
+ *   - borrar `usoAsistente` regala el cupo del mes.
+ *
+ *  Conservar lo desconocido es siempre la opción segura: un campo de más no
+ *  rompe nada, uno de menos sí. */
 function normalizar(raw: Partial<AuthDB> | null | undefined): AuthDB {
   const d = raw || {};
   return {
+    ...d,
     users: Array.isArray(d.users) ? d.users.map(limpiarUsuario) : [],
     credentials: d.credentials && typeof d.credentials === "object" ? d.credentials : {},
     memberships: Array.isArray(d.memberships) ? d.memberships : [],

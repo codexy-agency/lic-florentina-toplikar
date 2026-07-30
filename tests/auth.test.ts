@@ -25,6 +25,8 @@ import {
   verifyPassword,
 } from "../lib/passwords.ts";
 
+import { checkPassword } from "../lib/auth.ts";
+
 import {
   PERMISOS,
   type Permiso,
@@ -381,5 +383,140 @@ describe("permisos: normalizarPermisos / esRolValido", () => {
       "configuracion",
     ];
     assert.deepEqual([...PERMISOS], esperados);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LA CONTRASEÑA DEL CONSULTORIO NO PUEDE SER UNA LLAVE MAESTRA
+//
+// `checkPassword` sólo se usa en la ventana de transición: un consultorio que
+// todavía no creó su primera cuenta individual. Pero esa sesión entra con rol
+// `owner` y `puede: () => true`, así que si una misma cadena sirviera en varios
+// consultorios, sería una llave que abre todas las historias clínicas del
+// despliegue.
+//
+// El código tenía escrito que no caía a la global, y caía. Estos tests fijan el
+// comportamiento por escrito.
+
+describe("contraseña por consultorio: nunca una llave maestra", () => {
+  const A = "11111111-1111-4111-8111-111111111111";
+  const B = "22222222-2222-4222-8222-222222222222";
+  const GUARDADAS: Record<string, string | undefined> = {};
+  const VARS = ["ADMIN_PASSWORD", "ADMIN_PASSWORDS", "TENANTS", "PROFESSIONAL_ID", "NODE_ENV"];
+
+  const guardar = () => {
+    for (const k of VARS) GUARDADAS[k] = process.env[k];
+  };
+  const restaurar = () => {
+    for (const k of VARS) {
+      if (GUARDADAS[k] === undefined) delete process.env[k];
+      else process.env[k] = GUARDADAS[k]!;
+    }
+  };
+
+  /** checkPassword lanza cuando no hay contraseña para ese consultorio. */
+  const rechaza = (pass: string, pid?: string) => {
+    try {
+      return checkPassword(pass, pid) === false;
+    } catch {
+      return true; // sin contraseña configurada: también es rechazo
+    }
+  };
+
+  test("en MULTI-tenant, la global no abre ningún consultorio", () => {
+    guardar();
+    try {
+      process.env.TENANTS = JSON.stringify({ "a.com": A, "b.com": B });
+      process.env.ADMIN_PASSWORD = "clave-global-larga-2026";
+      delete process.env.ADMIN_PASSWORDS;
+
+      assert.ok(rechaza("clave-global-larga-2026", A), "la global no puede abrir el consultorio A");
+      assert.ok(rechaza("clave-global-larga-2026", B), "ni el B");
+    } finally {
+      restaurar();
+    }
+  });
+
+  test("con ADMIN_PASSWORDS, cada consultorio abre SOLO con la suya", () => {
+    guardar();
+    try {
+      process.env.TENANTS = JSON.stringify({ "a.com": A, "b.com": B });
+      process.env.ADMIN_PASSWORD = "clave-global-larga-2026";
+      process.env.ADMIN_PASSWORDS = JSON.stringify({
+        [A]: "clave-de-ana-2026-larga",
+        [B]: "clave-de-beto-2026-larga",
+      });
+
+      assert.equal(checkPassword("clave-de-ana-2026-larga", A), true);
+      assert.equal(checkPassword("clave-de-beto-2026-larga", B), true);
+
+      // Cruzadas: la de uno no abre al otro.
+      assert.ok(rechaza("clave-de-beto-2026-larga", A), "la clave de B no abre A");
+      assert.ok(rechaza("clave-de-ana-2026-larga", B), "la clave de A no abre B");
+      // Y la global tampoco.
+      assert.ok(rechaza("clave-global-larga-2026", A));
+    } finally {
+      restaurar();
+    }
+  });
+
+  test("un consultorio SIN entrada propia no cae a la global", () => {
+    guardar();
+    try {
+      process.env.TENANTS = JSON.stringify({ "a.com": A, "b.com": B });
+      process.env.ADMIN_PASSWORD = "clave-global-larga-2026";
+      process.env.ADMIN_PASSWORDS = JSON.stringify({ [A]: "clave-de-ana-2026-larga" });
+
+      // B no está en el mapa: no entra con nada.
+      assert.ok(rechaza("clave-global-larga-2026", B), "B no puede abrirse con la global");
+      assert.ok(rechaza("clave-de-ana-2026-larga", B), "ni con la de A");
+    } finally {
+      restaurar();
+    }
+  });
+
+  test("ADMIN_PASSWORDS con JSON roto no degrada a la global", () => {
+    guardar();
+    try {
+      process.env.TENANTS = JSON.stringify({ "a.com": A });
+      process.env.ADMIN_PASSWORD = "clave-global-larga-2026";
+      process.env.ADMIN_PASSWORDS = "{ esto no es json";
+
+      const err = console.error;
+      console.error = () => {};
+      try {
+        assert.ok(rechaza("clave-global-larga-2026", A), "un JSON roto no puede abrir la puerta grande");
+      } finally {
+        console.error = err;
+      }
+    } finally {
+      restaurar();
+    }
+  });
+
+  test("sin pid resuelto, en multi-tenant tampoco entra", () => {
+    guardar();
+    try {
+      process.env.TENANTS = JSON.stringify({ "a.com": A });
+      process.env.ADMIN_PASSWORD = "clave-global-larga-2026";
+      assert.ok(rechaza("clave-global-larga-2026", undefined));
+    } finally {
+      restaurar();
+    }
+  });
+
+  test("en SINGLE-tenant la global sigue funcionando (despliegue histórico)", () => {
+    guardar();
+    try {
+      delete process.env.TENANTS;
+      delete process.env.ADMIN_PASSWORDS;
+      process.env.PROFESSIONAL_ID = A;
+      process.env.ADMIN_PASSWORD = "clave-global-larga-2026";
+
+      assert.equal(checkPassword("clave-global-larga-2026", A), true);
+      assert.equal(checkPassword("otra-cosa-cualquiera", A), false);
+    } finally {
+      restaurar();
+    }
   });
 });
