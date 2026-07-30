@@ -16,6 +16,7 @@ import path from "path";
 import { getServiceClient, supabaseConfigurado } from "./supabase";
 import type { Permisos, Rol } from "./permisos";
 import type { Suscripcion } from "./planes";
+import { avisarSinEsperar } from "./alertas";
 
 export interface AppUser {
   id: string;
@@ -196,6 +197,11 @@ export function mutarAuth<T>(fn: (db: AuthDB) => T | Promise<T>): Promise<T> {
         const res = await fn(db);
         if (await sbWrite(db, rev)) return res;
       }
+      // 10 intentos agotados sobre la fila única de identidad: alguien no puede
+      // entrar, o quedó a medias un cambio de accesos.
+      avisarSinEsperar("S1", "Conflicto de concurrencia en el almacén de identidad", {
+        extra: "10 reintentos agotados sobre auth_state. Un login o un cambio de acceso falló.",
+      });
       throw new Error("No se pudo guardar la cuenta: conflicto de concurrencia.");
     }
     const db = await fileRead();

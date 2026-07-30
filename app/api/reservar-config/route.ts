@@ -19,15 +19,29 @@ export async function GET(req: Request) {
     // ("Presencial en …"). Estaba escrita a mano en el componente, así que el
     // reservador de cada consultorio ofrecía la ciudad de otra profesional.
     // Sólo se expone la ciudad: nada más de la marca hace falta acá.
-    let ciudad = "";
+    let m = null;
     try {
-      ciudad = (await getMarca()).ciudad;
+      m = await getMarca();
     } catch {
-      ciudad = "";
+      m = null;
     }
-    return NextResponse.json({ ok: true, services, staff, ciudad });
+    return NextResponse.json({
+      ok: true,
+      services,
+      staff,
+      ciudad: m?.ciudad ?? "",
+      // Datos del RESPONSABLE del tratamiento, para el texto del consentimiento.
+      // Es el profesional, no Codexy, y la ley pide identificarlo. Sólo se
+      // exponen estos tres campos: ya son públicos en el sitio.
+      nombre: m?.nombre ?? "",
+      titulo: m?.titulo ?? "",
+      email: m?.email ?? "",
+    });
   } catch (e) {
     console.error("[api/reservar-config]", e);
-    return NextResponse.json({ ok: false, services: [], staff: [], ciudad: "" }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, services: [], staff: [], ciudad: "", nombre: "", titulo: "", email: "" },
+      { status: 500 }
+    );
   }
 }

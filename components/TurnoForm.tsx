@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent, type ReactNode, type CSSProperties } from "react";
 import { IconoCheck } from "@/components/iconos";
+import { textoConsentimiento } from "@/lib/consentimiento";
 import { horaAR } from "@/lib/scheduling/slots";
 import { Arrow, ArrowLeft } from "./Arrow";
 import type { DaySlots, Slot, Modalidad, Service, Staff } from "@/lib/scheduling/types";
@@ -60,6 +61,10 @@ export function TurnoForm() {
   const [services, setServices] = useState<Service[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [ciudad, setCiudad] = useState("");
+  // Marca del consultorio, para el texto del consentimiento: el RESPONSABLE del
+  // tratamiento es el profesional, no Codexy.
+  const [resp, setResp] = useState<{ nombre?: string; titulo?: string; email?: string }>({});
+  const [consiente, setConsiente] = useState(false);
   const [loadingCfg, setLoadingCfg] = useState(true);
 
   const [step, setStep] = useState(1);
@@ -88,6 +93,7 @@ export function TurnoForm() {
         setServices(d.services ?? []);
         setStaff(d.staff ?? []);
         setCiudad(typeof d.ciudad === "string" ? d.ciudad : "");
+        setResp({ nombre: d.nombre, titulo: d.titulo, email: d.email });
       } catch {
         /* sin config */
       } finally {
@@ -95,6 +101,8 @@ export function TurnoForm() {
       }
     })();
   }, []);
+
+  const consentimiento = textoConsentimiento(resp);
 
   const eligibles = (svcId: string) =>
     staff.filter((s) => s.serviceIds.includes(svcId));
@@ -193,6 +201,7 @@ export function TurnoForm() {
       startsAt: slot.startsAt,
       endsAt: slot.endsAt,
       motivo: String(f.get("motivo") || "").trim(),
+      consentimiento: consiente,
     };
     try {
       const r = await fetch("/api/turnos", {
@@ -578,6 +587,41 @@ export function TurnoForm() {
                   <textarea name="motivo" rows={3} placeholder="Contanos brevemente qué te gustaría trabajar" className={`${field} resize-none`} />
                 </label>
 
+                {/* CONSENTIMIENTO. Obligatorio: el motivo de consulta es un dato
+                    de salud y la ley pide consentimiento expreso y por escrito.
+                    Se valida también en el servidor: una casilla que el cliente
+                    puede sacar con el inspector no prueba nada. */}
+                <div className="mt-5 rounded-2xl border border-[var(--color-line)] bg-cream-deep/30 p-4">
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={consiente}
+                      onChange={(e) => setConsiente(e.target.checked)}
+                      className="mt-0.5 h-[18px] w-[18px] shrink-0 accent-sage-deep"
+                      aria-describedby="detalle-consentimiento"
+                    />
+                    <span className="text-[13.5px] leading-relaxed text-espresso">
+                      {consentimiento.casilla}
+                    </span>
+                  </label>
+                  <details className="group mt-2 pl-[30px]">
+                    <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 text-[12.5px] font-medium text-sage-deep hover:text-espresso [&::-webkit-details-marker]:hidden">
+                      Qué significa
+                      <svg className="h-3.5 w-3.5 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m6 9 6 6 6-6" />
+                      </svg>
+                    </summary>
+                    <ul
+                      id="detalle-consentimiento"
+                      className="mt-2 space-y-1.5 text-[12.5px] leading-relaxed text-espresso-soft"
+                    >
+                      {consentimiento.detalle.map((d, i) => (
+                        <li key={i}>· {d}</li>
+                      ))}
+                    </ul>
+                  </details>
+                </div>
+
                 {error && (
                   <p className="mt-4 rounded-xl bg-[#9C5475]/10 px-4 py-3 text-[14px] text-[#9C5475]">
                     {error}
@@ -586,7 +630,7 @@ export function TurnoForm() {
 
                 <button
                   type="submit"
-                  disabled={enviando}
+                  disabled={enviando || !consiente}
                   className="group mt-6 flex w-full items-center justify-center gap-3 rounded-full bg-espresso px-6 py-4 text-[15px] font-medium text-cream transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-px hover:shadow-card-hover active:scale-[0.99] disabled:opacity-60"
                 >
                   {enviando ? "Reservando…" : "Confirmar reserva"}

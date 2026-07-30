@@ -127,6 +127,75 @@ console.log(`\n✅ Cuenta lista en data/auth.json`);
 console.log(`   ${nombre} <${email}> — rol ${rol} — consultorio ${pid}`);
 console.log(`\n⚠️  Al existir una cuenta, este consultorio DEJA de aceptar la contraseña vieja.`);
 console.log(`   Entrá con el email y la contraseña que acabás de definir.\n`);
+// ── SQL para producción ──
+//
+// OJO con lo que había antes acá: emitía
+//
+//   on conflict (id) do update set data = excluded.data
+//
+// que REEMPLAZA el blob de identidad completo con la copia local. Dar de alta al
+// cliente 11 borraba las cuentas de los 10 anteriores si data/auth.json estaba
+// desactualizado. Ya pasó una vez (incidente I-4 de docs/guias/OPERACION.md).
+//
+// Ahora el SQL AGREGA sólo lo nuevo, con jsonb, y no toca a nadie más. Si el
+// email ya existe en el blob remoto, no duplica: avisa y no hace nada.
+
+const q = (o) => JSON.stringify(o).replace(/'/g, "''");
+const membership = db.memberships.find((m) => m.userId === user.id && m.professionalId === pid);
+
 console.log(`── Para producción (Supabase), pegá esto en el SQL Editor: ──\n`);
-console.log(`insert into auth_state (id, data, rev) values ('identidad', '${JSON.stringify(db).replace(/'/g, "''")}'::jsonb, 1)
-  on conflict (id) do update set data = excluded.data, rev = auth_state.rev + 1;\n`);
+console.log(`-- Agrega SOLO esta cuenta. No reemplaza el blob ni toca a los demás consultorios.
+do $$
+declare
+  d jsonb;
+  ya boolean;
+begin
+  select data into d from auth_state where id = 'identidad' for update;
+
+  if d is null then
+    -- Primera cuenta de la plataforma: se crea la fila.
+    insert into auth_state (id, data, rev)
+    values ('identidad', '${q({
+      users: [user],
+      credentials: { [user.id]: db.credentials[user.id] },
+      memberships: [membership],
+      sesiones: [],
+      throttle: {},
+      audit: [],
+      soporte: {},
+      suscripciones: {},
+      usoAsistente: {},
+    })}'::jsonb, 1);
+    raise notice 'Fila de identidad creada con la primera cuenta.';
+    return;
+  end if;
+
+  -- ¿Ya existe este email? Si sí, no se duplica el usuario.
+  select exists (
+    select 1 from jsonb_array_elements(coalesce(d->'users','[]'::jsonb)) u
+    where u->>'email' = '${email.replace(/'/g, "''")}'
+  ) into ya;
+
+  if ya then
+    raise notice 'El email ${email.replace(/'/g, "''")} ya existe en la base. No se agregó nada: usá el panel de Equipo para darle acceso a este consultorio.';
+    return;
+  end if;
+
+  -- Se agrega paso por paso sobre la variable, en vez de anidar jsonb_set:
+  -- el SQL lo va a leer una persona a las 3 de la mañana.
+  d := jsonb_set(d, '{users}',
+         coalesce(d->'users', '[]'::jsonb) || '${q([user])}'::jsonb);
+
+  d := jsonb_set(d, '{memberships}',
+         coalesce(d->'memberships', '[]'::jsonb) || '${q([membership])}'::jsonb);
+
+  d := jsonb_set(d, '{credentials}',
+         coalesce(d->'credentials', '{}'::jsonb) || '${q({ [user.id]: db.credentials[user.id] })}'::jsonb);
+
+  update auth_state
+     set data = d, rev = rev + 1, updated_at = now()
+   where id = 'identidad';
+
+  raise notice 'Cuenta agregada sin tocar las existentes.';
+end $$;\n`);
+console.log(`⚠️  Antes de correrlo en producción: corré \`node scripts/backup.mjs\`.\n`);

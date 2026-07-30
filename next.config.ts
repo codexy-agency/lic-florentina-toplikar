@@ -38,6 +38,15 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   // No anunciar el stack (reduce superficie de fingerprinting).
   poweredByHeader: false,
+  // /admin/ayuda lee las guías del usuario desde docs/guias/ en tiempo de
+  // ejecución. Sin esto, el trazado de dependencias no las incluye en el bundle
+  // serverless y la página se ve vacía en producción (local anda igual, que es la
+  // peor forma de descubrirlo).
+  //
+  // OPERACION.md NO se incluye: es el runbook interno de Codexy, no del cliente.
+  outputFileTracingIncludes: {
+    "/admin/ayuda": ["./docs/guias/PRIMEROS-PASOS.md", "./docs/guias/GUIA-PANEL.md"],
+  },
   images: {
     // Servimos las imágenes directo desde /public, SIN pasar por el optimizador
     // de Vercel (/_next/image). Era el único punto que fallaba en producción y

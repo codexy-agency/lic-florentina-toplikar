@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { puede } from "@/lib/session";
+import { sesionValida } from "@/lib/session";
+import { logAudit } from "@/lib/accounts-store";
 import { getFinanzas } from "@/lib/store";
 
 import { isoToArLocal } from "@/lib/scheduling/slots";
@@ -27,12 +28,25 @@ function cell(v: string | number): string {
 /** Exporta los movimientos del período a CSV (para pasarle a la contadora).
  *  Una fila por movimiento: turnos + ingresos/egresos cargados a mano. */
 export async function GET(req: Request) {
-  if (!(await puede("finanzas"))) {
+  const sesion = await sesionValida();
+  if (!sesion || !sesion.puede("finanzas")) {
     return new NextResponse("No autorizado", { status: 401 });
   }
 
   const periodo = new URL(req.url).searchParams.get("periodo") || "mes";
   const f = await getFinanzas(periodo);
+
+  // AUDITORÍA. Este CSV lleva el nombre de cada paciente junto a lo que pagó:
+  // es una extracción masiva de datos personales, no un reporte de números. Que
+  // quede registro de quién se lo llevó y cuándo es lo mínimo (Ley 25.326 art. 9,
+  // y lo que pide el audit trail de HIPAA). No se guarda el contenido, sólo el
+  // hecho y el volumen.
+  await logAudit({
+    userId: sesion.userId ?? undefined,
+    professionalId: sesion.pid ?? undefined,
+    accion: "export_finanzas",
+    meta: { periodo, filas: f.movimientos.length },
+  });
 
   const filas = f.movimientos.map((m) => {
     const fecha = m.fecha ? isoToArLocal(m.fecha).replace("T", " ") : "";

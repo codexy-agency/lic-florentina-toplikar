@@ -12,6 +12,7 @@ import { getAvailableSlots, endFromStart } from "@/lib/scheduling/slots";
 import { notificarTurno } from "@/lib/telegram";
 import { tenantDelRequest } from "@/lib/session";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
+import { registrarConsentimiento, ERROR_SIN_CONSENTIMIENTO } from "@/lib/consentimiento";
 import type { Modalidad } from "@/lib/scheduling/types";
 
 const MAX = 600;
@@ -79,6 +80,15 @@ export async function POST(req: Request) {
     const preferencia = clean(body.preferencia, MAX);
     const serviceId = clean(body.serviceId, 60) || undefined;
     const staffId = clean(body.staffId, 60) || undefined;
+
+    // CONSENTIMIENTO — se valida acá, no sólo en el formulario. Una casilla que
+    // el navegador puede saltear con el inspector no prueba nada: si el registro
+    // que guardamos tiene que servir ante un reclamo, la única fuente confiable
+    // de que el paciente aceptó es esta validación.
+    const consentimiento = registrarConsentimiento(body.consentimiento, clientIp(req));
+    if (!consentimiento) {
+      return NextResponse.json({ ok: false, error: ERROR_SIN_CONSENTIMIENTO }, { status: 400 });
+    }
 
     if (!nombre || !contacto) {
       return NextResponse.json(
@@ -168,6 +178,7 @@ export async function POST(req: Request) {
       precio,
       preferencia,
       motivo,
+      consentimiento,
     };
 
     let solicitud;

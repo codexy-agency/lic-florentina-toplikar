@@ -6,6 +6,7 @@ import {
   listStaff,
   getScheduling,
   stats,
+  getMarca,
 } from "@/lib/store";
 import { fechaHoraAR, horaAR, isoToArLocal } from "@/lib/scheduling/slots";
 import { AdminShell } from "@/components/AdminShell";
@@ -14,6 +15,7 @@ import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { AgendaCalendario, type CalTurno } from "@/components/AgendaCalendario";
 import { SubmitButton } from "@/components/SubmitButton";
 import { AgendarManualForm } from "@/components/AgendarManualForm";
+import { PrimerosPasos } from "@/components/PrimerosPasos";
 import {
   aceptarSolicitud,
   reprogramarTurno,
@@ -115,13 +117,14 @@ export default async function AdminPage({
   // puede ver la historia clínica, no cualquiera que administre la agenda.
   const verMotivo = sesion.puede("notas_clinicas");
   const vista = (await searchParams).vista === "calendario" ? "calendario" : "lista";
-  const [solicitudes, pacientes, services, staff, sched, s] = await Promise.all([
+  const [solicitudes, pacientes, services, staff, sched, s, marca] = await Promise.all([
     listSolicitudes(),
     getPacientesResumen(),
     listServices(true),
     listStaff(true),
     getScheduling(),
     stats(),
+    getMarca(),
   ]);
   const pendientes = solicitudes.filter((x) => x.estado === "pendiente");
 
@@ -219,6 +222,18 @@ export default async function AdminPage({
         title="Agenda"
         description="Tu día a día: solicitudes, próximos turnos y pacientes."
       />
+
+      {/* Arranque: desaparece solo cuando está todo hecho. No hace consultas
+          nuevas, usa lo que ya se cargó arriba. */}
+      <div className="mt-6">
+        <PrimerosPasos
+          marca={marca}
+          services={services}
+          staff={staff}
+          reglas={sched.rules.length}
+          huboReserva={solicitudes.length > 0}
+        />
+      </div>
 
       {/* Stats */}
       <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">

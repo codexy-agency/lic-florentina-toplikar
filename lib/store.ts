@@ -22,6 +22,7 @@ import {
 import { endFromStart, nowIsoAR } from "./scheduling/slots";
 import { headers } from "next/headers";
 import { TENANT_HEADER, esMultiTenant, esTenantConocido } from "./tenant";
+import { avisarSinEsperar } from "./alertas";
 import { MARCA_DEFECTO, normalizarMarca, type Marca } from "./marca";
 
 export type { Service, Staff } from "./scheduling/types";
@@ -53,6 +54,21 @@ export interface Solicitud {
   motivo: string;
   estado: Estado;
   creadoEn: string;
+  /** CONSENTIMIENTO del paciente para tratar sus datos.
+   *
+   *  El motivo de consulta es un dato de salud. En Argentina el tratamiento de
+   *  datos sensibles exige consentimiento libre, expreso e informado por escrito
+   *  (Ley 25.326 art. 5 y 7); en México, expreso y por escrito (LFPDPPP art. 9).
+   *  Sin estos campos, si mañana un paciente reclama no hay NADA que mostrar.
+   *
+   *  Se guarda el hecho, cuándo, qué versión del texto aceptó y desde qué IP.
+   *  La versión importa: dentro de un año el texto va a ser otro y hay que poder
+   *  reconstruir qué le mostramos a esta persona. */
+  consentimiento?: {
+    aceptadoEn: string; // ISO
+    version: string; // ver CONSENTIMIENTO_VERSION en lib/consentimiento.ts
+    ip?: string;
+  };
 }
 
 export interface Paciente {
@@ -107,14 +123,45 @@ interface DB {
 
 const DB_PATH = path.join(process.cwd(), "data", "db.json");
 
+/** Consultorio recién creado.
+ *
+ *  NO arranca vacío a propósito. Un panel con cuatro ceros y un sitio sin
+ *  horarios es la peor primera impresión posible: el psicólogo entra, no puede
+ *  probar nada, y se va. Con esta semilla puede hacer una reserva de prueba en
+ *  el primer minuto y recién después ajustar lo que quiera.
+ *
+ *  La semilla es deliberadamente incompleta en dos cosas, para que el checklist
+ *  de primeros pasos tenga sentido:
+ *   - los servicios NO traen precio (es una decisión del profesional);
+ *   - no hay ningún profesional cargado (ese es su nombre, no lo inventamos).
+ */
 function emptyDB(): DB {
+  const svc = (nombre: string, descripcion: string) => ({
+    id: randomUUID(),
+    nombre,
+    durationMin: DEFAULT_CONFIG.slotDurationMin,
+    priceARS: undefined,
+    descripcion,
+    activo: true,
+  });
+
+  // Lunes a viernes de 9 a 13 y de 15 a 19, online. Es el horario más común de
+  // un consultorio y se cambia en dos clics desde Disponibilidad.
+  const franjas = [1, 2, 3, 4, 5].flatMap((weekday) => [
+    { id: randomUUID(), weekday, startTime: "09:00", endTime: "13:00", modalidad: "online" as const },
+    { id: randomUUID(), weekday, startTime: "15:00", endTime: "19:00", modalidad: "online" as const },
+  ]);
+
   return {
     solicitudes: [],
     pacientes: [],
     notasClinicas: [],
-    services: [],
+    services: [
+      svc("Primera consulta", "Nos conocemos y vemos cómo puedo acompañarte."),
+      svc("Sesión individual", "Encuentro de seguimiento."),
+    ],
     staff: [],
-    scheduling: { config: DEFAULT_CONFIG, rules: [], exceptions: [] },
+    scheduling: { config: DEFAULT_CONFIG, rules: franjas, exceptions: [] },
     movimientosManuales: [],
     marca: MARCA_DEFECTO,
   };
@@ -166,6 +213,13 @@ async function currentTenantId(): Promise<string | undefined> {
     // El header lo pone el proxy, pero validamos igual: si por un bypass llegara
     // un id arbitrario, NO debe convertirse en un selector de base de datos.
     if (!esTenantConocido(pid)) {
+      // Llegó un professional_id que no está en el mapa. O es un intento de
+      // apuntar a los datos de otro consultorio, o TENANTS quedó desincronizado
+      // con la base. Las dos cosas son S0.
+      avisarSinEsperar("S0", "Llegó un consultorio desconocido al store", {
+        pid,
+        extra: "El header pasó el proxy pero no está en TENANTS. Bloqueado.",
+      });
       throw new Error("Consultorio inválido: el acceso a los datos fue bloqueado.");
     }
     return pid;
@@ -231,10 +285,16 @@ async function sbWrite(db: DB, rev: number, pid?: string): Promise<boolean> {
       const code = (error as { code?: string }).code;
       if (code === "23505") return false; // ya existía → conflicto recuperable
       if (code === "23503") {
-        // FK: el professional_id no existe en professionals (tenant mal dado de alta)
+        // FK: el professional_id no existe en professionals (tenant mal dado de
+        // alta). Para el psicólogo esto es "el panel no guarda nada": no puede
+        // trabajar. Se avisa, no se espera a que llame.
         console.error(
           `[supabase] sbWrite: professional_id '${pid}' no existe en professionals. Revisá el alta del tenant.`
         );
+        avisarSinEsperar("S1", "Tenant sin fila en professionals: no puede guardar", {
+          pid,
+          extra: "El alta quedó incompleta: falta el INSERT en professionals.",
+        });
       } else {
         console.error("[supabase] sbWrite insert error:", error.message);
       }
@@ -1140,6 +1200,27 @@ export async function getFinanzas(periodo: string = "mes"): Promise<FinanzasResu
 export async function getMarca(): Promise<Marca> {
   const db = await read();
   return normalizarMarca(db.marca);
+}
+
+/** Todo el consultorio, tal cual está guardado, para que el profesional se lo
+ *  pueda llevar. Es barato justamente por el blob: read() ya trae todo.
+ *
+ *  Se agrega `exportadoEn` y `formato` para que el archivo sea interpretable
+ *  dentro de cinco años sin este código a la vista. */
+export async function exportarConsultorio(): Promise<DB & { formato: number; exportadoEn: string }> {
+  const db = await read();
+  return {
+    formato: 1,
+    exportadoEn: new Date().toISOString(),
+    solicitudes: db.solicitudes,
+    pacientes: db.pacientes,
+    notasClinicas: db.notasClinicas,
+    services: db.services,
+    staff: db.staff,
+    scheduling: db.scheduling,
+    movimientosManuales: db.movimientosManuales,
+    marca: normalizarMarca(db.marca),
+  };
 }
 
 export async function saveMarca(marca: unknown): Promise<Marca> {
