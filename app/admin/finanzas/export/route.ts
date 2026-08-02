@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sesionValida } from "@/lib/session";
 import { logAudit } from "@/lib/accounts-store";
+import { bloquearExportDeSoporte } from "@/lib/soporte";
 import { getFinanzas } from "@/lib/store";
 
 import { isoToArLocal } from "@/lib/scheduling/slots";
@@ -32,6 +33,11 @@ export async function GET(req: Request) {
   if (!sesion || !sesion.puede("finanzas")) {
     return new NextResponse("No autorizado", { status: 401 });
   }
+
+  // El soporte de Codexy puede VER finanzas para ayudar, pero no bajarse el
+  // archivo: lleva el nombre de cada paciente junto a lo que pagó.
+  const veto = bloquearExportDeSoporte(sesion);
+  if (veto) return new NextResponse(veto, { status: 403 });
 
   const periodo = new URL(req.url).searchParams.get("periodo") || "mes";
   const f = await getFinanzas(periodo);

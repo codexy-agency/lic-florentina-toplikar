@@ -63,3 +63,21 @@ export function puedeSoporte(p: Permiso): boolean {
 /** Duración de una sesión de soporte, en segundos: más corta que una normal
  *  (12 h). Se aplica al maxAge de la cookie en app/api/admin/route.ts. */
 export const TTL_SOPORTE_SEG = 60 * 60; // 1 hora
+
+/** El soporte de Codexy NUNCA descarga datos de pacientes.
+ *
+ *  Va aparte de `puedeSoporte` porque no es una cuestión de permisos: el soporte
+ *  legítimamente necesita ver Finanzas para ayudar a alguien que no entiende un
+ *  número. Lo que no puede es LLEVARSE el archivo.
+ *
+ *  Un export es distinto de una consulta: se baja completo, sale del sistema, y
+ *  después vive en la computadora de alguien sin auditoría ni control. El CSV de
+ *  finanzas lleva el nombre de cada paciente junto a lo que pagó.
+ *
+ *  Existe como helper —y no como un `if` en cada handler— porque ya se olvidó
+ *  una vez: el export del consultorio lo bloqueaba y el de finanzas no. Todo
+ *  route handler que devuelva un archivo tiene que llamar a esto. */
+export function bloquearExportDeSoporte(sesion: { soporte?: boolean }): string | null {
+  if (!sesion.soporte) return null;
+  return "El soporte de Codexy no descarga datos de pacientes. Si necesitás el archivo, bajalo vos y pasánoslo por el canal que prefieras.";
+}

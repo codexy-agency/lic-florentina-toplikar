@@ -132,9 +132,42 @@ export async function alternarSoporte(formData: FormData) {
   revalidatePath("/admin/equipo");
 }
 
-/** Últimos accesos del consultorio (para la tarjeta de actividad). */
-export async function ultimosAccesos(professionalId: string, limite = 12) {
+// ─────────────────────────────────────────────────────────────────────────────
+// LECTURAS PARA LA PANTALLA DE EQUIPO
+//
+// OJO con estas dos: están en un archivo con "use server", así que NO son
+// funciones internas. Toda función exportada de un módulo 'use server' queda
+// expuesta como endpoint y se puede invocar con un POST directo —está escrito en
+// los propios docs de Next que vienen en node_modules (data-security.md)—, y no
+// las salva el dead-code elimination porque un Server Component las usa.
+//
+// Estaban así:
+//
+//   export async function ultimosAccesos(professionalId: string, limite = 12) {
+//     const db = await leerAuth();
+//     return db.audit.filter((a) => a.professionalId === professionalId)…
+//   }
+//
+// Sin sesión, sin permiso, sin chequear pertenencia, y con el consultorio
+// llegando como ARGUMENTO del cliente: cualquiera podía leer la auditoría de
+// cualquier consultorio de la plataforma, que incluye los emails de todo el
+// equipo y quién entró cuándo.
+//
+// Ahora toman el consultorio de la SESIÓN, nunca de un argumento, y exigen el
+// permiso de equipo. La regla general: en un archivo 'use server', un parámetro
+// que identifica al dueño de los datos es siempre un agujero.
+
+/** Últimos accesos de MI consultorio (para la tarjeta de actividad). */
+export async function ultimosAccesos(limite = 12) {
+  const s = await requirePermiso("equipo");
+  if (!s.pid) return [];
   const db = await leerAuth();
-  return db.audit.filter((a) => a.professionalId === professionalId).slice(0, limite);
+  return db.audit.filter((a) => a.professionalId === s.pid).slice(0, Math.min(limite, 50));
 }
-export async function estadoSoporte(pid: string) { return soporteHabilitado(pid); }
+
+/** ¿Mi consultorio tiene el soporte de Codexy habilitado? */
+export async function estadoSoporte() {
+  const s = await requirePermiso("equipo");
+  if (!s.pid) return false;
+  return soporteHabilitado(s.pid);
+}

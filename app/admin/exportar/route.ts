@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { sesionValida } from "@/lib/session";
 import { logAudit } from "@/lib/accounts-store";
 import { exportarConsultorio } from "@/lib/store";
+import { bloquearExportDeSoporte } from "@/lib/soporte";
 
 export const dynamic = "force-dynamic";
 
@@ -30,11 +31,10 @@ export async function GET() {
   if (!sesion || !sesion.puede("notas_clinicas")) {
     return new NextResponse("No autorizado", { status: 401 });
   }
-  // Una sesión de soporte de Codexy nunca llega acá (puedeSoporte niega
-  // notas_clinicas), pero se deja explícito por si el invariante cambia.
-  if (sesion.soporte) {
-    return new NextResponse("El soporte de Codexy no exporta datos de pacientes.", { status: 403 });
-  }
+  // Mismo helper que el export de finanzas: si mañana hay un tercer export, la
+  // regla ya está en un solo lugar.
+  const veto = bloquearExportDeSoporte(sesion);
+  if (veto) return new NextResponse(veto, { status: 403 });
 
   const datos = await exportarConsultorio();
 

@@ -40,8 +40,8 @@ function cuando(iso: string) {
 export default async function EquipoPage() {
   const sesion = await requireAdmin("equipo");
   const equipo = sesion.pid ? await listarEquipo(sesion.pid) : [];
-  const audit = sesion.pid ? await ultimosAccesos(sesion.pid) : [];
-  const soporteOn = sesion.pid ? await estadoSoporte(sesion.pid) : false;
+  const audit = await ultimosAccesos();
+  const soporteOn = await estadoSoporte();
   const activos = equipo.filter((m) => m.membership.activo);
 
   return (
