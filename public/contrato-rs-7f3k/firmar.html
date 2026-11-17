@@ -25,6 +25,10 @@ li { margin-bottom: 0.9mm; }
 .firma b { display: block; }
 .nota { font-size: 8.4pt; color: #5A5068; }
 
+.firma.con { position: relative; }
+
+.rubrica { display: none; } .x-rubrica { position: absolute; left: 9mm; bottom: 100%; height: 23mm; margin-bottom: -1.5mm; }
+
 .dato[contenteditable] { outline: none; padding: 0 1mm; background: #FFF8D6; border-radius: 1mm 1mm 0 0; }
 .dato[contenteditable]:focus { background: #FFEFA3; }
 label.op { display: inline-flex; gap: 2.5mm; align-items: flex-start; cursor: pointer; }
@@ -47,6 +51,8 @@ label.op input { width: 4.4mm; height: 4.4mm; margin-top: 0.6mm; accent-color: #
   .barra { flex-direction: column; align-items: stretch; text-align: center; }
   .dato { min-width: 34mm; }
 }
+.pad.puesta { display: flex; align-items: center; justify-content: center; border-style: solid; border-color: #D9CFEA; }
+.pad.puesta img { max-height: 90%; max-width: 80%; }
 @media print {
   .nop { display: none !important; }
   .dato[contenteditable] { background: none; }
@@ -121,7 +127,7 @@ label.op input { width: 4.4mm; height: 4.4mm; margin-top: 0.6mm; accent-color: #
 <p style="margin-top:3mm">Se firman dos ejemplares de un mismo tenor.</p>
 
 <div class="firmas">
-  <div class="firma"><canvas class="pad" id="f1" aria-label="Firma de Codexy"></canvas><button type="button" class="borrar nop" data-pad="f1">Borrar firma</button><b>Por Codexy</b><span class="dato" contenteditable="true" spellcheck="false" style="min-width:60mm"></span><br>Aclaración y DNI</div>
+  <div class="firma"><div class="pad puesta"><img src="firma-codexy.png" alt="Firma de Codexy"></div><b>Por Codexy</b><span class="dato" contenteditable="true" spellcheck="false" style="min-width:60mm"></span><br>Aclaración y DNI</div>
   <div class="firma"><canvas class="pad" id="f2" aria-label="Firma de la Clienta"></canvas><button type="button" class="borrar nop" data-pad="f2">Borrar firma</button><b>La Clienta</b><span class="dato" contenteditable="true" spellcheck="false" style="min-width:60mm"></span><br>Aclaración y DNI</div>
 </div>
 <p class="nota" id="sello" style="margin-top:4mm"></p>
@@ -150,13 +156,13 @@ label.op input { width: 4.4mm; height: 4.4mm; margin-top: 0.6mm; accent-color: #
     pads[id] = { limpiar: function () { ctx.clearRect(0, 0, c.width, c.height); vacio = true; }, vacio: function () { return vacio; } };
     medir();
   }
-  preparar('f1'); preparar('f2');
+  preparar('f2');
   document.querySelectorAll('.borrar').forEach(function (b) { b.addEventListener('click', function () { pads[b.dataset.pad].limpiar(); }); });
   document.querySelectorAll('input[name=pago]').forEach(function (x) {
     x.addEventListener('change', function () { if (x.checked) document.querySelectorAll('input[name=pago]').forEach(function (o) { if (o !== x) o.checked = false; }); });
   });
   document.getElementById('bajar').addEventListener('click', function () {
-    if (pads.f1.vacio() && pads.f2.vacio()) { alert('Falta la firma. Firmá en el recuadro antes de descargar.'); return; }
+    if (pads.f2.vacio()) { alert('Falta la firma. Firmá en el recuadro antes de descargar.'); return; }
     var a = new Date();
     document.getElementById('sello').textContent = 'Firmado electrónicamente el ' + a.toLocaleDateString('es-AR') + ' a las ' + a.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) + ' h.';
     window.print();
