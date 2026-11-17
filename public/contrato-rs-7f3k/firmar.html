@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Contrato RS Odontología · Codexy</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<style>
+@font-face { font-family: "Bricolage"; src: url(bricolage-grotesque.woff2); font-weight: 200 800; }
+@font-face { font-family: "Schibsted"; src: url(schibsted-grotesk.woff2); font-weight: 400 900; }
+@page { size: A4; margin: 14mm 18mm 13mm; }
+* { box-sizing: border-box; margin: 0; }
+body { font-family: "Schibsted", Arial, sans-serif; color: #17121F; font-size: 9.4pt; line-height: 1.42; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.cab { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 0.6mm solid #17121F; padding-bottom: 4mm; margin-bottom: 6mm; }
+.cab img { height: 6.5mm; }
+.cab span { font-size: 8.5pt; color: #5A5068; }
+h1 { font-family: "Bricolage", Arial, sans-serif; font-weight: 800; font-size: 19pt; letter-spacing: -0.02em; line-height: 1.08; margin-bottom: 4mm; }
+h2 { font-family: "Bricolage", Arial, sans-serif; font-weight: 700; font-size: 11.4pt; letter-spacing: -0.01em; margin: 3.6mm 0 1.2mm; break-after: avoid; }
+p { margin-bottom: 1.6mm; }
+ol { padding-left: 5mm; margin-bottom: 1.4mm; }
+li { margin-bottom: 0.9mm; }
+.dato { display: inline-block; min-width: 46mm; border-bottom: 0.25mm solid #17121F; }
+.dato.c { min-width: 24mm; }
+.cuadro { border: 0.3mm solid #CFC4E2; border-radius: 3mm; padding: 3.4mm 4.4mm; margin: 2mm 0 2.4mm; background: #F6F1FC; break-inside: avoid; }
+.firmas { display: flex; gap: 14mm; margin-top: 12mm; break-inside: avoid; }
+.firma { flex: 1; border-top: 0.3mm solid #17121F; padding-top: 2mm; font-size: 9pt; }
+.firma b { display: block; }
+.nota { font-size: 8.4pt; color: #5A5068; }
+
+.dato[contenteditable] { outline: none; padding: 0 1mm; background: #FFF8D6; border-radius: 1mm 1mm 0 0; }
+.dato[contenteditable]:focus { background: #FFEFA3; }
+label.op { display: inline-flex; gap: 2.5mm; align-items: flex-start; cursor: pointer; }
+label.op input { width: 4.4mm; height: 4.4mm; margin-top: 0.6mm; accent-color: #6A1FD6; }
+.firma { border-top: 0; padding-top: 0; }
+.pad { display: block; width: 100%; height: 34mm; border: 0.3mm dashed #8F3DFF; border-radius: 3mm; background: #FFFFFF; touch-action: none; margin-bottom: 1.5mm; }
+.borrar { font: inherit; font-size: 8.4pt; color: #5A16C4; background: none; border: 0; padding: 1mm 0 2mm; cursor: pointer; text-decoration: underline; display: block; }
+.barra { position: sticky; bottom: 0; background: #17121F; color: #F4F0FA; margin: 8mm -5mm 0; padding: 4mm 5mm; display: flex; gap: 4mm; align-items: center; justify-content: space-between; border-radius: 4mm 4mm 0 0; }
+.barra p { margin: 0; font-size: 9.4pt; }
+.barra button { font: inherit; font-weight: 800; font-size: 10.5pt; color: #17121F; background: #C9F23A; border: 0; border-radius: 10mm; padding: 3.4mm 6mm; cursor: pointer; white-space: nowrap; min-height: 44px; }
+@media screen {
+  html { background: #ECE6F5; }
+  body { max-width: 210mm; margin: 0 auto; background: #FFFFFF; padding: 9mm 7mm 0; font-size: 12pt; }
+  h1 { font-size: 20pt; }
+  h2 { font-size: 13.5pt; }
+}
+@media screen and (max-width: 600px) {
+  .cab span { display: none; }
+  .firmas { flex-direction: column; gap: 8mm; }
+  .barra { flex-direction: column; align-items: stretch; text-align: center; }
+  .dato { min-width: 34mm; }
+}
+@media print {
+  .nop { display: none !important; }
+  .dato[contenteditable] { background: none; }
+  .pad { border: 0; border-bottom: 0.3mm solid #17121F; border-radius: 0; height: 26mm; }
+}
+</style>
+</head>
+<body>
+
+<div class="cab"><img src="codexy-oscuro.png" alt="Codexy"><span>Contrato de desarrollo y puesta en marcha de sitio web</span></div>
+
+<h1>Contrato de desarrollo y puesta en marcha del sitio web de RS Odontología</h1>
+
+<p>En la ciudad de <span class="dato" contenteditable="true" spellcheck="false"></span>, a los <span class="dato c" contenteditable="true" spellcheck="false"></span> días del mes de <span class="dato c" contenteditable="true" spellcheck="false"></span> de 2026, entre:</p>
+<p><b>Codexy</b>, representada por <span class="dato" contenteditable="true" spellcheck="false"></span>, CUIT <span class="dato" contenteditable="true" spellcheck="false"></span>, con domicilio en <span class="dato" contenteditable="true" spellcheck="false"></span>, en adelante "Codexy"; y</p>
+<p><span class="dato" contenteditable="true" spellcheck="false"></span>, DNI o CUIT <span class="dato" contenteditable="true" spellcheck="false"></span>, con domicilio en <span class="dato" contenteditable="true" spellcheck="false"></span>, titular de RS Odontología, en adelante "la Clienta";</p>
+<p>acuerdan lo siguiente.</p>
+
+<h2>1. Qué se entrega</h2>
+<ol>
+  <li>El sitio web de RS Odontología, con información del consultorio, tratamientos, casos, reserva de turnos online y un panel interno para manejar agenda, pacientes, horarios, servicios y profesionales.</li>
+  <li>El sitio web de Protectores Bucales RS, que se entrega sin cargo adicional y en el estado en que se encuentra a la fecha de este contrato.</li>
+  <li>La publicación de ambos sitios en los dominios que elija la Clienta.</li>
+  <li>El dominio y el servidor de ambos sitios durante 12 meses contados desde la publicación.</li>
+  <li>El alta inicial de ambos sitios en Google (indexación). No incluye trabajos de optimización ni de posicionamiento.</li>
+</ol>
+
+<h2>2. Precio y forma de pago</h2>
+<p>El precio total es de <b>USD 700 (dólares estadounidenses setecientos)</b>, que la Clienta paga de una de estas dos formas (marcar la elegida):</p>
+<p><label class="op"><input type="checkbox" name="pago"> Un pago de USD 700 al firmar este contrato.</label></p>
+<p><label class="op"><input type="checkbox" name="pago"> Dos pagos de USD 350: el primero al firmar este contrato y el segundo al momento de la entrega.</label></p>
+<p>Los pagos se hacen por transferencia a la cuenta que indique Codexy. Si el segundo pago se atrasa más de 15 días desde la entrega, Codexy puede suspender los sitios hasta que se regularice.</p>
+
+<h2>3. Plazo de entrega</h2>
+<p>Codexy entrega los sitios publicados dentro de los <b>7 días corridos</b> desde el primer pago. La entrega consiste en dejar ambos sitios publicados en los dominios elegidos y darle a la Clienta su acceso al panel interno. El plazo corre desde que la Clienta aporta los datos necesarios: dominios, horarios, profesionales y contenidos a corregir.</p>
+
+<h2>4. Garantía de 90 días</h2>
+<div class="cuadro">
+  <p>Durante los <b>90 días corridos</b> posteriores a la publicación, Codexy acompaña el funcionamiento de los sitios y corrige sin costo cualquier falla de lo entregado: errores del sitio, de la reserva de turnos o del panel interno.</p>
+  <p style="margin-bottom:0">La Clienta avisa la falla por WhatsApp o por correo y Codexy responde dentro de los 2 días hábiles.</p>
+</div>
+
+<h2>5. Después de la garantía</h2>
+<p>Vencidos los 90 días, y mientras el dominio y el servidor estén a cargo de Codexy, Codexy interviene sin costo <b>únicamente ante fallas graves</b>, entendidas como aquellas que impiden usar el sitio: que el sitio no cargue, que no se puedan reservar turnos o que no se pueda entrar al panel, siempre que el origen esté en el desarrollo entregado o en el servidor.</p>
+<p>Cualquier otro pedido se cotiza aparte y se hace solo con la aprobación previa de la Clienta.</p>
+
+<h2>6. Qué no está incluido</h2>
+<ol>
+  <li>Cambios de diseño, secciones o funciones nuevas.</li>
+  <li>La carga y actualización de contenidos, que la Clienta hace desde el panel.</li>
+  <li>Optimización para buscadores, publicidad y manejo de redes sociales.</li>
+  <li>Fallas causadas por servicios de terceros (Instagram, WhatsApp, Google, proveedores de internet), por el uso indebido de los accesos o por cambios hechos por personas ajenas a Codexy.</li>
+</ol>
+
+<h2>7. Dominio y servidor después del primer año</h2>
+<p>Codexy avisa el vencimiento con al menos 30 días de anticipación. La Clienta elige entre renovar con Codexy por USD <span class="dato c" contenteditable="true" spellcheck="false"></span> por año, o administrar el dominio y el servidor por su cuenta. En ese caso, y también si decide no renovar, Codexy le entrega los archivos y los accesos de los sitios.</p>
+<p>El servidor tiene límites de capacidad (procesamiento, memoria, almacenamiento y tráfico). Son amplios para el uso de un consultorio. Si el uso se acercara a esos límites, Codexy se lo comunica a la Clienta para acordar juntos cómo seguir.</p>
+
+<h2>8. Contenidos y datos de pacientes</h2>
+<ol>
+  <li>Los textos, fotos, marca y demás contenidos son de la Clienta, que declara tener derecho a usarlos y contar con el consentimiento de los pacientes cuyas imágenes se publiquen.</li>
+  <li>Los datos de pacientes y turnos que se carguen en el sistema son de la Clienta, que es la responsable de esa base de datos en los términos de la Ley 25.326. Codexy accede a ellos solo cuando hace falta para prestar el servicio y guarda confidencialidad.</li>
+  <li>Mientras el servidor esté a su cargo, Codexy hace copias de respaldo de esos datos con una frecuencia <span class="dato c" contenteditable="true" spellcheck="false"></span>.</li>
+</ol>
+
+<h2>9. Titularidad</h2>
+<p>Hasta que se complete el pago, los sitios pertenecen a Codexy. Con el pago total, la Clienta tiene derecho a usar ambos sitios sin límite de tiempo y a recibir sus archivos. El sistema de turnos y el panel interno son un desarrollo de Codexy, que conserva el derecho de usar ese mismo sistema con otros clientes.</p>
+
+<h2>10. Responsabilidad</h2>
+<p>La responsabilidad de Codexy por cualquier reclamo vinculado a este contrato se limita al monto efectivamente pagado por la Clienta. Codexy no responde por ganancias dejadas de percibir ni por turnos no concretados.</p>
+
+<h2>11. Domicilios y jurisdicción</h2>
+<p>Las partes constituyen domicilio en los indicados al inicio. Ante cualquier diferencia se someten a los tribunales ordinarios de la ciudad de <span class="dato" contenteditable="true" spellcheck="false"></span>.</p>
+
+<p style="margin-top:3mm">Se firman dos ejemplares de un mismo tenor.</p>
+
+<div class="firmas">
+  <div class="firma"><canvas class="pad" id="f1" aria-label="Firma de Codexy"></canvas><button type="button" class="borrar nop" data-pad="f1">Borrar firma</button><b>Por Codexy</b><span class="dato" contenteditable="true" spellcheck="false" style="min-width:60mm"></span><br>Aclaración y DNI</div>
+  <div class="firma"><canvas class="pad" id="f2" aria-label="Firma de la Clienta"></canvas><button type="button" class="borrar nop" data-pad="f2">Borrar firma</button><b>La Clienta</b><span class="dato" contenteditable="true" spellcheck="false" style="min-width:60mm"></span><br>Aclaración y DNI</div>
+</div>
+<p class="nota" id="sello" style="margin-top:4mm"></p>
+
+<div class="barra nop">
+  <p>Completá los datos, firmá con el dedo o el mouse y descargá tu copia.</p>
+  <button type="button" id="bajar">Descargar PDF firmado</button>
+</div>
+
+<script>
+(function () {
+  var pads = {};
+  function preparar(id) {
+    var c = document.getElementById(id), ctx = c.getContext('2d'), dib = false, vacio = true;
+    function medir() {
+      var r = c.getBoundingClientRect(), d = Math.min(window.devicePixelRatio || 1, 3);
+      var img = vacio ? null : c.toDataURL();
+      c.width = Math.round(r.width * d); c.height = Math.round(r.height * d);
+      ctx.setTransform(d, 0, 0, d, 0, 0); ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#17121F';
+      if (img) { var i = new Image(); i.onload = function () { ctx.drawImage(i, 0, 0, r.width, r.height); }; i.src = img; }
+    }
+    function pos(e) { var r = c.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+    c.addEventListener('pointerdown', function (e) { e.preventDefault(); c.setPointerCapture(e.pointerId); dib = true; vacio = false; var p = pos(e); ctx.beginPath(); ctx.moveTo(p[0], p[1]); });
+    c.addEventListener('pointermove', function (e) { if (!dib) return; var p = pos(e); ctx.lineTo(p[0], p[1]); ctx.stroke(); });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (n) { c.addEventListener(n, function () { dib = false; }); });
+    pads[id] = { limpiar: function () { ctx.clearRect(0, 0, c.width, c.height); vacio = true; }, vacio: function () { return vacio; } };
+    medir();
+  }
+  preparar('f1'); preparar('f2');
+  document.querySelectorAll('.borrar').forEach(function (b) { b.addEventListener('click', function () { pads[b.dataset.pad].limpiar(); }); });
+  document.querySelectorAll('input[name=pago]').forEach(function (x) {
+    x.addEventListener('change', function () { if (x.checked) document.querySelectorAll('input[name=pago]').forEach(function (o) { if (o !== x) o.checked = false; }); });
+  });
+  document.getElementById('bajar').addEventListener('click', function () {
+    if (pads.f1.vacio() && pads.f2.vacio()) { alert('Falta la firma. Firmá en el recuadro antes de descargar.'); return; }
+    var a = new Date();
+    document.getElementById('sello').textContent = 'Firmado electrónicamente el ' + a.toLocaleDateString('es-AR') + ' a las ' + a.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) + ' h.';
+    window.print();
+  });
+})();
+</script>
+
+</body>
+</html>
