@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* Paleta pastel delicada — rosa empolvado malva + lavanda, calma terapéutica.
-     Los nombres se conservan por compatibilidad; los valores son la nueva identidad. */
-  --color-cream: #FBF7F7;       /* fondo base */
-  --color-cream-deep: #F4EBEC;  /* fondo de tarjetas / secciones */
-  --color-espresso: #3A3137;    /* texto principal (ciruela profundo, 11.8:1) */
-  --color-espresso-soft: #6B5E66; /* texto secundario */
-  --color-sage: #D9A7B8;        /* acento primario — rosa empolvado */
-  --color-sage-deep: #9C5475;   /* acento saturado para texto/detalle (AA) */
-  --color-clay: #C9B6D6;        /* acento secundario — lavanda */
-  --color-line: rgba(58, 49, 55, 0.1);
+  /* RS Odontología — verde petróleo del logo sobre papel claro.
+     Los nombres se conservan por compatibilidad con el panel. */
+  --color-cream: #F6F5F0;       /* fondo base */
+  --color-cream-deep: #E9ECE6;  /* fondo de tarjetas / secciones */
+  --color-espresso: #14272A;    /* texto principal */
+  --color-espresso-soft: #4C5F61; /* texto secundario */
+  --color-sage: #7FB0A8;        /* acento primario */
+  --color-sage-deep: #1E3A3D;   /* acento saturado para texto/detalle (AA) */
+  --color-clay: #C9D8D2;        /* acento secundario */
+  --color-line: rgba(20, 39, 42, 0.12);
 
   --font-sans: var(--font-sans);
   --font-serif: var(--font-serif);
@@ -19,7 +19,7 @@
 
   /* Sistema de sombras — coloreadas hacia el primary para coherencia pastel */
   --shadow-card: 0 24px 60px -36px rgba(58, 49, 55, 0.22);
-  --shadow-card-hover: 0 36px 80px -40px rgba(156, 84, 117, 0.28);
+  --shadow-card-hover: 0 36px 80px -40px rgba(30, 58, 61, 0.28);
   --shadow-float: 0 14px 44px -22px rgba(58, 49, 55, 0.3);
 }
 
@@ -35,11 +35,11 @@
 }
 
 body {
-  font-family: var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-sans), sans-serif;
 }
 
 .font-serif {
-  font-family: var(--font-serif), Georgia, serif;
+  font-family: var(--font-serif), var(--font-sans), sans-serif;
 }
 
 /* Sombra para texto sobre imágenes (hero) — lo despega del fondo */
@@ -230,7 +230,7 @@ body {
 /* ---- Botanical tint system: tiñe las acuarelas al rosa empolvado de la marca ---- */
 .botanic {
   filter: grayscale(0.5) sepia(0.45) saturate(1.4) hue-rotate(298deg)
-    brightness(1.05) drop-shadow(0 1px 1px rgba(156, 84, 117, 0.06));
+    brightness(1.05) drop-shadow(0 1px 1px rgba(30, 58, 61, 0.06));
   mix-blend-mode: multiply;
 }
 .botanic-on-dark {
@@ -334,10 +334,10 @@ details.faq > .faq-body > div {
   --a-border-strong: #CFC8BF; /* borde de inputs, un poco más marcado */
   --a-surface: #ffffff;       /* tarjetas */
   --a-surface-2: #F6F4F0;     /* sub-superficie cálida */
-  --a-accent: #8A4A66;        /* VINO — único acento (≈5.3:1) */
-  --a-accent-ink: #6F3A52;    /* vino más oscuro para texto sobre claro (≈7:1) */
-  --a-accent-soft: #F1E7EC;   /* fondo tenue del acento (chips/pestaña hover) */
-  --a-accent-on-dark: #E4B9CC; /* el mismo vino aclarado, para el sidebar oscuro */
+  --a-accent: #1F5C60;        /* verde petróleo RS — único acento */
+  --a-accent-ink: #1E3A3D;    /* el del logo, para texto sobre claro */
+  --a-accent-soft: #E3EEEC;   /* fondo tenue del acento (chips/pestaña hover) */
+  --a-accent-on-dark: #D4F26A; /* el rayo, para el sidebar oscuro */
   --a-ok: #2F6B4F;            /* verde del panel para "hecho/activo" (≈5.4:1).
                                  NO es el verde de WhatsApp: ese es el color de
                                  una marca ajena y sólo se usa en su botón. */
@@ -404,7 +404,7 @@ details.faq > .faq-body > div {
 /* Títulos del panel en SANS moderno y prolijo (el serif se sentía fuera de lugar
    en un dashboard). El wordmark de marca del sidebar conserva el serif, aparte. */
 .admin-shell main :is(h1, h2, h3) {
-  font-family: var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-sans), sans-serif;
   font-weight: 600;
   letter-spacing: -0.015em;
 }

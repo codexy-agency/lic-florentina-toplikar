@@ -83,7 +83,7 @@ Para cada cosa que ofrecés, cargá:
 
 | Campo | Qué poner | Por qué importa |
 |---|---|---|
-| **Nombre** | "Sesión individual", "Primera consulta", "Terapia de pareja" | Es exactamente lo que ve el paciente al reservar. |
+| **Nombre** | "Primera consulta", "Limpieza y control", "Blanqueamiento" | Es exactamente lo que ve el paciente al reservar. |
 | **Duración** | 50, 60, 90 minutos… | **Define el largo del turno en tu agenda.** Si ponés 50, los turnos ocupan 50 minutos. |
 | **Precio de referencia** | El monto en pesos | Es lo que se factura por ese turno en Finanzas. Después podés cobrar distinto en un caso puntual. |
 | **Descripción** | Una línea, opcional | Aparece abajo del nombre en la pantalla de reserva. |
@@ -105,7 +105,7 @@ después, y una pantalla de reserva con pocas opciones claras convierte mejor.
 
 1. **Foto.** Subila y listo: se recorta y se achica sola.
 2. **Nombre** como querés que te vean (ej.: "Lic. Ana Gómez").
-3. **Título o matrícula** (ej.: "Psicóloga · M.N. 12345").
+3. **Título o matrícula** (ej.: "Odontóloga · M.P. 12345").
 4. **Presentación:** dos o tres líneas sobre cómo trabajás. Escribilo como se lo
    dirías a alguien que te pregunta en persona, no como un CV.
 5. **Color del avatar:** elegí el que te guste, es solo estético.

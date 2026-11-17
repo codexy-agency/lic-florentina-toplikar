@@ -35,7 +35,7 @@ export function EditorMarca({ inicial }: { inicial: Marca }) {
             </label>
             <label className="block">
               <span className={label}>Título profesional</span>
-              <input name="titulo" value={titulo} onChange={(e) => setTitulo(e.target.value)} maxLength={80} placeholder="Psicóloga clínica" className={field} />
+              <input name="titulo" value={titulo} onChange={(e) => setTitulo(e.target.value)} maxLength={80} placeholder="Consultorio odontológico" className={field} />
             </label>
             <label className="block">
               <span className={label}>Matrícula</span>
@@ -59,7 +59,7 @@ export function EditorMarca({ inicial }: { inicial: Marca }) {
             </label>
             <label className="block">
               <span className={label}>Bajada</span>
-              <textarea name="heroSubtitulo" defaultValue={inicial.heroSubtitulo} maxLength={400} rows={2} placeholder="Terapia con respaldo científico para la ansiedad, el estrés y los momentos de cambio." className={`${field} resize-y`} />
+              <textarea name="heroSubtitulo" defaultValue={inicial.heroSubtitulo} maxLength={400} rows={2} placeholder="Odontología estética y rehabilitación oral. Sacá tu turno online." className={`${field} resize-y`} />
             </label>
             <label className="block">
               <span className={label}>Sobre vos</span>
@@ -198,7 +198,7 @@ export function EditorMarca({ inicial }: { inicial: Marca }) {
               {nombre || "Tu nombre"}
             </p>
             <p className="text-[12px] font-medium uppercase tracking-[0.14em]" style={{ color: paleta.acentoOscuro }}>
-              {titulo || "Psicóloga clínica"}
+              {titulo || "Consultorio odontológico"}
             </p>
             <p className="mt-4 text-[19px] leading-snug" style={{ color: paleta.texto }}>
               {heroTitulo || "Un espacio para cuidar tu salud mental."}

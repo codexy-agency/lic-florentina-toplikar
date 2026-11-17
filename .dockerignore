@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+.env*
+data
+capturas
+cerebro
+tests
+*.tsbuildinfo
+check*.js
+cf*.js
+capture.js
+herogif.js
+measure.js
+Dockerfile
+.dockerignore

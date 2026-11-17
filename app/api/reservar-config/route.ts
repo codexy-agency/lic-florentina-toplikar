@@ -37,7 +37,9 @@ export async function GET(req: Request) {
       // Es el profesional, no Codexy, y la ley pide identificarlo. Sólo se
       // exponen estos tres campos: ya son públicos en el sitio.
       nombre: m?.nombre ?? "",
-      titulo: m?.titulo ?? "",
+      // RS: el responsable se nombra por el consultorio ("RS Odontología"), sin
+      // anteponerle el rubro, para que el texto del consentimiento se lea bien.
+      titulo: "",
       email: m?.email ?? "",
     });
   } catch (e) {

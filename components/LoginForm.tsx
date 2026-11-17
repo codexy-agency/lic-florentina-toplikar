@@ -39,24 +39,24 @@ export function LoginForm({ marca }: { marca: MarcaLogin }) {
   return (
     <main className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden px-5 py-10">
       {/* Fondo: imagen del hero + filtro cálido (mismo lenguaje visual que el panel) */}
-      <div aria-hidden className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url(/hero/c1.jpg)" }} />
-      <div aria-hidden className="absolute inset-0 bg-gradient-to-br from-[#2a1f26]/88 via-[#3a2730]/82 to-[#17110f]/92" />
-      <div aria-hidden className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_-10%,rgba(235,196,210,0.14),transparent_55%)]" />
+      <div aria-hidden className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url(/rs/pasillo.webp)" }} />
+      <div aria-hidden className="absolute inset-0 bg-gradient-to-br from-[#0c1c1e]/90 via-[#142a2d]/84 to-[#0a1517]/94" />
+      <div aria-hidden className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_-10%,rgba(212,242,106,0.08),transparent_55%)]" />
 
       <div className="relative w-full max-w-[26rem]">
-        <div className="overflow-hidden rounded-[2rem] border border-white/15 bg-[#FBF8F2]/95 shadow-[0_44px_100px_-34px_rgba(0,0,0,0.65)] backdrop-blur-xl">
+        <div className="overflow-hidden rounded-[2rem] border border-white/15 bg-[#F6F5F0]/95 shadow-[0_44px_100px_-34px_rgba(0,0,0,0.65)] backdrop-blur-xl">
           {/* Acento superior */}
-          <div aria-hidden className="h-1.5 bg-gradient-to-r from-[#9C5475] via-[#B5708B] to-[#7E5A75]" />
+          <div aria-hidden className="h-1.5 bg-gradient-to-r from-[#1E3A3D] via-[#4F7F78] to-[#2C5458]" />
           <div className="p-8 sm:p-10">
             {/* Marca */}
             <div className="flex items-center gap-3">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#9C5475]/12 text-[16px] font-semibold tracking-tight text-[#7E5A75] ring-1 ring-[#9C5475]/15">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#1E3A3D]/12 text-[16px] font-semibold tracking-tight text-[#2C5458] ring-1 ring-[#1E3A3D]/15">
                 {marca.iniciales}
               </span>
               <div className="min-w-0">
                 <p className="truncate font-serif text-[19px] leading-tight tracking-tight text-espresso">
                   {marca.pila}
-                  {marca.apellido && <span className="italic text-sage-deep"> {marca.apellido}</span>}
+                  {marca.apellido && <span className="text-sage-deep"> {marca.apellido}</span>}
                 </p>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sage-deep">
                   Panel de gestión
@@ -134,7 +134,7 @@ export function LoginForm({ marca }: { marca: MarcaLogin }) {
               </label>
 
               {error && (
-                <p className="mt-3 flex items-center gap-2 rounded-xl bg-[#9C5475]/10 px-3.5 py-2.5 text-[13px] font-medium text-[#9C5475]">
+                <p className="mt-3 flex items-center gap-2 rounded-xl bg-[#1E3A3D]/10 px-3.5 py-2.5 text-[13px] font-medium text-[#1E3A3D]">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                     <circle cx="12" cy="12" r="9" /><path d="M12 8v4M12 16h.01" />
                   </svg>

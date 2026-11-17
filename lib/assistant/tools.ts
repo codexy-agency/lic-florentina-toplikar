@@ -594,7 +594,7 @@ export function buildSystemPrompt(): string {
     day: "numeric",
   });
   return [
-    "Sos el asistente del panel de gestión de un consultorio de psicología. Hablás en español rioplatense, cálido pero conciso.",
+    "Sos el asistente del panel de gestión de un consultorio odontológico. Hablás en español rioplatense, cálido pero conciso.",
     `Hoy es ${hoy} (hora de Argentina).`,
     "Podés CONSULTAR agenda, turnos, finanzas, pacientes y disponibilidad con las herramientas de lectura.",
     "Para ACCIONES que cambian datos (agendar, confirmar, registrar pago, bloquear día, cargar ingreso/gasto) usás las herramientas de escritura: NO se ejecutan solas — el panel le muestra a la usuaria una confirmación antes de aplicar. Proponé la acción cuando te la pidan.",

@@ -6,7 +6,7 @@ import { guardarProfesionales } from "@/app/admin/profesionales/actions";
 import { DeleteConfirm } from "@/components/DeleteConfirm";
 import type { Staff, Service } from "@/lib/scheduling/types";
 
-const COLORES = ["#9C5475", "#7c8a6f", "#C9A227", "#6E7BA6", "#B07154"];
+const COLORES = ["#1E3A3D", "#4F7F78", "#7c8a6f", "#C9A227", "#6E7BA6", "#B07154"];
 
 /** Lee una imagen, la recorta cuadrada y la achica a `size`px → data URL liviano.
  *  Todo en el navegador: no necesita storage ni servidor. */
@@ -185,7 +185,7 @@ export function ProfesionalesEditor({
                 <input
                   value={m.titulo ?? ""}
                   onChange={(e) => patch(i, { titulo: e.target.value })}
-                  placeholder="Psicóloga clínica · MP 0000"
+                  placeholder="Odontóloga · MP 0000"
                   aria-label="Título o matrícula"
                   className="mt-0.5 w-full rounded-md bg-transparent px-1.5 py-1.5 text-[13.5px] text-espresso-soft outline-none transition-colors placeholder:text-espresso-soft/45 hover:bg-[var(--a-surface-2)] focus:bg-[var(--a-surface-2)]"
                 />
@@ -231,7 +231,7 @@ export function ProfesionalesEditor({
                 <textarea
                   value={m.bio ?? ""}
                   onChange={(e) => patch(i, { bio: e.target.value })}
-                  placeholder="Enfoque y especialidad (ej. Terapia Cognitivo Conductual y ACT). Aparece en la reserva."
+                  placeholder="Especialidad (ej. Ortodoncia, implantes, estética dental). Aparece en la reserva."
                   aria-label="Bio o especialidad"
                   rows={3}
                   className="admin-input w-full resize-none px-3 py-2 text-[14px] leading-relaxed text-espresso"

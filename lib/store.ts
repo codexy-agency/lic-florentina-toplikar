@@ -24,7 +24,8 @@ import { cache } from "react";
 import { headers } from "next/headers";
 import { TENANT_HEADER, esMultiTenant, esTenantConocido } from "./tenant";
 import { avisarSinEsperar } from "./alertas";
-import { MARCA_DEFECTO, normalizarMarca, type Marca } from "./marca";
+import { normalizarMarca, type Marca } from "./marca";
+import { CONFIG_SEMILLA, MARCA_SEMILLA, REGLAS_SEMILLA, SERVICIOS_SEMILLA, STAFF_SEMILLA } from "./rs";
 
 export type { Service, Staff } from "./scheduling/types";
 
@@ -122,7 +123,10 @@ interface DB {
   marca: Marca;
 }
 
-const DB_PATH = path.join(process.cwd(), "data", "db.json");
+// Carpeta de datos del modo archivo. DATA_DIR permite apuntarla a un volumen
+// persistente (en el contenedor: /data). Sin la variable, ./data como siempre.
+const DATA_DIR = (process.env.DATA_DIR || "").trim() || path.join(process.cwd(), "data");
+const DB_PATH = path.join(DATA_DIR, "db.json");
 
 /** Consultorio recién creado.
  *
@@ -137,34 +141,22 @@ const DB_PATH = path.join(process.cwd(), "data", "db.json");
  *   - no hay ningún profesional cargado (ese es su nombre, no lo inventamos).
  */
 function emptyDB(): DB {
-  const svc = (nombre: string, descripcion: string) => ({
-    id: randomUUID(),
-    nombre,
-    durationMin: DEFAULT_CONFIG.slotDurationMin,
-    priceARS: undefined,
-    descripcion,
-    activo: true,
-  });
-
-  // Lunes a viernes de 9 a 13 y de 15 a 19, online. Es el horario más común de
-  // un consultorio y se cambia en dos clics desde Disponibilidad.
-  const franjas = [1, 2, 3, 4, 5].flatMap((weekday) => [
-    { id: randomUUID(), weekday, startTime: "09:00", endTime: "13:00", modalidad: "online" as const },
-    { id: randomUUID(), weekday, startTime: "15:00", endTime: "19:00", modalidad: "online" as const },
-  ]);
-
+  // RAMA odonto-rs: el consultorio arranca con los servicios, profesionales,
+  // horarios y marca de RS Odontología (lib/rs.ts), con ids FIJOS. Se copian
+  // para que ninguna mutación toque las constantes del módulo.
   return {
     solicitudes: [],
     pacientes: [],
     notasClinicas: [],
-    services: [
-      svc("Primera consulta", "Nos conocemos y vemos cómo puedo acompañarte."),
-      svc("Sesión individual", "Encuentro de seguimiento."),
-    ],
-    staff: [],
-    scheduling: { config: DEFAULT_CONFIG, rules: franjas, exceptions: [] },
+    services: SERVICIOS_SEMILLA.map((s) => ({ ...s })),
+    staff: STAFF_SEMILLA.map((s) => ({ ...s, serviceIds: [...s.serviceIds] })),
+    scheduling: {
+      config: { ...CONFIG_SEMILLA },
+      rules: REGLAS_SEMILLA.map((r) => ({ ...r })),
+      exceptions: [],
+    },
     movimientosManuales: [],
-    marca: MARCA_DEFECTO,
+    marca: { ...MARCA_SEMILLA, paleta: { ...MARCA_SEMILLA.paleta } },
   };
 }
 

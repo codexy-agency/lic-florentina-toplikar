@@ -105,11 +105,11 @@ Elegís el período arriba: **Este mes**, **Mes pasado**, **Este año** o **Hist
 | **Cobrado** | Plata que ya entró en el período (con la variación respecto del mes pasado). |
 | **Gastos** | Egresos que cargaste. |
 | **Neto** | Cobrado menos gastos. |
-| **Por cobrar** | Sesiones ya dadas y todavía impagas. |
+| **Por cobrar** | Turnos ya atendidos y todavía impagos. |
 | **Facturado** | Total de los turnos del período, cobrados o no. |
 | **Ticket promedio** | Cuánto rinde en promedio cada turno. |
 
-**Cobranza pendiente** agrupa por paciente las sesiones sin pagar del período: ves el total de cada uno, le escribís por WhatsApp con un toque y marcás cada sesión como pagada eligiendo el método.
+**Cobranza pendiente** agrupa por paciente los turnos sin pagar del período: ves el total de cada uno, le escribís por WhatsApp con un toque y marcás cada sesión como pagada eligiendo el método.
 
 Más abajo hay gráficos simples: evolución mes a mes (cobrado vs. facturado), por servicio, por método de pago y por profesional.
 
@@ -178,7 +178,7 @@ Los cambios de **horario** sí necesitan el botón **Guardar horarios** (la barr
 
 Un chat que entiende lenguaje común. Podés **escribir o dictar** (botón del micrófono).
 
-**Te consulta:** turnos de hoy, próximos turnos, solicitudes pendientes, resumen de finanzas, quién te debe, sesiones impagas, datos de un paciente y horarios libres.
+**Te consulta:** turnos de hoy, próximos turnos, solicitudes pendientes, resumen de finanzas, quién te debe, turnos impagos, datos de un paciente y horarios libres.
 
 **Y también hace cosas:** agendar un turno, confirmar una solicitud, registrar un pago, bloquear un día, cargar un ingreso o un gasto. Cuando propone una acción te muestra una tarjeta con el detalle y dos botones: **Confirmar** o **Cancelar**. Nada se ejecuta sin que vos toques Confirmar.
 

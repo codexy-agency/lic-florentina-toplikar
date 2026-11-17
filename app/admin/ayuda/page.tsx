@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
  *
  *  OPERACION.md queda AFUERA: es el runbook interno de Codexy (contiene el
  *  procedimiento de alta, las trampas conocidas y los incidentes). No es
- *  información del psicólogo. */
+ *  información del consultorio. */
 const GUIAS = [
   {
     archivo: "PRIMEROS-PASOS.md",

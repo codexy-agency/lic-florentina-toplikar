@@ -38,6 +38,10 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   // No anunciar el stack (reduce superficie de fingerprinting).
   poweredByHeader: false,
+  // Solo para la imagen de contenedor (Dockerfile): genera .next/standalone con
+  // el servidor y sus dependencias mínimas. En Vercel la variable no existe y el
+  // build es el de siempre.
+  output: process.env.NEXT_OUTPUT === "standalone" ? "standalone" : undefined,
   // /admin/ayuda lee las guías del usuario desde docs/guias/ en tiempo de
   // ejecución. Sin esto, el trazado de dependencias no las incluye en el bundle
   // serverless y la página se ve vacía en producción (local anda igual, que es la

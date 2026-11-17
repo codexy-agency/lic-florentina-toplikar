@@ -1,21 +1,27 @@
 import type { Metadata } from "next";
-import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { headers } from "next/headers";
 import { getMarca } from "@/lib/store";
 import { baseDePlataforma, baseDelRequest } from "@/lib/sitio";
-import { cssDeMarca, nombreMostrable, type Marca } from "@/lib/marca";
+import { cssDeMarca, type Marca } from "@/lib/marca";
+import { RS } from "@/lib/rs";
 
-const fraunces = Fraunces({
-  variable: "--font-serif",
-  subsets: ["latin"],
+// Tipografías AUTOALOJADAS (app/fonts, licencia OFL): no se pide nada a Google.
+// Bricolage Grotesque para títulos (variable en peso y ancho: los titulares van
+// condensados) y Schibsted Grotesk para el texto.
+const display = localFont({
+  src: "./fonts/bricolage-grotesque.woff2",
+  variable: "--font-serif", // el panel usa esta variable para sus títulos
+  weight: "200 800",
   display: "swap",
-  axes: ["opsz", "SOFT", "WONK"],
+  declarations: [{ prop: "font-stretch", value: "75% 100%" }],
 });
 
-const jakarta = Plus_Jakarta_Sans({
+const texto = localFont({
+  src: "./fonts/schibsted-grotesk.woff2",
   variable: "--font-sans",
-  subsets: ["latin"],
+  weight: "400 900",
   display: "swap",
 });
 
@@ -30,8 +36,8 @@ async function baseDelSitio(m: Marca | null): Promise<string> {
   }
 }
 
-/** Metadatos POR CONSULTORIO: el titulo del navegador, el SEO y las tarjetas al
- *  compartir el link salen de la marca que cada psicologo configura en el panel. */
+/** Metadatos del consultorio. El nombre y la bajada salen de la marca (editable
+ *  desde el panel); la dirección y los horarios, de lib/rs.ts. */
 export async function generateMetadata(): Promise<Metadata> {
   let m;
   try {
@@ -39,16 +45,12 @@ export async function generateMetadata(): Promise<Metadata> {
   } catch {
     m = null;
   }
-  const nombre = m && m.nombre ? m.nombre : "Consultorio de psicología";
-  const titulo = m && m.titulo ? m.titulo : "Psicología clínica";
-  const ciudad = m && m.ciudad ? m.ciudad : "";
+  const nombre = m?.nombre || RS.nombre;
   const base = await baseDelSitio(m);
-  const tituloCompleto = ciudad
-    ? `${nombre} | ${titulo} en ${ciudad} y online`
-    : `${nombre} | ${titulo}`;
+  const tituloCompleto = `${nombre} | ${RS.especialidad} en ${RS.ciudad}`;
   const descripcion =
-    (m && m.heroSubtitulo) ||
-    `${titulo}${ciudad ? ` en ${ciudad}` : ""} y online. Reservá tu turno en línea.`;
+    m?.heroSubtitulo ||
+    `${RS.especialidad} en ${RS.direccion}, ${RS.ciudad}. Sacá tu turno online.`;
   return {
     metadataBase: new URL(base),
     title: { default: tituloCompleto, template: `%s | ${nombre}` },
@@ -68,33 +70,32 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-/** Datos estructurados (Google) DE ESTE consultorio.
- *  Estaban hardcodeados: cada suscriptor publicaba el nombre, la ciudad y el
- *  Instagram de otra profesional, que además es lo que Google indexa. */
+/** Datos estructurados (Google): consultorio odontológico, con lo que publican. */
 function jsonLdDe(m: Marca | null, url: string) {
-  const nombre = m?.nombre || "Consultorio de psicología";
-  const titulo = m?.titulo || "";
-  const ciudad = m?.ciudad || "";
-  const ig = m?.instagram?.trim();
-
   return {
     "@context": "https://schema.org",
-    "@type": "Psychologist",
-    name: [titulo, nombre].filter(Boolean).join(" "),
-    description:
-      m?.heroSubtitulo ||
-      `Psicología clínica${ciudad ? ` en ${ciudad}` : ""} y atención online.`,
+    "@type": "Dentist",
+    name: m?.nombre || RS.nombre,
+    description: `${RS.especialidad} en ${RS.ciudad}.`,
     url,
-    priceRange: "$$",
-    knowsLanguage: "es",
-    areaServed: [
-      ...(ciudad ? [{ "@type": "City", name: ciudad }] : []),
-      { "@type": "Place", name: "Atención online" },
+    telephone: `+${RS.whatsapp}`,
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: RS.direccion,
+      addressLocality: RS.ciudad,
+      addressRegion: RS.provincia,
+      addressCountry: "AR",
+    },
+    openingHoursSpecification: [
+      {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        opens: "08:30",
+        closes: "20:00",
+      },
+      { "@type": "OpeningHoursSpecification", dayOfWeek: "Saturday", opens: "09:30", closes: "12:00" },
     ],
-    ...(ciudad ? { address: { "@type": "PostalAddress", addressLocality: ciudad } } : {}),
-    ...(ig
-      ? { sameAs: [ig.startsWith("http") ? ig : `https://www.instagram.com/${ig.replace(/^@/, "")}/`] }
-      : {}),
+    sameAs: [`https://www.instagram.com/${RS.instagram}/`],
   };
 }
 
@@ -115,8 +116,8 @@ export default async function RootLayout({
   const base = await baseDelSitio(marca);
   return (
     <html
-      lang="es"
-      className={`${fraunces.variable} ${jakarta.variable} h-full antialiased`}
+      lang="es-AR"
+      className={`${display.variable} ${texto.variable} h-full antialiased`}
     >
       <head>
         <script
@@ -126,7 +127,7 @@ export default async function RootLayout({
         {/* Paleta del consultorio: pisa los tokens por defecto. */}
         {css && <style dangerouslySetInnerHTML={{ __html: css }} />}
       </head>
-      <body className="min-h-full flex flex-col bg-[#FBF8F2] text-[#2B2722]">
+      <body className="min-h-full flex flex-col bg-cream text-espresso">
         {children}
       </body>
     </html>

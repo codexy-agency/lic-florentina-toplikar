@@ -133,7 +133,8 @@ function normalizar(raw: Partial<AuthDB> | null | undefined): AuthDB {
 export const normalizarEmail = (e: string) => (e || "").trim().toLowerCase();
 
 // ───────────────────────────── Modo ARCHIVO ─────────────────────────────
-const AUTH_PATH = path.join(process.cwd(), "data", "auth.json");
+// Misma carpeta que lib/store.ts: DATA_DIR si está definida (volumen), si no ./data.
+const AUTH_PATH = path.join((process.env.DATA_DIR || "").trim() || path.join(process.cwd(), "data"), "auth.json");
 
 async function fileRead(): Promise<AuthDB> {
   try {

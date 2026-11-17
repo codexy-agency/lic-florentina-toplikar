@@ -6,6 +6,7 @@ import { textoConsentimiento } from "@/lib/consentimiento";
 import { horaAR } from "@/lib/scheduling/slots";
 import { Arrow, ArrowLeft } from "./Arrow";
 import type { DaySlots, Slot, Modalidad, Service, Staff } from "@/lib/scheduling/types";
+import { IconoTratamiento, type TratamientoId } from "@/components/rs/IconoTratamiento";
 
 /**
  * Reserva NATIVA por pasos (estilo Calendly/Lumière):
@@ -30,7 +31,35 @@ function iniciales(nombre: string) {
 // Identidad visual por servicio: cada tarjeta recibe un color de acento y un
 // ícono representativo, derivados del nombre (con índice como respaldo) para que
 // se distingan de un vistazo SIN configurar nada por tenant.
-const SVC_ACCENTS = ["#7C8A6F", "#9C5475", "#B0846A", "#5F7A8C", "#8E7CA8", "#A8746A"];
+// Ícono del set de RS para cada servicio: primero por id de la semilla, y si el
+// consultorio creó uno nuevo desde el panel, por lo que diga el nombre.
+const ICONO_POR_ID: Record<string, TratamientoId> = {
+  "rs-consulta": "consulta",
+  "rs-limpieza": "limpieza",
+  "rs-blanqueamiento": "blanqueamiento",
+  "rs-carillas": "carillas",
+  "rs-ortodoncia": "ortodoncia",
+  "rs-implantes": "implantes",
+  "rs-ninos": "ninos",
+  "rs-urgencia": "bruxismo",
+};
+function iconoDeServicio(id: string, nombre: string): TratamientoId {
+  if (ICONO_POR_ID[id]) return ICONO_POR_ID[id];
+  const n = nombre.toLowerCase();
+  if (/blanque/.test(n)) return "blanqueamiento";
+  if (/carilla|est[eé]tic/.test(n)) return "carillas";
+  if (/limpieza|control|profilaxis/.test(n)) return "limpieza";
+  if (/ortodon|bracket|alinead/.test(n)) return "ortodoncia";
+  if (/implant/.test(n)) return "implantes";
+  if (/pr[oó]tesis|corona|puente|rehabil/.test(n)) return "protesis";
+  if (/cirug|extrac|juicio/.test(n)) return "cirugia";
+  if (/ni[ñn]|pediatr|infan/.test(n)) return "ninos";
+  if (/brux|dolor|urgenc/.test(n)) return "bruxismo";
+  if (/sensib/.test(n)) return "sensibilidad";
+  return "consulta";
+}
+
+const SVC_ACCENTS = ["#1E3A3D", "#4F7F78", "#2C5458", "#6B8F5E", "#3F6E7A", "#56736F"];
 function serviceVisual(nombre: string, i: number): { color: string; icon: ReactNode } {
   const n = nombre.toLowerCase();
   const color = SVC_ACCENTS[i % SVC_ACCENTS.length];
@@ -51,8 +80,8 @@ function serviceVisual(nombre: string, i: number): { color: string; icon: ReactN
     // Persona → sesión individual
     icon = <><circle cx="12" cy="8" r="3.2" /><path d="M5.5 20a6.5 6.5 0 0 1 13 0" /></>;
   } else {
-    // Corazón con latido → cuidado / bienestar (genérico)
-    icon = <><path d="M12 20s-6.4-4-8.9-8.1C1.4 9 3 5.9 6.1 5.9c1.8 0 3 1 3.9 2.1.9-1.1 2.1-2.1 3.9-2.1 2.4 0 3.9 1.9 3.7 4.1" /><path d="M13.5 14.5h2.3l1.3 2.4 2.1-5 1.3 2.6H23" /></>;
+    // Muela (genérico del consultorio)
+    icon = <path d="M8.2 3.5c-2.6 0-4.4 2-4.4 4.6 0 2 .8 3.4 1.2 5.3.4 2 .5 6.1 2.2 6.1 1.5 0 1.3-4.4 2.9-4.4h3.8c1.6 0 1.4 4.4 2.9 4.4 1.7 0 1.8-4.100 2.2-6.1.4-1.900 1.2-3.3 1.2-5.3 0-2.600-1.800-4.600-4.400-4.600-1.600 0-2.500.900-3.800.900s-2.200-.900-3.800-.900Z" />;
   }
   return { color, icon };
 }
@@ -72,7 +101,7 @@ export function TurnoForm() {
   const [member, setMember] = useState<Staff | null>(null);
   const [skipStaff, setSkipStaff] = useState(false);
 
-  const [modalidad, setModalidad] = useState<Modalidad>("online");
+  const [modalidad] = useState<Modalidad>("presencial"); // RS atiende solo en consultorio
   const [dias, setDias] = useState<DaySlots[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [diaSel, setDiaSel] = useState<string | null>(null);
@@ -114,7 +143,7 @@ export function TurnoForm() {
     const staffId = staff.find((s) => s.serviceIds.includes(svc.id))?.id;
     (async () => {
       try {
-        const q = new URLSearchParams({ modalidad: "online", serviceId: svc.id });
+        const q = new URLSearchParams({ modalidad: "presencial", serviceId: svc.id });
         if (staffId) q.set("staffId", staffId);
         const r = await fetch(`/api/slots?${q}`, { cache: "no-store" });
         const d = await r.json();
@@ -174,7 +203,12 @@ export function TurnoForm() {
   }
 
   useEffect(() => {
-    if (step === 3 && service && member) loadSlots();
+    if (!(step === 3 && service && member)) return;
+    // En el próximo tick: loadSlots arranca con un setState, y llamarlo de forma
+    // síncrona dentro del efecto dispara un render en cascada. El timer además
+    // descarta la carga si el paso cambió antes de empezar.
+    const t = setTimeout(loadSlots, 0);
+    return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, modalidad, service?.id, member?.id]);
 
@@ -269,8 +303,8 @@ export function TurnoForm() {
             ¡Turno reservado!
           </h3>
           <p className="mt-3 max-w-sm leading-relaxed text-espresso-soft">
-            {service?.nombre} con {member?.nombre}. Te confirmamos al contacto que
-            dejaste, normalmente dentro de las 24 horas.
+            {service?.nombre} con {member?.nombre}. El consultorio te
+            confirma el turno al contacto que dejaste.
           </p>
           <button
             onClick={() => {
@@ -292,24 +326,17 @@ export function TurnoForm() {
   return (
     <Shell>
       <div className="min-w-0 p-6 md:p-8">
-        {/* Encabezado "en vivo": deja claro que es un reservador funcional. */}
-        <div className="mb-5 flex items-center gap-2.5">
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sage/50" />
-            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-sage-deep" />
-          </span>
-          <span className="text-[12px] font-medium uppercase tracking-[0.16em] text-sage-deep">
-            Reservá en línea ahora
-          </span>
-        </div>
-
         {/* Progreso — visible y sin desbordar en mobile (labels truncan) */}
         <ol className="mb-6 flex items-center gap-1.5">
           {pasos.map((p, i) => {
             const done = step > p.n;
             const active = step === p.n;
             return (
-              <li key={p.label} className="flex min-w-0 flex-1 items-center gap-2">
+              <li
+                key={p.label}
+                aria-current={active ? "step" : undefined}
+                className={`flex min-w-0 items-center gap-2 sm:flex-1 ${active ? "flex-1" : "flex-none"}`}
+              >
                 <span
                   className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-medium transition-colors ${
                     active
@@ -322,8 +349,8 @@ export function TurnoForm() {
                   {done ? <IconoCheck size={13} /> : i + 1}
                 </span>
                 <span
-                  className={`truncate text-[11px] font-medium uppercase tracking-[0.06em] ${
-                    active ? "text-espresso" : "text-espresso-soft/70"
+                  className={`truncate text-[12px] font-semibold ${
+                    active ? "text-espresso" : "hidden text-espresso-soft sm:inline"
                   }`}
                 >
                   {p.label}
@@ -369,7 +396,7 @@ export function TurnoForm() {
                     </span>
                   </div>
                 )}
-                <H>Elegí el servicio</H>
+                <H>¿Por qué venís?</H>
                 {services.map((s, i) => {
                   const v = serviceVisual(s.nombre, i);
                   return (
@@ -383,21 +410,14 @@ export function TurnoForm() {
                       <span aria-hidden className="absolute inset-y-0 left-0 w-1 bg-[var(--svc)] opacity-70 transition-opacity duration-300 group-hover:opacity-100" />
                       {/* Ícono representativo */}
                       <span
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-105"
-                        style={{ backgroundColor: `${v.color}1A`, color: v.color }}
+                        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[15px] border border-[var(--color-line)] bg-white text-sage-deep shadow-[inset_0_-2px_0_rgba(20,39,42,0.07),0_8px_16px_-10px_rgba(20,39,42,0.4)] transition-transform duration-300 group-hover:scale-105"
+                        style={{ "--volt": "#d4f26a" } as CSSProperties}
                       >
-                        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                          {v.icon}
-                        </svg>
+                        <IconoTratamiento id={iconoDeServicio(s.id, s.nombre)} className="h-8 w-8" />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                           <span className="font-medium text-espresso">{s.nombre}</span>
-                          {i === 0 && (
-                            <span className="rounded-full bg-sage/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-sage-deep">
-                              Más elegida
-                            </span>
-                          )}
                         </span>
                         {s.descripcion && (
                           <span className="mt-0.5 block text-[13px] leading-snug text-espresso-soft">
@@ -405,10 +425,12 @@ export function TurnoForm() {
                           </span>
                         )}
                         <span className="mt-1.5 inline-flex items-center gap-2 text-[13px]">
-                          <span className="font-semibold tabular-nums text-espresso">
-                            {precio(s.priceARS) ?? "A coordinar"}
-                          </span>
-                          <span className="text-espresso-soft/50">·</span>
+                          {precio(s.priceARS) && (
+                            <>
+                              <span className="font-semibold tabular-nums text-espresso">{precio(s.priceARS)}</span>
+                              <span className="text-espresso-soft/50">·</span>
+                            </>
+                          )}
                           <span className="text-espresso-soft">{s.durationMin} min</span>
                         </span>
                       </span>
@@ -422,7 +444,7 @@ export function TurnoForm() {
                   <svg className="h-4 w-4 shrink-0 text-sage-deep" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="4" y="11" width="16" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" />
                   </svg>
-                  Sin pago online · Te confirmo personalmente en menos de 24 h.
+                  Sin pago online. El consultorio te confirma el turno.
                 </p>
               </div>
             )}
@@ -469,36 +491,12 @@ export function TurnoForm() {
                   </span>
                 </div>
 
-                {/* Modalidad */}
-                <span className="mb-2 block text-[12px] font-medium uppercase tracking-[0.14em] text-sage-deep">
-                  Modalidad
-                </span>
-                <div className="mb-5 flex flex-wrap gap-3">
-                  {([
-                    { v: "online", l: "Online" },
-                    { v: "presencial", l: ciudad ? `Presencial en ${ciudad}` : "Presencial" },
-                  ] as const).map((m) => (
-                    <button
-                      key={m.v}
-                      onClick={() => setModalidad(m.v)}
-                      className={`rounded-full border px-5 py-2.5 text-[14px] font-medium transition-all duration-300 ${
-                        modalidad === m.v
-                          ? "border-sage bg-sage/15 text-espresso"
-                          : "border-[var(--color-line)] bg-cream text-espresso-soft hover:border-sage/40"
-                      }`}
-                    >
-                      {m.l}
-                    </button>
-                  ))}
-                </div>
-
                 <H>Elegí día y horario</H>
                 {loadingSlots ? (
                   <P>Buscando horarios disponibles…</P>
                 ) : dias.length === 0 ? (
                   <P>
-                    No hay horarios libres en esta modalidad por ahora. Probá la otra
-                    modalidad o escribinos por WhatsApp.
+                    No hay horarios libres por ahora. Escribinos por WhatsApp y lo coordinamos.
                   </P>
                 ) : (
                   <>
@@ -556,7 +554,7 @@ export function TurnoForm() {
                   <p className="font-medium text-espresso">{service.nombre}</p>
                   <p className="mt-0.5 text-espresso-soft">
                     {member.nombre} · {dia?.label} · {horaAR(slot.startsAt)} hs ·{" "}
-                    {modalidad === "online" ? "Online" : "Presencial"}
+                    {ciudad ? `En el consultorio, ${ciudad}` : "En el consultorio"}
                   </p>
                 </div>
 
@@ -584,7 +582,7 @@ export function TurnoForm() {
                   <span className="mb-1.5 block text-[12px] font-medium uppercase tracking-[0.14em] text-sage-deep">
                     Motivo <span className="normal-case text-espresso-soft/60">(opcional)</span>
                   </span>
-                  <textarea name="motivo" rows={3} placeholder="Contanos brevemente qué te gustaría trabajar" className={`${field} resize-none`} />
+                  <textarea name="motivo" rows={3} placeholder="Contanos qué te pasa o qué querés hacerte" className={`${field} resize-none`} />
                 </label>
 
                 {/* CONSENTIMIENTO. Obligatorio: el motivo de consulta es un dato
@@ -623,7 +621,7 @@ export function TurnoForm() {
                 </div>
 
                 {error && (
-                  <p className="mt-4 rounded-xl bg-[#9C5475]/10 px-4 py-3 text-[14px] text-[#9C5475]">
+                  <p className="mt-4 rounded-xl bg-[#A33A2A]/10 px-4 py-3 text-[14px] text-[#8A2E20]">
                     {error}
                   </p>
                 )}
@@ -642,7 +640,7 @@ export function TurnoForm() {
             )}
 
             {error && step === 3 && (
-              <p className="mt-4 rounded-xl bg-[#9C5475]/10 px-4 py-3 text-[14px] text-[#9C5475]">
+              <p className="mt-4 rounded-xl bg-[#A33A2A]/10 px-4 py-3 text-[14px] text-[#8A2E20]">
                 {error}
               </p>
             )}

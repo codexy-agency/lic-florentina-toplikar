@@ -88,7 +88,7 @@ const hash = await hashPassword(password);
 const ahora = new Date().toISOString();
 
 // ── Escribir en data/auth.json (modo archivo) ──
-const AUTH = path.join(process.cwd(), "data", "auth.json");
+const AUTH = path.join((process.env.DATA_DIR || "").trim() || path.join(process.cwd(), "data"), "auth.json");
 let db = { users: [], credentials: {}, memberships: [], sesiones: [], throttle: {}, audit: [] };
 try {
   db = { ...db, ...JSON.parse(await readFile(AUTH, "utf8")) };

@@ -12,6 +12,7 @@
     "cuenta:crear": "node scripts/crear-cuenta.mjs"
   },
   "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
     "@splinetool/react-spline": "^4.1.0",
     "@splinetool/runtime": "^1.12.97",
     "@supabase/ssr": "^0.12.0",

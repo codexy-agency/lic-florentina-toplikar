@@ -90,7 +90,7 @@ function Brand({ marca }: { marca: MarcaSidebar }) {
     <Link href="/admin" className="block">
       <p className="font-serif text-xl tracking-tight text-cream">
         {marca.pila}
-        {marca.apellido && <span className="italic text-[var(--a-accent-on-dark)]"> {marca.apellido}</span>}
+        {marca.apellido && <span className="text-[var(--a-accent-on-dark)]"> {marca.apellido}</span>}
       </p>
       <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-cream/55">
         Panel de gestión
@@ -106,11 +106,11 @@ function Fondo() {
       <div
         aria-hidden
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: "url(/hero/c1.jpg)" }}
+        style={{ backgroundImage: "url(/rs/pasillo.webp)" }}
       />
       <div
         aria-hidden
-        className="absolute inset-0 bg-gradient-to-b from-[#2a1f26]/68 via-[#2c2026]/74 to-[#1b1418]/88"
+        className="absolute inset-0 bg-gradient-to-b from-[#142a2d]/80 via-[#12262a]/84 to-[#0c1c1e]/92"
       />
       {/* Refuerzo de legibilidad sólo detrás del texto (izquierda), dejando ver
           más la imagen sin perder contraste. */}

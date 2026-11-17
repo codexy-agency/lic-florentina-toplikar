@@ -197,7 +197,7 @@ export function DisponibilidadEditor({
                     // Cada franja agrupada en su propia caja (mobile) para que se vea
                     // sin ambigüedad qué rango horario va con qué modalidad.
                     const modColor =
-                      f.modalidad === "presencial" ? "#9C5475" : "#5F7A8C";
+                      f.modalidad === "presencial" ? "#1F5C60" : "#5F7A8C";
                     return (
                       <div
                         key={idx}

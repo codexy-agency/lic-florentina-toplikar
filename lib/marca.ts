@@ -22,7 +22,7 @@ export interface PaletaMarca {
 export interface Marca {
   /** "Paulina Pilotti" — se muestra en el sitio, el panel y los metadatos. */
   nombre: string;
-  /** "Psicóloga clínica" */
+  /** "Consultorio odontológico" */
   titulo: string;
   /** "MP 7321" */
   matricula: string;
@@ -60,7 +60,7 @@ export const PALETA_DEFECTO: PaletaMarca = {
   texto: "#3A3137",
 };
 
-/** Paletas listas para elegir, pensadas para consultorios de psicología. */
+/** Paletas listas para elegir, pensadas para consultorios de salud. */
 export const PALETAS: { id: string; nombre: string; paleta: PaletaMarca }[] = [
   { id: "botanica", nombre: "Botánica (rosa empolvado)", paleta: PALETA_DEFECTO },
   {
@@ -92,7 +92,7 @@ export const PALETAS: { id: string; nombre: string; paleta: PaletaMarca }[] = [
 
 export const MARCA_DEFECTO: Marca = {
   nombre: "",
-  titulo: "Psicóloga clínica",
+  titulo: "Consultorio odontológico",
   matricula: "",
   ciudad: "",
   heroTitulo: "",

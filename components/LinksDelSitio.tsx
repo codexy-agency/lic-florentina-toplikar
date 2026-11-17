@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { IconoAbrir, IconoCheck, IconoCopiar } from "@/components/iconos";
 
-/** Los dos links que el psicólogo comparte: su sitio y la reserva directa.
+/** Los dos links que el consultorio comparte: su sitio y la reserva directa.
  *  Se arman en el cliente a partir del host real, así funcionan igual en el
  *  subdominio de la plataforma y en un dominio propio. */
 export function LinksDelSitio({ dominio }: { dominio?: string }) {
