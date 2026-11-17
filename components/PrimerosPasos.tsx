@@ -28,18 +28,11 @@ export function PrimerosPasos({
 
   const pasos = [
     {
-      hecho: !!marca.nombre,
-      titulo: "Poné tu nombre y tus datos",
-      detalle: "Tu sitio y tu panel muestran tu nombre, tu título y tu matrícula.",
-      href: "/admin/marca",
-      accion: "Completar mis datos",
-    },
-    {
       hecho: staff.filter((p) => p.activo && p.nombre.trim()).length > 0,
-      titulo: "Cargate como profesional",
+      titulo: "Cargá las profesionales",
       detalle: "Es quien aparece cuando alguien elige con quién quiere el turno.",
       href: "/admin/profesionales",
-      accion: "Agregarme",
+      accion: "Ver profesionales",
     },
     {
       hecho: conPrecio.length > 0,
@@ -53,16 +46,9 @@ export function PrimerosPasos({
     {
       hecho: reglas > 0,
       titulo: "Revisá tus horarios",
-      detalle: "Te dejamos lunes a viernes de 9 a 13 y de 15 a 19. Ajustalo a los tuyos.",
+      detalle: "Están cargados lunes a viernes de 8:30 a 20 y sábados de 9:30 a 12. Ajustalos si cambian.",
       href: "/admin/disponibilidad",
       accion: "Ver horarios",
-    },
-    {
-      hecho: !!marca.whatsapp,
-      titulo: "Sumá tu WhatsApp",
-      detalle: "Sin esto, tu sitio no muestra el botón para que te escriban.",
-      href: "/admin/marca",
-      accion: "Agregar WhatsApp",
     },
     {
       hecho: huboReserva,
@@ -102,7 +88,7 @@ export function PrimerosPasos({
             Primeros pasos
           </h2>
           <p className="admin-muted mt-1 text-[13px]">
-            Cinco minutos y tu sitio queda listo para recibir pacientes.
+            Lo que falta para que la agenda quede lista.
           </p>
         </div>
         <span className="admin-chip rounded-full px-3 py-1 text-[12.5px] font-semibold tabular-nums">

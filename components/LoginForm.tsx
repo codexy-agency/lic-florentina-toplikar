@@ -48,15 +48,13 @@ export function LoginForm({ marca }: { marca: MarcaLogin }) {
           {/* Acento superior */}
           <div aria-hidden className="h-1.5 bg-gradient-to-r from-[#1E3A3D] via-[#4F7F78] to-[#2C5458]" />
           <div className="p-8 sm:p-10">
-            {/* Marca */}
-            <div className="flex items-center gap-3">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#1E3A3D]/12 text-[16px] font-semibold tracking-tight text-[#2C5458] ring-1 ring-[#1E3A3D]/15">
-                {marca.iniciales}
-              </span>
+            {/* Marca: el logo real sobre su verde */}
+            <div className="flex items-center gap-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/rs/icono-192.png" alt="" width={192} height={192} className="h-14 w-14 shrink-0 rounded-[18px] shadow-[0_10px_22px_-10px_rgba(20,42,45,0.7)]" />
               <div className="min-w-0">
-                <p className="truncate font-serif text-[19px] leading-tight tracking-tight text-espresso">
-                  {marca.pila}
-                  {marca.apellido && <span className="text-sage-deep"> {marca.apellido}</span>}
+                <p className="truncate font-serif text-[21px] font-semibold leading-tight tracking-tight text-espresso">
+                  {[marca.pila, marca.apellido].filter(Boolean).join(" ")}
                 </p>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sage-deep">
                   Panel de gestión

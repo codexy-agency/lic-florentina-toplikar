@@ -16,15 +16,6 @@ const I = (d: string) => (
 const NAV: Item[] = [
   { href: "/admin", label: "Agenda", icon: I("M3 4h18v18H3zM3 10h18M16 2v4M8 2v4") },
   {
-    href: "/admin/asistente",
-    label: "Asistente",
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 3v3M12 18v3M3 12h3M18 12h3" /><circle cx="12" cy="12" r="3.5" />
-      </svg>
-    ),
-  },
-  {
     href: "/admin/pacientes",
     label: "Pacientes",
     icon: (
@@ -41,15 +32,6 @@ const NAV: Item[] = [
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/marca",
-    label: "Mi sitio",
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" />
       </svg>
     ),
   },
@@ -71,6 +53,15 @@ const NAV: Item[] = [
       </svg>
     ),
   },
+  {
+    href: "/admin/marca",
+    label: "Enlaces del sitio",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M10 13a5 5 0 0 0 7.500.500l3-3a5 5 0 0 0-7-7l-1.500 1.500" /><path d="M14 11a5 5 0 0 0-7.500-.500l-3 3a5 5 0 0 0 7 7L12 19" />
+      </svg>
+    ),
+  },
 ];
 
 function isActive(path: string, href: string) {
@@ -85,14 +76,12 @@ export interface MarcaSidebar {
   iniciales: string;
 }
 
-function Brand({ marca }: { marca: MarcaSidebar }) {
+function Brand() {
   return (
-    <Link href="/admin" className="block">
-      <p className="font-serif text-xl tracking-tight text-cream">
-        {marca.pila}
-        {marca.apellido && <span className="text-[var(--a-accent-on-dark)]"> {marca.apellido}</span>}
-      </p>
-      <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-cream/55">
+    <Link href="/admin" className="block" aria-label="RS Odontología, inicio del panel">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/rs/logo-blanco.png" alt="RS Odontología" width={1045} height={513} className="h-auto w-[150px]" />
+      <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cream/55">
         Panel de gestión
       </p>
     </Link>
@@ -178,21 +167,6 @@ export function AdminSidebar({ marca, deCodexy }: { marca: MarcaSidebar; deCodex
 
   const footer = (
     <div className="space-y-1 border-t border-white/10 pt-4">
-      <Link
-        href="/admin/plan"
-        className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[14px] font-medium transition-colors ${
-          isActive(path, "/admin/plan")
-            ? "bg-white/[0.14] text-cream"
-            : "text-cream/70 hover:bg-white/[0.08] hover:text-cream"
-        }`}
-      >
-        <span className={isActive(path, "/admin/plan") ? "text-[var(--a-accent-on-dark)]" : "text-cream/55"}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" />
-          </svg>
-        </span>
-        Mi plan
-      </Link>
       {/* Sólo para el equipo de Codexy. El servidor decide: acá no se puede
           forzar mostrándolo desde el cliente, la página tiene su propia puerta. */}
       {deCodexy && (
@@ -212,21 +186,6 @@ export function AdminSidebar({ marca, deCodexy }: { marca: MarcaSidebar; deCodex
           Codexy
         </Link>
       )}
-      <Link
-        href="/admin/cuenta"
-        className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[14px] font-medium transition-colors ${
-          isActive(path, "/admin/cuenta")
-            ? "bg-white/[0.14] text-cream"
-            : "text-cream/70 hover:bg-white/[0.08] hover:text-cream"
-        }`}
-      >
-        <span className={isActive(path, "/admin/cuenta") ? "text-[var(--a-accent-on-dark)]" : "text-cream/55"}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" />
-          </svg>
-        </span>
-        Mi cuenta
-      </Link>
       <Link
         href="/admin/ayuda"
         className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[14px] font-medium transition-colors ${
@@ -291,12 +250,9 @@ export function AdminSidebar({ marca, deCodexy }: { marca: MarcaSidebar; deCodex
             {current}
           </p>
         </div>
-        <Link
-          href="/admin"
-          aria-label="Inicio del panel"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--a-accent-soft)] text-[13px] font-semibold tracking-tight text-[var(--a-accent-ink)]"
-        >
-          {marca.iniciales}
+        <Link href="/admin" aria-label="RS Odontología, inicio del panel" className="shrink-0">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/rs/icono-192.png" alt="" width={192} height={192} className="h-10 w-10 rounded-[12px]" />
         </Link>
       </header>
 
@@ -319,7 +275,7 @@ export function AdminSidebar({ marca, deCodexy }: { marca: MarcaSidebar; deCodex
         <div className="relative flex h-full flex-col gap-6 px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="px-1.5">
-              <Brand marca={marca} />
+              <Brand />
             </div>
             <button
               onClick={() => setOpen(false)}

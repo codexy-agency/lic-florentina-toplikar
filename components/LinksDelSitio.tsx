@@ -27,8 +27,8 @@ export function LinksDelSitio({ dominio }: { dominio?: string }) {
   const links = [
     {
       id: "sitio",
-      titulo: "Tu página",
-      para: "Para tu bio de Instagram, tu firma de mail o tus tarjetas.",
+      titulo: "Sitio de RS Odontología",
+      para: "Para la bio de Instagram, la firma de mail o las tarjetas.",
       url: base,
       icono: (
         <>
@@ -39,8 +39,8 @@ export function LinksDelSitio({ dominio }: { dominio?: string }) {
     },
     {
       id: "reservar",
-      titulo: "Reservar turno",
-      para: "Mandáselo a quien te escribe y reserva solo, sin ida y vuelta.",
+      titulo: "Reserva de turnos",
+      para: "Mandáselo a quien escribe y reserva solo, sin ida y vuelta.",
       url: base ? `${base}/reservar` : "",
       icono: (
         <>

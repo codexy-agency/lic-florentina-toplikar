@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 // Título de pestaña del panel ("Panel | RS Odontología") y fuera de buscadores.
 export const metadata: Metadata = {
-  title: { default: "Panel | RS Odontología", template: "%s | Panel RS Odontología" },
+  title: { default: "Panel", template: "%s | Panel RS Odontología" },
   robots: { index: false, follow: false },
 };
 
