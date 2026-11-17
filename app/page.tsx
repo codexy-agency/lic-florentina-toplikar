@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -7,14 +8,17 @@ import {
   Clock,
   InstagramLogo,
   MapPin,
+  Plus,
   WhatsappLogo,
 } from "@phosphor-icons/react/dist/ssr";
 import { getMarca } from "@/lib/store";
 import { whatsappUrl } from "@/lib/marca";
-import { CASOS, EQUIPO, RS, TRATAMIENTOS, waLink } from "@/lib/rs";
+import { CASOS, EQUIPO, PREGUNTAS, RS, TRATAMIENTOS, waLink } from "@/lib/rs";
+import { CODEXY } from "@/lib/codexy";
 import { AntesDespues } from "@/components/rs/AntesDespues";
 import { BarraTurno } from "@/components/rs/BarraTurno";
 import { IconoTratamiento } from "@/components/rs/IconoTratamiento";
+import { Movimiento } from "@/components/rs/Movimiento";
 import { BotonTurno, BotonWhatsApp, MuelaFondo, Pulso, Rayo } from "@/components/rs/piezas";
 import "./rs.css";
 
@@ -38,6 +42,7 @@ export default async function Home() {
 
   return (
     <div className="rs">
+      <Movimiento />
       <a href="#contenido" className="rs-saltar">
         Ir al contenido
       </a>
@@ -50,6 +55,7 @@ export default async function Home() {
           <a href="#casos">Casos</a>
           <a href="#tratamientos">Tratamientos</a>
           <a href="#equipo">Quiénes somos</a>
+          <a href="#preguntas">Preguntas</a>
           <a href="#donde">Dónde estamos</a>
         </nav>
         <Link href="/reservar" className="rs-top__turno">
@@ -63,10 +69,23 @@ export default async function Home() {
         <section className="rs-hero">
           <MuelaFondo className="rs-hero__marca" />
 
+          {/* Pieza central: la muela con el rayo. Una sola imagen con dirección de
+              arte: recorte cuadrado en celular, composición completa en escritorio. */}
+          <figure className="rs-hero__pieza" aria-hidden>
+            <picture>
+              <source
+                media="(min-width: 980px)"
+                srcSet="/rs/hero-muela-640.webp 640w, /rs/hero-muela.webp 928w"
+                sizes="38vw"
+                width={928}
+                height={1152}
+              />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/rs/hero-muela-cuadrada.webp" alt="" width={600} height={614} fetchPriority="high" decoding="async" />
+            </picture>
+          </figure>
+
           <div className="rs-hero__texto">
-            <div className="rs-hero__objeto" aria-hidden>
-              <Image src="/rs/muela-3d.webp" alt="" width={760} height={760} priority sizes="(min-width: 980px) 300px, 190px" />
-            </div>
             <h1 className="rs-hero__titulo">
               Tu sonrisa,
               <br />
@@ -86,16 +105,6 @@ export default async function Home() {
           </div>
 
           <div className="rs-hero__lado">
-            <figure className="rs-marco rs-marco--oscuro rs-hero__foto">
-              <Image
-                src="/rs/puerta.webp"
-                alt="Puerta del consultorio con el isotipo de RS: una muela con un rayo"
-                width={1100}
-                height={1486}
-                priority
-                sizes="(min-width: 980px) 38vw, 92vw"
-              />
-            </figure>
             <dl className="rs-ticket rs-hero__horas">
               <div className="rs-ticket__icono" aria-hidden>
                 <Clock weight="duotone" />
@@ -113,7 +122,7 @@ export default async function Home() {
         {/* ── Casos antes / después ── */}
         <section id="casos" className="rs-casos">
           <div className="rs-ancho">
-            <header className="rs-cabeza">
+            <header className="rs-cabeza" data-aparece>
               <h2 className="rs-h2">
                 Antes y después.
                 <br />
@@ -126,8 +135,8 @@ export default async function Home() {
             </header>
 
             <ul className="rs-casos__grilla">
-              {CASOS.map((c) => (
-                <li key={c.id} className="rs-caso">
+              {CASOS.map((c, i) => (
+                <li key={c.id} className="rs-caso" data-aparece style={{ "--i": i } as CSSProperties}>
                   <h3 className="rs-caso__nombre">
                     <span className="rs-ficha" aria-hidden>
                       <IconoTratamiento id={c.icono} />
@@ -157,7 +166,7 @@ export default async function Home() {
         {/* ── Tratamientos ── */}
         <section id="tratamientos" className="rs-trat">
           <div className="rs-ancho">
-            <header className="rs-cabeza rs-trat__cabeza">
+            <header className="rs-cabeza rs-trat__cabeza" data-aparece>
               <h2 className="rs-h2">Lo que hacemos en el consultorio.</h2>
               <figure className="rs-marco rs-trat__foto" aria-hidden>
                 <Image src="/rs/instrumental.webp" alt="" width={1010} height={650} sizes="(min-width: 980px) 460px, 92vw" />
@@ -165,8 +174,8 @@ export default async function Home() {
             </header>
 
             <ul className="rs-trat__lista">
-              {TRATAMIENTOS.map((t) => (
-                <li key={t.nombre} className="rs-trat__item">
+              {TRATAMIENTOS.map((t, i) => (
+                <li key={t.nombre} className="rs-trat__item" data-aparece style={{ "--i": i % 3 } as CSSProperties}>
                   <span className="rs-ficha rs-ficha--grande" aria-hidden>
                     <IconoTratamiento id={t.icono} />
                   </span>
@@ -178,7 +187,7 @@ export default async function Home() {
               ))}
             </ul>
 
-            <div className="rs-trat__cierre">
+            <div className="rs-trat__cierre" data-aparece>
               <MuelaFondo className="rs-trat__marca" />
               <p>¿No sabés qué necesitás? Empezá por una primera consulta y lo vemos juntas.</p>
               <BotonTurno />
@@ -189,7 +198,7 @@ export default async function Home() {
         {/* ── Quiénes somos ── */}
         <section id="equipo" className="rs-equipo">
           <div className="rs-ancho rs-equipo__grid">
-            <div className="rs-equipo__marco">
+            <div className="rs-equipo__marco" data-aparece>
               <figure className="rs-marco rs-equipo__foto">
                 <Image
                   src="/rs/equipo.webp"
@@ -200,7 +209,7 @@ export default async function Home() {
                 />
               </figure>
             </div>
-            <div className="rs-equipo__texto">
+            <div className="rs-equipo__texto" data-aparece style={{ "--i": 1 } as CSSProperties}>
               <h2 className="rs-h2">Somos Aran y Nanu.</h2>
               <blockquote className="rs-equipo__cita">
                 <Rayo className="rs-equipo__rayo" />
@@ -232,10 +241,10 @@ export default async function Home() {
         {/* ── Protectores Bucales RS ── */}
         <section className="rs-prot">
           <div className="rs-ancho rs-prot__grid">
-            <figure className="rs-marco rs-marco--tinta rs-prot__foto" aria-hidden>
+            <figure className="rs-marco rs-marco--tinta rs-prot__foto" aria-hidden data-aparece>
               <Image src="/rs/protector-3d.webp" alt="" width={820} height={660} sizes="(min-width: 980px) 420px, 92vw" />
             </figure>
-            <div className="rs-prot__texto">
+            <div className="rs-prot__texto" data-aparece style={{ "--i": 1 } as CSSProperties}>
               <h2 className="rs-h2">También hacemos protectores bucales a medida.</h2>
               <p>
                 Si jugás un deporte de contacto, el protector es tu mejor aliado, y uno genérico no es lo
@@ -252,21 +261,60 @@ export default async function Home() {
           </div>
         </section>
 
+        {/* ── Preguntas ── */}
+        <section id="preguntas" className="rs-faq">
+          <div className="rs-ancho rs-faq__grid">
+            <header className="rs-cabeza" data-aparece>
+              <h2 className="rs-h2">Antes de venir.</h2>
+              <p className="rs-intro">Lo que más nos preguntan, respondido corto.</p>
+            </header>
+            <ol className="rs-faq__lista">
+              {PREGUNTAS.map((q, i) => (
+                <li key={q.pregunta} data-aparece style={{ "--i": i } as CSSProperties}>
+                  <details className="rs-faq__item" name="rs-faq">
+                    <summary>
+                      <span className="rs-faq__num" aria-hidden>
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      <span className="rs-faq__texto">{q.pregunta}</span>
+                      <span className="rs-faq__mas" aria-hidden>
+                        <Plus weight="bold" />
+                      </span>
+                    </summary>
+                    <p>{q.respuesta}</p>
+                  </details>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
         {/* ── Dónde y cuándo ── */}
         <section id="donde" className="rs-donde">
           <MuelaFondo className="rs-donde__marca" />
           <div className="rs-ancho">
-            <figure className="rs-marco rs-marco--oscuro rs-donde__foto">
-              <Image
-                src="/rs/frente.webp"
-                alt="Frente del consultorio, con el cartel RS Odontología"
-                width={1600}
-                height={459}
-                sizes="100vw"
-              />
-            </figure>
+            <div className="rs-donde__fotos" data-aparece>
+              <figure className="rs-marco rs-marco--oscuro rs-donde__foto">
+                <Image
+                  src="/rs/frente.webp"
+                  alt="Frente del consultorio, con el cartel RS Odontología"
+                  width={1600}
+                  height={459}
+                  sizes="(min-width: 980px) 70vw, 92vw"
+                />
+              </figure>
+              <figure className="rs-marco rs-marco--oscuro rs-donde__puerta">
+                <Image
+                  src="/rs/puerta-detalle.webp"
+                  alt="Puerta del consultorio con el isotipo de RS: una muela con un rayo"
+                  width={800}
+                  height={648}
+                  sizes="(min-width: 980px) 26vw, 92vw"
+                />
+              </figure>
+            </div>
             <div className="rs-donde__grid">
-              <div className="rs-donde__lugar">
+              <div className="rs-donde__lugar" data-aparece>
                 <span className="rs-donde__pin" aria-hidden>
                   <MapPin weight="duotone" />
                 </span>
@@ -283,7 +331,7 @@ export default async function Home() {
                   </span>
                 </a>
               </div>
-              <div className="rs-donde__panel" data-oculta-barra>
+              <div className="rs-donde__panel" data-oculta-barra data-aparece style={{ "--i": 1 } as CSSProperties}>
                 <table className="rs-donde__tabla">
                   <caption className="rs-sr">Horarios de atención</caption>
                   <tbody>
@@ -312,31 +360,119 @@ export default async function Home() {
       </main>
 
       <footer className="rs-pie">
-        <div className="rs-ancho rs-pie__grid">
-          <Image src="/rs/logo-blanco.png" alt="RS Odontología" width={1045} height={513} className="rs-pie__logo" />
-          <ul className="rs-pie__links">
-            <li>
-              <a href={ig} target="_blank" rel="noopener noreferrer">
-                <InstagramLogo weight="duotone" aria-hidden /> @{RS.instagram}
+        <MuelaFondo className="rs-pie__marca" />
+        <div className="rs-ancho">
+          <div className="rs-pie__cierre" data-oculta-barra data-aparece>
+            <span className="rs-pie__rayo" aria-hidden>
+              <Rayo />
+            </span>
+            <h2 className="rs-h2">¿Sacamos ese turno?</h2>
+            <p>Elegís día y horario online, sin llamar. Y si preferís, nos escribís.</p>
+            <div className="rs-pie__botones">
+              <BotonTurno>Sacar turno online</BotonTurno>
+              <BotonWhatsApp href={wa("Hola, quiero pedir un turno en RS Odontología.")}>
+                {RS.whatsappVisible}
+              </BotonWhatsApp>
+            </div>
+          </div>
+
+          <div className="rs-pie__grid">
+            <div className="rs-pie__sobre" data-aparece>
+              <Image src="/rs/logo-blanco.png" alt="RS Odontología" width={1045} height={513} className="rs-pie__logo" />
+              <p>
+                {RS.especialidad} en {RS.ciudad}.
+              </p>
+            </div>
+
+            <div className="rs-pie__col" data-aparece style={{ "--i": 1 } as CSSProperties}>
+              <h3>
+                <MapPin weight="duotone" aria-hidden /> Dónde
+              </h3>
+              <p>
+                {RS.direccion}, {RS.ciudad}
+                <br />
+                {RS.referencia}
+              </p>
+              <a href={RS.mapa} target="_blank" rel="noopener noreferrer" className="rs-pie__link">
+                Cómo llegar <ArrowUpRight weight="bold" aria-hidden />
               </a>
-            </li>
-            <li>
-              <a href={igProtectores} target="_blank" rel="noopener noreferrer">
-                <InstagramLogo weight="duotone" aria-hidden /> @{RS.instagramProtectores}
-              </a>
-            </li>
-            <li>
-              <a href={wa("Hola, quiero hacer una consulta.")} target="_blank" rel="noopener noreferrer">
-                <WhatsappLogo weight="duotone" aria-hidden /> {RS.whatsappVisible}
-              </a>
-            </li>
-          </ul>
-          <p className="rs-pie__legal">
-            {RS.nombre} · {RS.direccion}, {RS.ciudad}, {RS.provincia}
+            </div>
+
+            <div className="rs-pie__col" data-aparece style={{ "--i": 2 } as CSSProperties}>
+              <h3>
+                <Clock weight="duotone" aria-hidden /> Horarios
+              </h3>
+              <dl className="rs-pie__horas">
+                {RS.horarios.map((h) => (
+                  <div key={h.dias}>
+                    <dt>{h.dias}</dt>
+                    <dd>{h.horas}</dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="rs-pie__nota">Siempre con turno previo.</p>
+            </div>
+
+            <div className="rs-pie__col" data-aparece style={{ "--i": 3 } as CSSProperties}>
+              <h3>
+                <WhatsappLogo weight="duotone" aria-hidden /> Contacto
+              </h3>
+              <ul className="rs-pie__links">
+                <li>
+                  <a href={wa("Hola, quiero hacer una consulta.")} target="_blank" rel="noopener noreferrer">
+                    <WhatsappLogo weight="duotone" aria-hidden /> {RS.whatsappVisible}
+                  </a>
+                </li>
+                <li>
+                  <a href={ig} target="_blank" rel="noopener noreferrer">
+                    <InstagramLogo weight="duotone" aria-hidden /> @{RS.instagram}
+                  </a>
+                </li>
+                <li>
+                  <a href={igProtectores} target="_blank" rel="noopener noreferrer">
+                    <InstagramLogo weight="duotone" aria-hidden /> @{RS.instagramProtectores}
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <nav className="rs-pie__col rs-pie__nav" aria-label="Secciones del sitio" data-aparece style={{ "--i": 4 } as CSSProperties}>
+              <h3>En esta página</h3>
+              <ul>
+                <li>
+                  <a href="#casos">Antes y después</a>
+                </li>
+                <li>
+                  <a href="#tratamientos">Tratamientos</a>
+                </li>
+                <li>
+                  <a href="#equipo">Quiénes somos</a>
+                </li>
+                <li>
+                  <a href="#preguntas">Preguntas</a>
+                </li>
+                <li>
+                  <Link href="/reservar">Sacar turno</Link>
+                </li>
+              </ul>
+            </nav>
+          </div>
+
+          <p className="rs-pie__nombre" aria-hidden>
+            RS Odontología
           </p>
-          <Link href="/admin" className="rs-pie__panel">
-            Acceso del equipo
-          </Link>
+
+          <div className="rs-pie__base">
+            <p>
+              © {new Date().getFullYear()} {RS.nombre} · {RS.direccion}, {RS.ciudad}, {RS.provincia}
+            </p>
+            <Link href="/admin" className="rs-pie__panel">
+              Acceso del equipo
+            </Link>
+            <a href={CODEXY.sitio} target="_blank" rel="noopener noreferrer" className="rs-pie__codexy">
+              Hecho por Codexy
+            </a>
+          </div>
         </div>
       </footer>
 

@@ -10,6 +10,9 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
  *   de la página siga funcionando sobre la foto.
  * - Con teclado: es un <input type="range"> real. Flechas mueven de a 2 %,
  *   Inicio/Fin van a los extremos, y el lector de pantalla anuncia el valor.
+ * - Las dos fotos se piden de entrada (sin loading="lazy"): son livianas, y la
+ *   carga diferida no es confiable en imágenes posicionadas en absoluto dentro
+ *   de un contenedor recortado (navegadores embebidos de Instagram y WhatsApp).
  * - La posición es una variable CSS (--pos): mover no dispara layout, solo
  *   recorta la foto de arriba con clip-path.
  */
@@ -96,7 +99,6 @@ export function AntesDespues({
         alt={`Después: ${tratamiento}, paciente de RS Odontología`}
         width={900}
         height={600}
-        loading="lazy"
         decoding="async"
         draggable={false}
       />
@@ -107,7 +109,6 @@ export function AntesDespues({
         alt={`Antes: ${tratamiento}, paciente de RS Odontología`}
         width={900}
         height={600}
-        loading="lazy"
         decoding="async"
         draggable={false}
       />

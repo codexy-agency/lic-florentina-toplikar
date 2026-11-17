@@ -34,6 +34,41 @@ export const RS = {
   mapa: "https://www.google.com/maps/search/?api=1&query=Montevideo+49%2C+Paran%C3%A1%2C+Entre+R%C3%ADos",
 } as const;
 
+/** Tarjeta que aparece al compartir el enlace por WhatsApp o Instagram
+ *  (1200x630, JPG liviano). La ruta es relativa: metadataBase la vuelve absoluta. */
+export const IMAGEN_COMPARTIR = {
+  url: "/rs/og.jpg",
+  width: 1200,
+  height: 630,
+  type: "image/jpeg",
+  alt: "RS Odontología: tu sonrisa, en pleno centro de Paraná. Sacá tu turno online.",
+};
+
+// ── Preguntas frecuentes ─────────────────────────────────────────────────────
+// Solo lo que ellas mismas responden en sus publicaciones.
+export const PREGUNTAS: { pregunta: string; respuesta: string }[] = [
+  {
+    pregunta: "¿Atienden sin turno?",
+    respuesta: "No. Atendemos siempre con turno previo. Lo sacás online en dos minutos o nos escribís por WhatsApp.",
+  },
+  {
+    pregunta: "¿Dónde queda el consultorio?",
+    respuesta: "En Montevideo 49, entre San Martín y Pellegrini, en pleno centro de Paraná.",
+  },
+  {
+    pregunta: "¿Cada cuánto conviene hacerse un control?",
+    respuesta: "Cada seis meses, con limpieza. La higiene, la dieta y el control son lo que evita los arreglos grandes.",
+  },
+  {
+    pregunta: "¿Puedo hacerme un blanqueamiento directamente?",
+    respuesta: "Primero va la limpieza. Blanquear sobre una boca que la necesita no funciona: dejamos todo sano y después vamos por el color.",
+  },
+  {
+    pregunta: "Se me rompió un diente o me duele, ¿qué hago?",
+    respuesta: "Sacá un turno de “Dolor o urgencia” o escribinos por WhatsApp y coordinamos.",
+  },
+];
+
 export function waLink(texto: string, numero: string = RS.whatsapp): string {
   return `https://wa.me/${numero.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(texto)}`;
 }

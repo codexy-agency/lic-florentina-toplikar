@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import { getMarca } from "@/lib/store";
 import { iniciales, nombreMostrable, partirNombre } from "@/lib/marca";
 import { LoginForm } from "@/components/LoginForm";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: { absolute: "Ingresar | RS Odontología" } };
 
 export default async function LoginPage() {
   const marca = await getMarca();

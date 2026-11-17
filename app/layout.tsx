@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { headers } from "next/headers";
 import { getMarca } from "@/lib/store";
 import { baseDePlataforma, baseDelRequest } from "@/lib/sitio";
 import { cssDeMarca, type Marca } from "@/lib/marca";
-import { RS } from "@/lib/rs";
+import { IMAGEN_COMPARTIR, RS } from "@/lib/rs";
 
 // Tipografías AUTOALOJADAS (app/fonts, licencia OFL): no se pide nada a Google.
 // Bricolage Grotesque para títulos (variable en peso y ancho: los titulares van
@@ -57,6 +57,8 @@ export async function generateMetadata(): Promise<Metadata> {
     description: descripcion,
     authors: [{ name: nombre }],
     creator: nombre,
+    applicationName: nombre,
+    alternates: { canonical: "/" },
     openGraph: {
       type: "website",
       locale: "es_AR",
@@ -64,11 +66,20 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: nombre,
       title: tituloCompleto,
       description: descripcion,
+      images: [IMAGEN_COMPARTIR],
     },
-    twitter: { card: "summary_large_image", title: tituloCompleto, description: descripcion },
+    twitter: {
+      card: "summary_large_image",
+      title: tituloCompleto,
+      description: descripcion,
+      images: [IMAGEN_COMPARTIR.url],
+    },
     robots: { index: true, follow: true },
   };
 }
+
+// Color de la barra del navegador en el celular: el verde petróleo del logo.
+export const viewport: Viewport = { themeColor: "#1E3A3D" };
 
 /** Datos estructurados (Google): consultorio odontológico, con lo que publican. */
 function jsonLdDe(m: Marca | null, url: string) {

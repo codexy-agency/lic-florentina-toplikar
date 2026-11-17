@@ -4,14 +4,33 @@ import Link from "next/link";
 import { TurnoForm } from "@/components/TurnoForm";
 import { getMarca } from "@/lib/store";
 import { whatsappUrl } from "@/lib/marca";
-import { RS, waLink } from "@/lib/rs";
+import { IMAGEN_COMPARTIR, RS, waLink } from "@/lib/rs";
 import { WhatsappLogo } from "@phosphor-icons/react/dist/ssr";
 import "../rs.css";
 
+const DESCRIPCION = `Elegí tratamiento, profesional, día y horario y reservá tu turno en ${RS.nombre}, ${RS.direccion}, ${RS.ciudad}.`;
+
 export const metadata: Metadata = {
   title: "Sacá tu turno",
-  description: `Elegí tratamiento, profesional, día y horario y reservá tu turno en ${RS.nombre}, ${RS.direccion}, ${RS.ciudad}.`,
+  description: DESCRIPCION,
   alternates: { canonical: "/reservar" },
+  // Una página que define openGraph reemplaza entero al del layout: por eso se
+  // repiten el tipo, el sitio y la imagen.
+  openGraph: {
+    type: "website",
+    locale: "es_AR",
+    siteName: RS.nombre,
+    url: "/reservar",
+    title: `Sacá tu turno | ${RS.nombre}`,
+    description: DESCRIPCION,
+    images: [IMAGEN_COMPARTIR],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `Sacá tu turno | ${RS.nombre}`,
+    description: DESCRIPCION,
+    images: [IMAGEN_COMPARTIR.url],
+  },
 };
 
 export const dynamic = "force-dynamic";
